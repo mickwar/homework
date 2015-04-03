@@ -16,7 +16,7 @@ head(respiratory)
 cor(matrix(respiratory$outcome, 111, 4, byrow = TRUE))
 
 pa.mod = geeglm(outcome ~ treat + center + age + sex + baseline,
-    data = respiratory, id = unique.id, family = binomial, corstr = "ar1")
+    data = respiratory, id = unique.id, family = binomial, corstr = "unstructured")
 
 ss.mod = glmer(outcome ~ treat + center + age + sex + baseline + 
     (1|unique.id), data = respiratory, family = binomial)
@@ -28,8 +28,9 @@ b = ranef(ss.mod)[[1]][,1]
 plot(density(b))
 
 # compare two models
-summary(pa.mod)
-summary(ss.mod)
+summary(pa.mod)[[6]]
+summary(ss.mod)[[10]]
+
 
 ### naive fitting (independent observations)
 summary(glm(outcome ~ treat + center + age + sex + baseline,
