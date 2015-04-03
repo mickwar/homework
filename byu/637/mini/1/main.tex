@@ -38,8 +38,41 @@ where $\m{b}_i$ is an independent observation from some distribution, $F$, and $
 \bigskip
 
 \noindent When inference on a population is of more interest than inference on a subject, an alternative model is the population average model. Let $\mu_{it}=E(y_{it})$ be the marginal expectation. The responses then satisfy
-\[ h^*&(u_{it}) = \m{x}_{it}^\top\m{\beta}^* ~~~\mathrm{and}~~~ \var(y_{it}) = g^*(u_{it})\cdot \phi, \]
-for link and variance functions $h^*$ and $g^*$.
+\[ h^*&(\mu_{it}) = \m{x}_{it}^\top\m{\beta}^* ~~~\mathrm{and}~~~ \var(y_{it}) = g^*(\mu_{it})\cdot \phi, \]
+for link and variance functions $h^*$ and $g^*$. The population parameters $\m{\beta}^*$ describe the relationship between the covariates and the average response across all subjects.
+
+\section*{Parameter estimation}
+
+\noindent The authors' method of estimating the parameters $(\m{\beta},\m{D},\phi)$ is comparable to the iteratively reweighted least squares approach as discussed in class. However, the covariance between responses and the random effects must be taken into account. This is done through generalized estimating equations.
+\bigskip
+
+\noindent Estimates may be calculated for the random effects $\m{b}_i$, but these merely provide offsets for each subject and so specific values are not of particular interest. When random effects are present in the model, interpretation of the fixed effects $\m{\beta}$ has a subtle difference than that of $\m{\beta}^*$. We discuss interpretation in the next section.
+\bigskip
+
+\noindent We omit the actual procedure as described in the article since it is rather involved. Software for parameter estimation is provided in the R package \texttt{geepack} with the \texttt{geeglm()} function.
+
+\section*{Example: respiratory illness}
+
+\noindent We use the \texttt{respiratory} data set from the R package \texttt{geepack}. The data are from a clinical trial of patients with respiratory illness. A placebo or active treatment was randomly given to 111 patients from two clinical centers. Patients were examined at baseline then again examined at four return visits. The outcome is respiratory status, where good = 1 and poor = 0. Sex and age are also given covariates.
+\bigskip
+
+\noindent We demonstrate both the PA and SS models on the respiratory illness data set. Zeger \emph{et al.} (1988) show that the parameters estimates and $t$-values are fairly robust to misspecification in the correlation $\m{R}$, so we will choose one structure in our analysis. In Table \ref{cor} we show the sample correlation among the binary outcomes. The correlations appear to be very similar, hence we will use the exchangeable correlation structure: $R_{jk} = \alpha, j\neq k$ and $R_{jj} = 1$.
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{r | llll}
+Visit & \multicolumn{1}{r}{1} & \multicolumn{1}{r}{2} &
+    \multicolumn{1}{r}{3} & \multicolumn{1}{r}{4} \\ \hline
+1 & 1.000 & 0.509 & 0.443 & 0.514 \\
+2 & 0.509 & 1.000 & 0.582 & 0.530 \\
+3 & 0.443 & 0.582 & 1.000 & 0.587 \\
+4 & 0.514 & 0.530 & 0.587 & 1.000 \\
+\end{tabular}
+\end{center}
+\caption{Correlation among of the binary response for the respiratory data}
+\label{cor}
+\end{table}
+
 
 
 \end{document}
