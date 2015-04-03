@@ -12,28 +12,21 @@ respiratory$unique.id = respiratory$id
 respiratory$unique.id[225:444] = respiratory$unique.id[225:444] + 56
 head(respiratory)
 
-# correlation matrix of the binary outcomes
-cor(matrix(respiratory$outcome, 111, 4, byrow = TRUE))
-
+### population average model
 pa.mod = geeglm(outcome ~ treat + center + age + sex + baseline,
-    data = respiratory, id = unique.id, family = binomial, corstr = "unstructured")
+    data = respiratory, id = unique.id, family = binomial, corstr = "ar1")
 
+### subject-specific model (uncorrelated observations?)
 ss.mod = glmer(outcome ~ treat + center + age + sex + baseline + 
     (1|unique.id), data = respiratory, family = binomial)
+
+
 # get random effects
-ranef(ss.mod)
 b = ranef(ss.mod)[[1]][,1]
 
 # "should" look normal
-plot(density(b))
+#plot(density(b))
 
-# compare two models
-summary(pa.mod)[[6]]
-summary(ss.mod)[[10]]
-
-
-### naive fitting (independent observations)
-summary(glm(outcome ~ treat + center + age + sex + baseline,
-    data = respiratory, family = binomial))
+# compare two models' coefficients
 summary(pa.mod)
-# 
+summary(ss.mod)

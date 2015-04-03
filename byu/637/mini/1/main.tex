@@ -1,7 +1,9 @@
 \documentclass[12pt]{article}
 
+\usepackage[font=footnotesize]{caption}
 \usepackage{amsmath}
 \usepackage{bm}
+\usepackage{listings}
 
 \newcommand{\m}[1]{\mathbf{\bm{#1}}}
 \newcommand{\R}{I\hspace{-4.4pt}R}
@@ -34,7 +36,7 @@
 
 \noindent Subject-specific models are used when the response for an individual is the focus. These models taken on the form of a generalized linear mixed model. For subject $i$ at time $t$, let $y_{it}$ be the response, $\m{x}_{it}$ a $p\times 1$ vector of fixed covariates associated with $p\times 1$ fixed effects $\m{\beta}$, and $\m{z}_{it}$ a $q\times 1$ vector of covariates associated with $q\times 1$ random effects $\m{b}_i$. Let $u_{it}=E(y_{it}|\m{b}_i)$. We assume the responses satisfy
 \[ h(u_{it}) = \m{x}_{it}^\top\m{\beta} + \m{z}_{it}^\top\m{b}_i ~~~\mathrm{and}~~~ \var(y_{it}|\m{b}_i) = g(u_{it})\cdot \phi \]
-where $\m{b}_i$ is an independent observation from some distribution, $F$, and $i=1,\ldots,K$ and $t=1,\ldots,n_i$. Typically, $\m{b}_i\sim N(\m{0}, \m{D})$. The functions $h$ and $g$ are referred to as the ``link'' and ``variance'' functions, respectively. Choices for $h$ include the log, logit, or probit links. The variance function $g$ may be defined by the choice of likehood (e.g. with a Poisson likelihood, we have $\mathrm{var}(y_{it}|\m{b}_{it})=u_{it}$). The scale parameter $\phi$ can be used to define quasi-likelihoods.
+where $\m{b}_i$ is an independent observation from some distribution, $F$, and $i=1,\ldots,K$ and $t=1,\ldots,n_i$. Typically, $\m{b}_i\sim N(\m{0}, \m{D})$. The functions $h$ and $g$ are referred to as the ``link'' and ``variance'' functions, respectively. Choices for $h$ include the log, logit, or probit links. The variance function $g$ may be defined by the choice of likelihood (e.g. with a Poisson likelihood, we have $\mathrm{var}(y_{it}|\m{b}_{it})=u_{it}$). The scale parameter $\phi$ can be used to define quasi-likelihoods.
 \bigskip
 
 \noindent When inference on a population is of more interest than inference on a subject, an alternative model is the population average model. Let $\mu_{it}=E(y_{it})$ be the marginal expectation. The responses then satisfy
@@ -49,30 +51,77 @@ for link and variance functions $h^*$ and $g^*$. The population parameters $\m{\
 \noindent Estimates may be calculated for the random effects $\m{b}_i$, but these merely provide offsets for each subject and so specific values are not of particular interest. When random effects are present in the model, interpretation of the fixed effects $\m{\beta}$ has a subtle difference than that of $\m{\beta}^*$. We discuss interpretation in the next section.
 \bigskip
 
-\noindent We omit the actual procedure as described in the article since it is rather involved. Software for parameter estimation is provided in the R package \texttt{geepack} with the \texttt{geeglm()} function.
+\noindent We omit the actual generalized estimation equations procedure as described in the article since it is rather involved. Software for parameter estimation is provided in the R packages \texttt{geepack}  and \texttt{lme4} with functions \texttt{geeglm()} and \texttt{glmer}, respectively. We use \texttt{geeglm()} to fit the PA model and \texttt{glmer()} to fit the SS model.
 
 \section*{Example: respiratory illness}
 
 \noindent We use the \texttt{respiratory} data set from the R package \texttt{geepack}. The data are from a clinical trial of patients with respiratory illness. A placebo or active treatment was randomly given to 111 patients from two clinical centers. Patients were examined at baseline then again examined at four return visits. The outcome is respiratory status, where good = 1 and poor = 0. Sex and age are also given covariates.
 \bigskip
 
-\noindent We demonstrate both the PA and SS models on the respiratory illness data set. Zeger \emph{et al.} (1988) show that the parameters estimates and $t$-values are fairly robust to misspecification in the correlation $\m{R}$, so we will choose one structure in our analysis. In Table \ref{cor} we show the sample correlation among the binary outcomes. The correlations appear to be very similar, hence we will use the exchangeable correlation structure: $R_{jk} = \alpha, j\neq k$ and $R_{jj} = 1$.
+\noindent We demonstrate both the PA and SS models on the respiratory illness data set. Zeger \emph{et al.} (1988) show that the parameters estimates and $t$-values are fairly robust to misspecification in the correlation $\m{R}$, so we will choose one structure in our analysis. We use the exchangeable correlation structure: $R_{jk} = \rho, j\neq k$ and $R_{jj} = 1$. We fit the the PA model as
+\begin{eqnarray*}
+\mathrm{logit}(\mu_{it}) &=& \beta_0^* + \beta_1^*\times I(\mathrm{treat_i=Placebo}) + \beta_2^*\times I(\mathrm{center_i=2}) +  \\
+ && \beta_3^*\times\mathrm{age}_i + \beta_4^*\times I(\mathrm{sex_i=Male}) + \beta_5^*\times I(\mathrm{baseline_i=Poor})
+\end{eqnarray*}
+and the SS model as
+\begin{eqnarray*}
+\mathrm{logit}(u_{it}) &=& \beta_0 + \beta_1\times I(\mathrm{treat_i=Placebo}) + \beta_2\times I(\mathrm{center_i=2}) +  \\
+ && \beta_3\times\mathrm{age}_i + \beta_4\times I(\mathrm{sex_i=Male}) + \beta_5\times I(\mathrm{baseline_i=Poor} + b_i)
+\end{eqnarray*}
+where $b_i$ is a random intercept for each subject.
+\bigskip
+
+\noindent It should be noted that \texttt{glmer()} has no option to specify a covariance among the observations and that the random effects are assumed to be independent. Furthermore, \texttt{geeglm()} does not allow specification of random effects. Hence, because of the limitation in software currently available to me, we must assume independence for measurements on each individual for the SS model. We are not happy with having to deal with the problems of other people's code.
+\bigskip
+
+\noindent Estimates and standard errors of $\m{\beta}^*$ and $\m{\beta}$ provided in Table \ref{pa_coef} (PA) and Table \ref{ss_coef} (SS). Though the signs agree between both models, the estimates are quite different. This is perhaps mostly due to assuming independent observations in the SS model. Using the Bonferroni correction to test for significance, we see that only the \texttt{intercept}, \texttt{treat}, and \texttt{baseline} are significant in both models.
+\bigskip
 
 \begin{table}[h]
 \begin{center}
 \begin{tabular}{r | llll}
-Visit & \multicolumn{1}{r}{1} & \multicolumn{1}{r}{2} &
-    \multicolumn{1}{r}{3} & \multicolumn{1}{r}{4} \\ \hline
-1 & 1.000 & 0.509 & 0.443 & 0.514 \\
-2 & 0.509 & 1.000 & 0.582 & 0.530 \\
-3 & 0.443 & 0.582 & 1.000 & 0.587 \\
-4 & 0.514 & 0.530 & 0.587 & 1.000 \\
+ & \multicolumn{1}{r}{Estimate} & \multicolumn{1}{r}{Std.err} &
+    \multicolumn{1}{r}{Wald} & \multicolumn{1}{r}{Pr($>|W|$)} \\ \hline \hline
+(Intercept)  &  2.277 & 0.824 &  7.62 & 0.005 \\
+treatPlacebo & -1.191 & 0.348 & 11.70 & $<0.001$ \\
+center2      &  0.729 & 0.352 &  4.28 & 0.038 \\
+age          & -0.017 & 0.012 &  1.82 & 0.176 \\
+sexMale      & -0.134 & 0.447 &  0.09 & 0.763 \\
+baselinePoor & -1.870 & 0.346 & 29.14 & $<0.001$ \\
 \end{tabular}
 \end{center}
-\caption{Correlation among of the binary response for the respiratory data}
-\label{cor}
+\caption{Population average model coefficients $\hat{\m{\beta}}^*$ and standard errors. The correlation parameter $\rho$ is estimated at $0.4573$.}
+\label{pa_coef}
 \end{table}
 
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{r | llll}
+ & \multicolumn{1}{r}{Estimate} & \multicolumn{1}{r}{Std.err} &
+    \multicolumn{1}{r}{$z$-value} & \multicolumn{1}{r}{Pr($>|z|$)} \\ \hline \hline
+(Intercept)  &  3.740 & 1.162 &  3.21 & 0.001 \\
+treatPlacebo & -2.047 & 0.534 & -3.82 & $<0.001$ \\
+center2      &  0.980 & 0.530 &  1.84 & 0.064 \\
+age          & -0.027 & 0.019 & -1.38 & 0.166 \\
+sexMale      & -0.246 & 0.653 & -0.37 & 0.706 \\
+baselinePoor & -2.947 & 0.577 & -5.09 & $<0.001$ \\
+\end{tabular}
+\end{center}
+\caption{Subject-specific model coefficients $\hat{\m{\beta}}$ and standard errors.}
+\label{ss_coef}
+\end{table}
 
+\noindent In the PA model, for an average person having received the active treatment and had a baseline of poor health the estimated odds of having a good respiratory status is $e^{2.277-1.870} = 1.502$. A confidence interval on the odds of good respiratory status of someone having received the placebo is $(0.214, 0.430)$. This is strong evidence in favor that taking the active ingredient may improve respiratory status.
+\bigskip
+
+\noindent In the SS model, the parameters are interpreted slightly different. Instead of making inference on the population, we are limited to making inferences on individual subjects. For instance, the parameter for \texttt{treat} (which is estimated at $-2.047$) describes how one subject's risk would change depending on whether they took the active ingredient or not. We do not show the 111 estimated random intercepts, but when calculating odds for a particular subject, the random effects should be included. In this model, we see similar evidence for the effectiveness of the active ingredient treatment. Though the coefficient for \texttt{treat} has a larger magnitude than in the PA model, this does not necessarily suggest stronger evidence for the active ingredient in a general sense, because the parameter is interpreted in the context of specific subjects.
+
+\section*{Discussion}
+
+\noindent We have used generalized estimating equations to account for correlation among observations. We considered a population average model and a subject-specific model on respiratory health data. Both models had comparable interpretations, but result in very different parameter estimates. As noted earlier, we had to assume observation independence for the SS model. For future analyses, we would fully implement Zeger's method which allows us to take into account the correlation among observations in a random effects model.
+
+\begin{footnotesize}
+\lstinputlisting[breaklines,framerule = .03mm,frame = single]{code.R}
+\end{footnotesize}
 
 \end{document}
