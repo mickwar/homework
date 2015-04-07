@@ -16,6 +16,8 @@
 \definecolor{bluegreen}{rgb}{0.05, 0.2, 0.6}
 
 %commands
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\Var}{\mathrm{Var}}
 \newcommand{\lra}{\longrightarrow}
 \newcommand{\ra}{\rightarrow}
 \newcommand{\m}[1]{\mathbf{\bm{#1}}}
@@ -40,7 +42,7 @@
 
 \begin{LARGE}
 \begin{center}
-
+GLMM Parameter Estimation via Approximation Methods
 \end{center}
 \end{LARGE}
 \vfill
@@ -58,13 +60,54 @@ April 2015
 \end{center}
 %%% end title frame
 
-%%% first frame
 \begin{frame}
-\subtitle{Approximate Inference in Generalized Linear Mixed Models}
-\begin{itemize}[label={$\cdot$}]
-\item Item 1
-\item Item 2
-\end{itemize}
+\subtitle{}
+This is a review of ``Approximate Inference in Generalized Linear Mixed Models'' by Breslow and Clayton in 1993.
+
 \end{frame}
+
+\begin{frame}
+\subtitle{Hierarchical model}
+The $i$th of $n$ observations has univariate response $y_i$ with vectors $\m{x}_i$ and $\m{z}_i$ is covariates.
+\bigskip
+
+We have a $q$-vector $\m{b}$ of random effects, where $\m{b}\sim N(\m{0},\m{D}(\m{\theta}))$.
+\bigskip
+
+In vector notation, the conditional mean of $\m{y}=(y_1,\ldots,y_n)^\top$ given $\m{b}$ is assumed to satisfy
+\[ \E(\m{y}|\m{b}) = \m{\mu} = h(\m{X}\m{\alpha} + \m{Z}\m{b}) \]
+
+and $\Var(y_i|\m{b})=\phi a_iv(\mu_i)$ for $i=1,\ldots,n$, for known constant $a_i$ and variance function $v(\cdot)$. Note, we do not have any distributional assumption on $y_i$.
+
+\end{frame}
+
+\begin{frame}
+\subtitle{Quasi-likelihood function}
+
+For independent observations $y_i,\ldots,y_n$, the quasi-likelihood function is defined as
+\[ K(y_i,\mu_i)=\int_{y_i}^{\mu_i}\frac{y_i-u_i}{a_i v(u_i)}du_i \]
+
+This has properties similar to the log-likelihood of a distribution from the exponential family.
+
+
+\end{frame}
+
+\begin{frame}
+
+The integrated quasi-likelihood function is defined by
+\begin{eqnarray*}
+e^{ql(\m{\alpha}, \m{\theta})} &\propto& |\m{D}|^{-1/2}\int\exp\left[\frac{1}{\phi}\sum_{i=1}^nK(y_i,\mu_i)-\frac{1}{2}\m{b}^\top\m{D}^{-1}\m{b} \right]d\m{b} \\
+&=& c|\m{D}|^{-1/2}\int\exp\left[ \kappa(\m{b}) \right] d\m{b} 
+\end{eqnarray*}
+where $c$ is some multiplicative constant. Using Laplace's method for integral approximation (and ignoring the constants), we have
+\[ql(\m{\alpha}, \m{\theta}) \approx -\frac{1}{2}\log|\m{D}| -\frac{1}{2}\log|\kappa''(\tilde{\m{b}})| - \kappa(\tilde{\m{b}}) \]
+where $\tilde{\m{b}}$ is the solution to $\kappa'(\m{b})=0$.
+
+\end{frame}
+
+% \begin{itemize}[label={$\cdot$}]
+% \item I
+% \item Item 2
+% \end{itemize}
 
 \end{document}
