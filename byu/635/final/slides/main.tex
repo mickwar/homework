@@ -68,16 +68,16 @@ This is a review of ``Approximate Inference in Generalized Linear Mixed Models''
 
 \begin{frame}
 \subtitle{Hierarchical model}
-The $i$th of $n$ observations has univariate response $y_i$ with vectors $\m{x}_i$ and $\m{z}_i$ is covariates.
+The $i$th of $n$ observations has univariate response $y_i$ with vectors $\m{x}_i$ and $\m{z}_i$ as covariates, and $\m{\alpha}$ as $p$ fixed effects.
 \bigskip
 
 We have a $q$-vector $\m{b}$ of random effects, where $\m{b}\sim N(\m{0},\m{D}(\m{\theta}))$.
 \bigskip
 
 In vector notation, the conditional mean of $\m{y}=(y_1,\ldots,y_n)^\top$ given $\m{b}$ is assumed to satisfy
-\[ \E(\m{y}|\m{b}) = \m{\mu} = h(\m{X}\m{\alpha} + \m{Z}\m{b}) \]
+\[ \E(\m{y}|\m{b}) = \m{\mu}^b = h(\m{X}\m{\alpha} + \m{Z}\m{b}) \]
 
-and $\Var(y_i|\m{b})=\phi a_iv(\mu_i)$ for $i=1,\ldots,n$, for known constant $a_i$ and variance function $v(\cdot)$. Note, we do not have any distributional assumption on $y_i$.
+and $\Var(y_i|\m{b})=\phi a_iv(\mu_i^b)$ for $i=1,\ldots,n$, for known constant $a_i$ and variance function $v(\cdot)$. Note, we do not have any distributional assumption on $y_i$.
 
 \end{frame}
 
@@ -86,8 +86,8 @@ and $\Var(y_i|\m{b})=\phi a_iv(\mu_i)$ for $i=1,\ldots,n$, for known constant $a
 
 For independent observations $y_i,\ldots,y_n$, the quasi-likelihood function is defined as
 \begin{eqnarray*}
-\frac{\partial K(y_i, \mu_i)}{\partial \mu_i} &=& \frac{y_i-\mu_i}{a_i v(\mu_i)} \\
-\Longrightarrow K(y_i,\mu_i)&=&\int_{y_i}^{\mu_i}\frac{y_i-u_i}{a_i v(u_i)}du_i
+\frac{\partial K(y_i, \mu_i^b)}{\partial \mu_i^b} &=& \frac{y_i-\mu_i^b}{a_i v(\mu_i^b)} \\
+\Longrightarrow K(y_i,\mu_i^b)&=&\int_{y_i}^{\mu_i^b}\frac{y_i-u_i}{a_i v(u_i)}du_i
 \end{eqnarray*}
 
 This has properties similar to the log-likelihood of a distribution from the exponential family.
@@ -97,13 +97,12 @@ This has properties similar to the log-likelihood of a distribution from the exp
 
 \begin{frame}
 
-\bigskip
-\bigskip
+\subtitle{Penalized quasi-likelihood (PQL)}
 
 The integrated quasi-likelihood function is defined by
 \begin{eqnarray*}
-e^{ql(\m{\alpha}, \m{\theta})} &\propto& |\m{D}|^{-1/2}\int\exp\left[\frac{1}{\phi}\sum_{i=1}^nK(y_i,\mu_i)-\frac{1}{2}\m{b}^\top\m{D}^{-1}\m{b} \right]d\m{b} \\
-&=& c|\m{D}|^{-1/2}\int\exp\left[ \kappa(\m{b}) \right] d\m{b} 
+e^{ql(\m{\alpha}, \m{\theta})} &\propto& |\m{D}|^{-1/2}\int\exp\left[\frac{1}{\phi}\sum_{i=1}^nK(y_i,\mu_i^b)-\frac{1}{2}\m{b}^\top\m{D}^{-1}\m{b} \right]d\m{b} \\
+&\propto& c|\m{D}|^{-1/2}\int\exp\left[ \kappa(\m{b}) \right] d\m{b} 
 \end{eqnarray*}
 where $c$ is some multiplicative constant. Using Laplace's method for integral approximation (and ignoring the constants), we have
 \[ql(\m{\alpha}, \m{\theta}) \approx -\frac{1}{2}\log|\m{D}| -\frac{1}{2}\log|\kappa''(\tilde{\m{b}})| - \kappa(\tilde{\m{b}}) \]
@@ -112,29 +111,54 @@ where $\tilde{\m{b}}$ is the solution to $\kappa'(\m{b})=0$.
 \end{frame}
 
 \begin{frame}
-\subtitle{Penalized quasi-likelihood (PQL)}
-
 \subtitle{Marginal quasi-likelihood (MQL)}
 
+The marginal model is used when focus is on population inference. The mean is model by
+\[ \E(\m{y}) = \m{\mu} = h(\m{X}\m{\alpha}) \]
+If we write $y_i=\mu_i^b+\epsilon_i$. with $\Var(\epsilon_i)=\phi a_iv(\mu_i^b)$ and $\m{b}\sim N(\m{0}, \m{D})$, then he have a first-order approximation of the hierarchical model
+\[ y_i \approx h(\m{x}_i^\top \m{\alpha}) + h'(\m{x}_i^\top\m{\alpha})\m{z}_i^\top\m{b} + \epsilon_i \]
+
+
 \end{frame}
 
 
 
 \begin{frame}
-\subtitle{Estimating parameters}
+\subtitle{Parameter estimation}
+
+Procedures alternately update estimates of $\m{\alpha}$, $\m{b}$, and $\m{\theta}$.
+\bigskip
+
+Some methods:
+\begin{itemize}[label={$\cdot$}]
+\item Iterated weighted least squares (IWLS)
+\item Newton-Raphson
+\item REML
+\item Other iterating procedures
+\end{itemize}
 
 \end{frame}
 
 
 
 \begin{frame}
-\subtitle{Roughbutts and Whitesides}
+\subtitle{Example: epileptics}
 
+A clinical trial had 59 patients who were randomized to receive a new drug.
+\bigskip
+
+The number of seizures for each patient were recorded as a baseline.
+\bigskip
+
+At four visits every two weeks the seizure count was recorded. Age is also a covariate.
+\bigskip
+
+PQL showed comparable results to Thall and Vail's original analysis.
 \end{frame}
 
-% \begin{itemize}[label={$\cdot$}]
-% \item I
-% \item Item 2
-% \end{itemize}
+
+\begin{frame}
+\end{frame}
+
 
 \end{document}
