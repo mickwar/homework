@@ -85,7 +85,10 @@ and $\Var(y_i|\m{b})=\phi a_iv(\mu_i)$ for $i=1,\ldots,n$, for known constant $a
 \subtitle{Quasi-likelihood function}
 
 For independent observations $y_i,\ldots,y_n$, the quasi-likelihood function is defined as
-\[ K(y_i,\mu_i)=\int_{y_i}^{\mu_i}\frac{y_i-u_i}{a_i v(u_i)}du_i \]
+\begin{eqnarray*}
+\frac{\partial K(y_i, \mu_i)}{\partial \mu_i} &=& \frac{y_i-\mu_i}{a_i v(\mu_i)} \\
+\Longrightarrow K(y_i,\mu_i)&=&\int_{y_i}^{\mu_i}\frac{y_i-u_i}{a_i v(u_i)}du_i
+\end{eqnarray*}
 
 This has properties similar to the log-likelihood of a distribution from the exponential family.
 
@@ -93,6 +96,9 @@ This has properties similar to the log-likelihood of a distribution from the exp
 \end{frame}
 
 \begin{frame}
+
+\bigskip
+\bigskip
 
 The integrated quasi-likelihood function is defined by
 \begin{eqnarray*}
@@ -102,6 +108,27 @@ e^{ql(\m{\alpha}, \m{\theta})} &\propto& |\m{D}|^{-1/2}\int\exp\left[\frac{1}{\p
 where $c$ is some multiplicative constant. Using Laplace's method for integral approximation (and ignoring the constants), we have
 \[ql(\m{\alpha}, \m{\theta}) \approx -\frac{1}{2}\log|\m{D}| -\frac{1}{2}\log|\kappa''(\tilde{\m{b}})| - \kappa(\tilde{\m{b}}) \]
 where $\tilde{\m{b}}$ is the solution to $\kappa'(\m{b})=0$.
+
+\end{frame}
+
+\begin{frame}
+\subtitle{Penalized quasi-likelihood (PQL)}
+
+\subtitle{Marginal quasi-likelihood (MQL)}
+
+\end{frame}
+
+
+
+\begin{frame}
+\subtitle{Estimating parameters}
+
+\end{frame}
+
+
+
+\begin{frame}
+\subtitle{Roughbutts and Whitesides}
 
 \end{frame}
 
