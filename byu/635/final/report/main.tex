@@ -1,9 +1,12 @@
 \documentclass[12pt]{article}
 
+%\usepackage[longnamesfirst]{natbib}
+\usepackage{natbib}
 \usepackage[font=footnotesize]{caption}
 \usepackage{amsmath}
 \usepackage{bm}
 \usepackage{listings}
+
 
 \newcommand{\m}[1]{\mathbf{\bm{#1}}}
 \newcommand{\R}{I\hspace{-4.4pt}R}
@@ -24,6 +27,46 @@ Mickey Warner
 
 \section*{Introduction}
 
-\noindent This report is a review of ``Approximate Inference in Generalized Linear Mixed Models'' by Breslow and Clayton in 1993. A generalized linear mixed model (GLMM)...
+\noindent In this paper we review ``Approximate Inference in Generalized Linear Mixed Models'' by \cite{breslow:1993}. The generalized linear model (GLM) \citep{mccullagh:1989} allows us to work with non-normal likelihoods, such as for binary, count, or nonnonegative data, by specifying a link function between the mean of a random variable and a systematic component.
+
+For example, suppose $Y$ has some distribution $F$ with mean $\mu$. We could specify a link function $g(\cdot)$ such that $g(\mu)=\m{x}^\top\m{\alpha}$. This form is now familiar to linear regression. The regression coefficients $\m{\alpha}$ are often estimated through some iterative procedure (such as IWLS). These coefficients are then interpreted with respect to the function of the mean. Yet, suitable choices of $g(\cdot)$, with its inverse $h(\cdot)=g^{-1}(\cdot)$, may still produce easily interpretable results.
+
+Linear mixed models \citep{henderson:1959} assume there are additional sources of variation, beyond measurement error. Such models have the form
+\[ \m{y} = \m{X}\m{\alpha} + \m{Z}\m{b} + \m{e} \]
+where typical assumptions are $\m{b}\sim N(\m{0}, \m{G})$ and $\m{e}\sim N(\m{0}, \m{R})$ with $\m{b}$ and $\m{e}$ independent. These models are useful for repeated measures or blocked data or other complicated designs. The power of these models comes from specifying the covariances $\m{G}$ and $\m{R}$, either as unstructured or having some known form. Many choices of covariance structures are available for use. Methods exist for estimating the fixed and random effects and also the variance-covariance parameters.
+
+Generalized linear mixed models (GLMMs) are a hybrid of the GLM and the linear mixed model. We have a need to use a non-normal likelihood, but also wish to model random effects and covariances. However, analytic solutions often require numerical integration, which becomes infeasible in high dimensions. The authors address the capability of Bayesian methods in avoiding the need for numerical integration. However, they criticize the Bayesian approach due to its need for intense computational resources. Though significant advances in scientific computing and computational resources have made Bayesian methods far more accessible. At the time of their writing (some twenty years ago), their method of parameter estimation and inference was groundbreaking and is still a powerful tool.
+
+The remainder of the paper will proceed as follows. In section 1 we describe in more detail the model that is considered by the authors. A summary of the model fitting procedure is given in section 2, and an example is presented in section 3. Section 4 provides concluding remarks.
+
+\section{Hierarchical model}
+ 
+\noindent For an observation $i$, a univariate response $y_i$ is measured with covariates $\m{x}_i$ and $\m{z}_i$ associated with the fixed and random effects, respectively. Units may be blocked in some way. Given a $q$-vector $\m{b}$ of random effects, the responses are assumed to be conditionally independent with means $\E(y_i|\m{b})=\mu_i^b$ and variances $\var(y_i|\m{b}) = \phi a_i v(\mu_i^b)$, where $\phi$ is a dispersion parameter, $a_i$ is a known constant, and $v(\cdot)$ is a specified variance function. The conditional mean is related to the linear component $\eta_i^b=\m{x}_i^\top\m{\alpha}+\m{z}_i^\top\m{b}$ through the link function $g(\mu_i^b)=\eta_i^b$, with inverse $h(\cdot)=g^{-1}(\cdot)$, where $\m{\alpha}$ is a $p$-vector of fixed effects.
+
+Denote $\m{y}=(y_1,\ldots,y_n)^\top$ and let $\m{X}$ and $\m{Z}$ have rows comprised of $\m{x}_i^\top$ and $\m{z}_i^\top$. We then write the conditional means using vector notation as
+\begin{eqnarray}
+\E(\m{y}|\m{b}) = \m{\mu}^b = h(\m{X}\m{\alpha} + \m{Z}\m{b}).
+\label{mod}
+\end{eqnarray}
+Finally, we assume $\m{b}$ is multivariate normally distributed with mean $\m{0}$ and covariance $\m{D}=\m{D}(\m{\theta})$ for an unknown vector $\m{\theta}$ of covariance parameters.
+
+We now give some remarks on this specification. The conditional variance has three terms, $\phi$, $a_i$, and $v(\mu_i^b)$. The dispersion parameter $\phi$ may be estimated, but is occasionally fixed at unity. The authors used $a_i$ as the ``reciprocal of a binomial denominator.'' That is, for experiments involving binomial outcomes, $a_i$ is the number of replicates on each observation. In the examples the authors provide, $a_i$ is fixed at one. The choice of $v(\cdot)$ should be thought of as choosing the likelihood for the data. For example, for count data, $v(\mu_i^b)=\mu_i^b$ is comparable to the Poisson distribution, while $v(\mu_i^b)=\mu_i^b(1-\mu_i^b)$ is similar to the binomial distribution. Note that we are not necessarily making any distributional assumptions about the likelihood. This requires the use of a quasi-likelihood, as discussed in the next section. The link function $g(\cdot)$ must be monotonic and maps the real numbers onto the support for the mean. Choices include the logit or inverse cdf of the normal distribution for binomial data and the natural logarithm for Poisson data. Ease of interpretation and adequacy of model fit should be taken into account when deciding on a link function.
+
+\section{Penalized quasi-likelihood}
+
+\noindent As mentioned earlier, the assumptions made about the conditional mean and variance do not equate to choosing a likelihood. Rather, the link and variance functions amount to specifying first and second moments for the data.
+
+Quasi-likelihoods \citep{wedderburn:1974} provide an alternative 
+
+\section{Example: epilepsy study}
+
+epilepsy data \cite{thall:1990}
+
+\section{Conclusion}
+
+bayesian analysis on the epilepsy data \cite{fong:2009}
+
+\bibliography{refs}
+\bibliographystyle{asa}
 
 \end{document}
