@@ -12,7 +12,7 @@
 \newcommand{\R}{I\hspace{-4.4pt}R}
 
 \newcommand{\E}{\mathrm{E}}
-\newcommand{\var}{\mathrm{var}}
+\newcommand{\Var}{\mathrm{Var}}
 
 \begin{document}
 
@@ -27,7 +27,7 @@ Mickey Warner
 
 \section*{Introduction}
 
-\noindent In this paper we review ``Approximate Inference in Generalized Linear Mixed Models'' by \cite{breslow:1993}. The generalized linear model (GLM) \citep{mccullagh:1989} allows us to work with non-normal likelihoods, such as for binary, count, or nonnonegative data, by specifying a link function between the mean of a random variable and a systematic component.
+\noindent In this paper we review ``Approximate Inference in Generalized Linear Mixed Models'' by \cite{breslow:1993}, referred to hereafter as the authors. The generalized linear model (GLM) \citep{mccullagh:1989} allows us to work with non-normal likelihoods, such as for binary, count, or nonnonegative data, by specifying a link function between the mean of a random variable and a systematic component.
 
 For example, suppose $Y$ has some distribution $F$ with mean $\mu$. We could specify a link function $g(\cdot)$ such that $g(\mu)=\m{x}^\top\m{\alpha}$. This form is now familiar to linear regression. The regression coefficients $\m{\alpha}$ are often estimated through some iterative procedure (such as IWLS). These coefficients are then interpreted with respect to the function of the mean. Yet, suitable choices of $g(\cdot)$, with its inverse $h(\cdot)=g^{-1}(\cdot)$, may still produce easily interpretable results.
 
@@ -41,7 +41,7 @@ The remainder of the paper will proceed as follows. In section 1 we describe in 
 
 \section{Hierarchical model}
  
-\noindent For an observation $i$, a univariate response $y_i$ is measured with covariates $\m{x}_i$ and $\m{z}_i$ associated with the fixed and random effects, respectively. Units may be blocked in some way. Given a $q$-vector $\m{b}$ of random effects, the responses are assumed to be conditionally independent with means $\E(y_i|\m{b})=\mu_i^b$ and variances $\var(y_i|\m{b}) = \phi a_i v(\mu_i^b)$, where $\phi$ is a dispersion parameter, $a_i$ is a known constant, and $v(\cdot)$ is a specified variance function. The conditional mean is related to the linear component $\eta_i^b=\m{x}_i^\top\m{\alpha}+\m{z}_i^\top\m{b}$ through the link function $g(\mu_i^b)=\eta_i^b$, with inverse $h(\cdot)=g^{-1}(\cdot)$, where $\m{\alpha}$ is a $p$-vector of fixed effects.
+\noindent For an observation $i$, a univariate response $y_i$ is measured with covariates $\m{x}_i$ and $\m{z}_i$ associated with the fixed and random effects, respectively. Units may be blocked in some way. Given a $q$-vector $\m{b}$ of random effects, the responses are assumed to be conditionally independent with means $\E(y_i|\m{b})=\mu_i^b$ and variances $\Var(y_i|\m{b}) = \phi a_i v(\mu_i^b)$, where $\phi$ is a dispersion parameter, $a_i$ is a known constant, and $v(\cdot)$ is a specified variance function. (Note: in $\mu_i^b$, the $b$ is not a power, but a superscript to denote that the mean depends on the random effects.) The conditional mean is related to the linear component $\eta_i^b=\m{x}_i^\top\m{\alpha}+\m{z}_i^\top\m{b}$ through the link function $g(\mu_i^b)=\eta_i^b$, with inverse $h(\cdot)=g^{-1}(\cdot)$, where $\m{\alpha}$ is a $p$-vector of fixed effects.
 
 Denote $\m{y}=(y_1,\ldots,y_n)^\top$ and let $\m{X}$ and $\m{Z}$ have rows comprised of $\m{x}_i^\top$ and $\m{z}_i^\top$. We then write the conditional means using vector notation as
 \begin{eqnarray}
@@ -54,9 +54,51 @@ We now give some remarks on this specification. The conditional variance has thr
 
 \section{Penalized quasi-likelihood}
 
-\noindent As mentioned earlier, the assumptions made about the conditional mean and variance do not equate to choosing a likelihood. Rather, the link and variance functions amount to specifying first and second moments for the data.
+\noindent As mentioned earlier, the assumptions made about the conditional mean and variance do not equate to choosing a likelihood. Rather, the link and variance functions amount to specifying first and second moments for the data. The authors propose a method of parameter estimation through various approximations of the penalized quasi-likelihood (PQL) and iterative updates.
 
-Quasi-likelihoods \citep{wedderburn:1974} provide an alternative 
+Quasi-likelihoods provide an alternative to full-likelihoods. The authors omit the details on quasi-likelihoods, but we will provide some explanation here. \cite{wedderburn:1974} defines the quasi-likelihood of a single observation as
+\begin{eqnarray}
+\frac{\partial K(y_i| \mu_i^b)}{\partial \mu_i^b} &=& \frac{y_i-\mu_i^b}{a_i v(\mu_i^b)} \label{quasi} \\
+\Longrightarrow K(y_i|\mu_i^b)&=&\int_{y_i}^{\mu_i^b}\frac{y_i-u_i}{a_i v(u_i)}du_i, \label{intquasi}
+\end{eqnarray}
+using the notation from section 1. The left side of the equal sign in (\ref{quasi}) shares similar properties to the derivative of a log-likelihood (the score). For instance, after straightforward calculations, we have
+\begin{eqnarray}
+\E_Y\left(\frac{\partial K(y_i| \mu_i^b)}{\partial \mu_i^b}\right) &=& 0 \\
+\Var_Y\left(\frac{\partial K(y_i| \mu_i^b)}{\partial \mu_i^b}\right)&=& \frac{1}{a_i v(\mu_i^b)}.
+\end{eqnarray}
+For simple choices of $v(\mu_i^b)$ the integral in (\ref{intquasi}) is tractable. Certain choices also correspond to the log-likelihoods of particular distributions: $v(\mu_i^b)=1$ results in a Gaussian likelihood, $v(\mu_i^b)=\mu_i^b$ a Poisson, $v(\mu_i^b)=(\mu_i^b)^2$ a Gamma, and $v(\mu_i^b)=\mu_i^b(1-\mu_i^b)$ a Binomial, to name a few.
+
+The quasi-likelihood for the set of $n$ observations is the following sum
+\begin{eqnarray}
+Q(\m{y}|\m{\alpha}, \m{\theta}, \m{b}) = \sum_{i=1}^nK(y_i|\mu_i^b).
+\end{eqnarray}
+The left side of the equation indicates that the quasi-likelihood is conditional on the parameters and random effects (recall that $\mu_i^b$ is a function of $\m{b}$). Using Bayes theorem, we have the joint distribution
+\begin{eqnarray}
+ql(\m{y},\m{b}|\m{\alpha},\m{\theta}) = Q(\m{y}|\m{\alpha},\m{\theta},\m{b})p(\m{b}). \label{joint}
+\end{eqnarray}
+Since $Q(\cdot)$ resembles a log-likelihood, we exponentiate it and then integrate out $\m{b}$ from the joint in (\ref{joint}) to obtain the authors' integrated quasi-likelihood function, their equation (2),
+\begin{eqnarray}
+e^{ql(\m{y}|\m{\alpha},\m{\theta})} &=& \int\exp\left[Q(\m{y}|\m{\alpha},\m{\theta},\m{b})\right]p(\m{b})d\m{b} \\
+&\propto& |\m{D}|^{-1/2}\int\exp\left[\sum_{i=1}^nK(y_i|\mu_i^b)-\m{b}^\top\m{D}^{-1}\m{b}\right]d\m{b}, \label{iq}
+\end{eqnarray}
+where $p(\m{b})$ is the multivariate normal density with mean $\m{0}$ and covariance matrix $\m{D}$. This is the function used to obtain estimates of $\m{\alpha}$ and $\m{\theta}$. However, there is a clear difficulty in integrating the function. The authors use Laplace's method for integral approximation to obtain a second order approximation of (\ref{iq}).
+
+Laplace's integral approximation is given by
+\begin{eqnarray}
+\int e^{Mf(x)}dx \approx \sqrt{\frac{2\pi}{M|f''(x_0)|}} e^{Mf(x_0)}
+\end{eqnarray}
+for large $M$, where $f(x_0)$ is the global maximum of the function $f$. The approximation is generalized when integrating with respect to a vector (see Wikipedia). Let $\kappa(\m{b})=\sum_{i=1}^nK(y_i|\mu_i^b)-\m{b}^\top\m{D}\m{b}$. Let $\kappa'(\m{b})$ and $\kappa''(\m{b})$ be the $q$-vector and $q\times q$ matrix of first- and second-order partial derivatives with respect to $\m{b}$. After applying Laplace's method and taking the log of (\ref{iq}) and ignoring constants, we have
+\begin{eqnarray}
+ql(\m{y}|\m{\alpha},\m{\theta}) \approx -\frac{1}{2}\log|\m{D}| -\frac{1}{2}\log|\kappa''(\tilde{\m{b}})| - \kappa(\tilde{\m{b}}),
+\end{eqnarray}
+where $\tilde{\m{b}}$ is the solution to $\kappa'(\m{b})=\m{0}$. From here, the authors solve for the estimating equations for $\m{\alpha}$ and $\m{b}$. An iterated weighted least squares (IWLS) algorithm may be used to obtain estimates for these parameters.
+
+When estimates for $\m{\alpha}$ and $\m{b}$ are calculated, the variance parameters $\m{\theta}$ are estimated through an approximate profile quasi-likelihood. For the sake of space, we omit the technical details, and refer the reader to the paper we have been discussing.
+
+
+
+
+\subsection{Fitting the model with available software}
 
 \section{Example: epilepsy study}
 
