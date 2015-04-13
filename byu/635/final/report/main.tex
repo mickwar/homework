@@ -7,6 +7,7 @@
 \usepackage{bm}
 \usepackage{listings}
 
+\newcommand{\mc}[1]{\multicolumn{1}{c}{#1}}
 
 \newcommand{\m}[1]{\mathbf{\bm{#1}}}
 \newcommand{\R}{I\hspace{-4.4pt}R}
@@ -37,7 +38,7 @@ where typical assumptions are $\m{b}\sim N(\m{0}, \m{G})$ and $\m{e}\sim N(\m{0}
 
 Generalized linear mixed models (GLMMs) are a hybrid of the GLM and the linear mixed model. We have a need to use a non-normal likelihood, but also wish to model random effects and covariances. However, analytic solutions often require numerical integration, which becomes infeasible in high dimensions. The authors address the capability of Bayesian methods in avoiding the need for numerical integration. However, they criticize the Bayesian approach due to its need for intense computational resources. Though significant advances in scientific computing and computational resources have made Bayesian methods far more accessible. At the time of their writing (some twenty years ago), their method of parameter estimation and inference was groundbreaking and is still a powerful tool.
 
-The remainder of the paper will proceed as follows. In section 1 we describe in more detail the model that is considered by the authors. A summary of the model fitting procedure is given in section 2, and an example is presented in section 3. Section 4 provides concluding remarks.
+The remainder of the paper will proceed as follows. In section 1 we describe in more detail the model that is considered by the authors. Additional theoretical details of the authors' model fitting procedure are provided in section 2 for clarity. We do not go over all of the theory, but give the details the authors glossed over, since some of these have not been covered in our classes. An example is presented in section 3. Section 4 provides concluding remarks.
 
 \section{Hierarchical model}
  
@@ -93,21 +94,67 @@ ql(\m{y}|\m{\alpha},\m{\theta}) \approx -\frac{1}{2}\log|\m{D}| -\frac{1}{2}\log
 \end{eqnarray}
 where $\tilde{\m{b}}$ is the solution to $\kappa'(\m{b})=\m{0}$. From here, the authors solve for the estimating equations for $\m{\alpha}$ and $\m{b}$. An iterated weighted least squares (IWLS) algorithm may be used to obtain estimates for these parameters.
 
-When estimates for $\m{\alpha}$ and $\m{b}$ are calculated, the variance parameters $\m{\theta}$ are estimated through an approximate profile quasi-likelihood. For the sake of space, we omit the technical details and refer the reader to the paper we have been discussing.
+When estimates for $\m{\alpha}$ and $\m{b}$ are calculated, the variance parameters $\m{\theta}$ are estimated through an approximate profile quasi-likelihood. That is, the quasi-likelihood function being maximized is being held constant at the estimates of $\hat{\m{\alpha}}$ and $\hat{\m{b}}$. For the sake of space, we omit the technical details and refer the reader to the paper we have been discussing.
 
 \subsection{Fitting the model with available software}
 
-\noindent There are several software packages available that will fit generalized linear mixed models using the PQL approach. The \texttt{MASS} packages containts the \texttt{glmmPQL()} function for fitting models via PQL. Packages such as \texttt{lme4} and \texttt{MCMCglmm} contain functions that fit GLMMs, but not necessarily through PQL.
+\noindent There are several software packages available that will fit generalized linear mixed models using the PQL approach. The \texttt{MASS} packages contains the \texttt{glmmPQL()} function for fitting models via PQL. Packages such as \texttt{lme4} and \texttt{MCMCglmm} contain functions that fit GLMMs, but not necessarily through PQL.
 
-In SAS, \texttt{PROC GLIMMIX} has options to fit models with the PQL method. The benefit to using PQL is that the first- and second-order approximations guarantees that parameters for most models will be estimable, a significant advantage over methods which are unable to produce estimates due to overly-complex covariance specifications.
+In SAS, \texttt{PROC GLIMMIX} has options to fit GLMMs with the PQL method. The benefit to using PQL is that the first- and second-order approximations guarantees that parameters for most models will be estimable, a significant advantage over methods which are unable to produce estimates due to overly-complex covariance specifications.
 
-\section{Example: epilepsy study}
+\section{Example: epilepsy clinical trial}
 
-epilepsy data \cite{thall:1990}
+Breslow and Clayton use PQL to analyze six data sets and a simulation study. We will summarize one of the examples. \cite{thall:1990} provided a data set from a clinical trial involving 59 epileptics. Patients randomly received a placebo (\texttt{Trt=0}) or a new drug (\texttt{Trt=1}). A baseline was measured as the number of epileptic seizures in the 8 week period before the study. Age in years is also included as a covariate. The logarithm of $\frac{1}{4}$ the baseline (\texttt{Base}) and the logarithm of age (\texttt{Age}) were treated as the covariates in the analysis. Every two weeks into the study, the number of seizures were counted, making the data multivariate counts. The visit times were coded as \texttt{Visit}$_i=2i-5$, for $i=1,\ldots,4$, and an indicator variable for the fourth visit (\texttt{V4=1}) is also used.
+
+The authors have four models they compare to some of the models by Thall and Vail. The log is chosen as the link and an identity is chosen as the variance function. This results in quasi-Poisson likelihood. The general model is given by
+\begin{eqnarray}
+\log \mu_{jk}^b = \m{x}_{jk}^\top\m{\alpha}+b_j^1+b_j^2\mathrm{Visit}_k/10+b_{jk}^0. \label{gen}
+\end{eqnarray}
+The four models considered by the authors each have the fixed effects $\m{\alpha}$ and some combination of the random effects $\m{b}$. The random effects $(b_j^1, b_j^2)$ are on the subject level and follow a bivariate normal distribution. A unit level random effect $b_{jk}^0$ is used in Model III, and represents additional random error. Results are presented in Table 1.
+
+Model I does not include any random effects, but models only the marginal effects of the mean. When compared with the other three models, we see that in those models the absolute values of the fixed effects attenuate closer to zero. The standard errors also increase with the addition of the random effects.
+
+Models II, III, and IV include various combinations of the random effects in (\ref{gen}). Models II and III are very similar, with the exception that the coefficient and standard error for \texttt{V4} are not significant in Model III. Model IV includes a time component (\texttt{Visit}$_i$). We see that the covariance between the random effects is effectively modeled as zero. Model IV showed substantial heterogeneity among subjects. The random effects models allow us to make inference on individuals and to identify those subjects which experience marked improvements.
+
+The authors show that the PQL method works well for this, and other, data sets by matching the results from other analyses and providing additional insights that previous approaches could not identify. More details are found in the paper.
 
 \section{Conclusion}
 
-bayesian analysis on the epilepsy data \cite{fong:2009}
+We have discussed an article by \cite{breslow:1993} who describe a method for obtaining parameter effects for fixed and random effects and variance components in a generalized linear mixed model (GLMM). The penalized quasi-likelihood (PQL) uses various approximations to obtain a second-order objective function that much is easier to maximize than a full likelihood. We have filled in the gaps in the authors' theoretical development of their approach by providing details on quasi-likelihoods and Laplace's method for integral approximation. These ideas have not been covered in class and so may be difficult to understand their motivation when reading the paper.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{lrrrr}
+ & \multicolumn{4}{c}{Model} \\
+ & \mc{$I$} & \mc{$II$} & \mc{$III$} & \mc{$IV$} \\
+Variable & $\mc{\hat{\beta}\pm SE}$  & $\mc{\hat{\beta}\pm SE}$ &
+    $\mc{\hat{\beta}\pm SE}$ & $\mc{\hat{\beta}\pm SE}$ \\ \hline \hline
+\emph{Fixed effects} & & & & \\
+       Constant & $-2.76\pm.41$ & $-1.25\pm1.2$ & $-1.27\pm1.2$ & $-1.27\pm1.2$ \\
+          Base  &   $.95\pm.04$ &   $.87\pm.14$ &   $.86\pm.13$ &   $.87\pm.14$ \\
+            Trt & $-1.34\pm.16$ &  $-.91\pm.41$ &  $-.93\pm.40$ &  $-.91\pm.41$ \\
+Base$\times$Trt &   $.56\pm.06$ &   $.33\pm.21$ &  $ .34\pm.21$ &   $.33\pm.21$ \\
+            Age &   $.90\pm.12$ &   $.47\pm.36$ &   $.47\pm.35$ &   $.46\pm.36$ \\
+             V4 &  $-.16\pm.05$ &  $-.16\pm.05$ &  $-.10\pm.09$ &      --- ~~~~ \\
+       Visit/10 &      --- ~~~~ &      --- ~~~~ &      --- ~~~~ &  $-.26\pm.16$ \\
+ & & & & \\
+\emph{Random effects} & & & & \\
+\emph{Subject level} & & & & \\
+Const. ($\sqrt{\sigma_{11}}$) & --- ~~~~ & $.53\pm.06$ & $.48\pm.06$ & $.52\pm.06$ \\
+Visit/10 ($\sqrt{\sigma_{22}}$) & --- ~~~~ & --- ~~~~ & --- ~~~~ & $.74\pm.16$ \\
+Cov. ($\sigma_{12}$) & --- ~~~~ & --- ~~~~ & --- ~~~~ & $-.01\pm.03$ \\
+ & & & & \\
+\emph{Unit level} & & & & \\
+Const. ($\sqrt{\sigma_{00}}$) & --- ~~~~ & --- ~~~~ & $.36\pm.04$ & --- ~~~~ \\ \hline
+\end{tabular}
+\caption{Estimates for the fixed effects $\m{\alpha}$ and covariance parameters $\m{\theta}$.}
+\end{center}
+\end{table}
+
+An example using the PQL method has been summarized. The method has shown to be effective at handling complex covariance structures. \cite{fong:2009} also successfully analyze the epilepsy data using a Bayesian approach. Their work provides additional insights on GLMMs within the Bayesian framework.
+
+In all, the PQL method works well. The authors' work in this area has been groundbreaking. Other attempts at dealing with non-normal data and covariances between random effects and between observations had not yet been met with the success as shown by Breslow and Clayton. The generality of the approach also allows many models to be fit.
+
 
 \bibliography{refs}
 \bibliographystyle{asa}

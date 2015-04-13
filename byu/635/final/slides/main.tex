@@ -1,4 +1,4 @@
-\documentclass[mathserif, 11pt, t]{beamer}
+\documentclass[mathserif, 10pt, t]{beamer}
 
 \let\Tiny=\tiny
 \usepackage{xcolor}
@@ -9,7 +9,7 @@
 \usepackage{natbib}
 \usepackage{amsmath}
 \usepackage{bm}
-\geometry{vmargin=0.5in}
+\geometry{vmargin=0.4in}
 
 %colors
 \definecolor{blue}{rgb}{0.05, 0.05, 0.90}
@@ -24,6 +24,7 @@
 \renewcommand{\subtitle}[1]{\vspace{0.45cm}\textcolor{bluegreen}{
     {\textbf{#1}}}\vspace{0.15cm}\newline}
 \newcommand{\tlb}[1]{\large{\textbf{#1}}}
+\newcommand{\mc}[1]{\multicolumn{1}{c}{#1}}
 
 %slide colors
 \pagecolor{blue!70}
@@ -42,7 +43,7 @@
 
 \begin{LARGE}
 \begin{center}
-GLMM Parameter Estimation via Approximation Methods
+GLMM Parameter Estimation via Quasi-likelihoods
 \end{center}
 \end{LARGE}
 \vfill
@@ -86,8 +87,8 @@ and $\Var(y_i|\m{b})=\phi a_iv(\mu_i^b)$ for $i=1,\ldots,n$, for known constant 
 
 For independent observations $y_i,\ldots,y_n$, the quasi-likelihood function is defined as
 \begin{eqnarray*}
-\frac{\partial K(y_i, \mu_i^b)}{\partial \mu_i^b} &=& \frac{y_i-\mu_i^b}{a_i v(\mu_i^b)} \\
-\Longrightarrow K(y_i,\mu_i^b)&=&\int_{y_i}^{\mu_i^b}\frac{y_i-u_i}{a_i v(u_i)}du_i
+\frac{\partial K(y_i| \mu_i^b)}{\partial \mu_i^b} &=& \frac{y_i-\mu_i^b}{a_i v(\mu_i^b)} \\
+\Longrightarrow K(y_i|\mu_i^b)&=&\int_{y_i}^{\mu_i^b}\frac{y_i-u_i}{a_i v(u_i)}du_i
 \end{eqnarray*}
 
 This has properties similar to the log-likelihood of a distribution from the exponential family.
@@ -110,16 +111,15 @@ where $\tilde{\m{b}}$ is the solution to $\kappa'(\m{b})=0$.
 
 \end{frame}
 
-\begin{frame}
-\subtitle{Marginal quasi-likelihood (MQL)}
-
-The marginal model is used when focus is on population inference. The mean is model by
-\[ \E(\m{y}) = \m{\mu} = h(\m{X}\m{\alpha}) \]
-If we write $y_i=\mu_i^b+\epsilon_i$. with $\Var(\epsilon_i)=\phi a_iv(\mu_i^b)$ and $\m{b}\sim N(\m{0}, \m{D})$, then he have a first-order approximation of the hierarchical model
-\[ y_i \approx h(\m{x}_i^\top \m{\alpha}) + h'(\m{x}_i^\top\m{\alpha})\m{z}_i^\top\m{b} + \epsilon_i \]
-
-
-\end{frame}
+% \begin{frame}
+% \subtitle{Marginal quasi-likelihood (MQL)}
+% 
+% The marginal model is used when focus is on population inference. The mean is model by
+% \[ \E(\m{y}) = \m{\mu} = h(\m{X}\m{\alpha}) \]
+% If we write $y_i=\mu_i^b+\epsilon_i$. with $\Var(\epsilon_i)=\phi a_iv(\mu_i^b)$ and $\m{b}\sim N(\m{0}, \m{D})$, then he have a first-order approximation of the hierarchical model
+% \[ y_i \approx h(\m{x}_i^\top \m{\alpha}) + h'(\m{x}_i^\top\m{\alpha})\m{z}_i^\top\m{b} + \epsilon_i \]
+% 
+% \end{frame}
 
 
 
@@ -153,11 +153,56 @@ The number of seizures for each patient were recorded as a baseline.
 At four visits every two weeks the seizure count was recorded. Age is also a covariate.
 \bigskip
 
-PQL showed comparable results to Thall and Vail's original analysis.
+General model:
+\[\log \mu_{jk}^b = \m{x}_{jk}^\top\m{\alpha}+b_j^1+b_j^2\mathrm{Visit}_k/10+b_{jk}^0\]
+for patient $j$ on the $k$th visit, with a Poisson variance (likelihood)
+
 \end{frame}
 
 
 \begin{frame}
+
+\begin{tabular}{lrrrr}
+ & \multicolumn{4}{c}{Model} \\
+ & \mc{$I$} & \mc{$II$} & \mc{$III$} & \mc{$IV$} \\
+Variable & $\mc{\hat{\beta}\pm SE}$  & $\mc{\hat{\beta}\pm SE}$ &
+    $\mc{\hat{\beta}\pm SE}$ & $\mc{\hat{\beta}\pm SE}$ \\ \hline
+\emph{Fixed Effects} & & & & \\
+Constant & -$2.76\pm.41$ & -$1.25\pm1.2$ & -$1.27\pm1.2$ & -$1.27\pm1.2$ \\
+Base  & $.95\pm.04$ & $.87\pm.14$ & $.86\pm.13$ & $.87\pm.14$ \\
+Trt & -$1.34\pm.16$ & -$.91\pm.41$ & -$.93\pm.40$ & -$.91\pm.41$ \\
+Base$\times$Trt & $.56\pm.06$ & $.33\pm.21$ & $ .34\pm.21$ & $.33\pm.21$ \\
+Age & $.90\pm.12$ & $.47\pm.36$ & $.47\pm.35$ & $.46\pm.36$ \\
+V4 & -$.16\pm.05$ & -$.16\pm.05$ & -$.10\pm.09$ & --- ~~~~ \\
+Visit/10 & --- ~~~~ & --- ~~~~ & --- ~~~~ & -$.26\pm.16$ \\
+ & & & & \\
+\emph{Subject level} & & & & \\
+Const. ($\sqrt{\sigma_{11}}$) & --- ~~~~ & $.53\pm.06$ & $.48\pm.06$ & $.52\pm.06$ \\
+Visit/10 ($\sqrt{\sigma_{22}}$) & --- ~~~~ & --- ~~~~ & --- ~~~~ & $.74\pm.16$ \\
+Cov. ($\sigma_{12}$) & --- ~~~~ & --- ~~~~ & --- ~~~~ & -$.01\pm.03$ \\
+ & & & & \\
+\emph{Unit level} & & & & \\
+Const. ($\sqrt{\sigma_{00}}$) & --- ~~~~ & --- ~~~~ & $.36\pm.04$ & --- ~~~~ \\
+
+\end{tabular}
+
+\end{frame}
+
+\begin{frame}
+\subtitle{Conclusion}
+
+PQL can be used for very complex correlation structures
+\bigskip
+
+The approximations make parameters in most models estimable
+\bigskip
+
+Available software for using PQL:
+\begin{itemize}[label=${\cdot}$]
+\item R: glmmPQL (MASS)
+\item SAS: proc glimmix (see Method option)
+\end{itemize}
+
 \end{frame}
 
 
