@@ -93,12 +93,13 @@ ql(\m{y}|\m{\alpha},\m{\theta}) \approx -\frac{1}{2}\log|\m{D}| -\frac{1}{2}\log
 \end{eqnarray}
 where $\tilde{\m{b}}$ is the solution to $\kappa'(\m{b})=\m{0}$. From here, the authors solve for the estimating equations for $\m{\alpha}$ and $\m{b}$. An iterated weighted least squares (IWLS) algorithm may be used to obtain estimates for these parameters.
 
-When estimates for $\m{\alpha}$ and $\m{b}$ are calculated, the variance parameters $\m{\theta}$ are estimated through an approximate profile quasi-likelihood. For the sake of space, we omit the technical details, and refer the reader to the paper we have been discussing.
-
-
-
+When estimates for $\m{\alpha}$ and $\m{b}$ are calculated, the variance parameters $\m{\theta}$ are estimated through an approximate profile quasi-likelihood. For the sake of space, we omit the technical details and refer the reader to the paper we have been discussing.
 
 \subsection{Fitting the model with available software}
+
+\noindent There are several software packages available that will fit generalized linear mixed models using the PQL approach. The \texttt{MASS} packages containts the \texttt{glmmPQL()} function for fitting models via PQL. Packages such as \texttt{lme4} and \texttt{MCMCglmm} contain functions that fit GLMMs, but not necessarily through PQL.
+
+In SAS, \texttt{PROC GLIMMIX} has options to fit models with the PQL method. The benefit to using PQL is that the first- and second-order approximations guarantees that parameters for most models will be estimable, a significant advantage over methods which are unable to produce estimates due to overly-complex covariance specifications.
 
 \section{Example: epilepsy study}
 
