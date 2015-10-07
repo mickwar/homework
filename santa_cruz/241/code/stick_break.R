@@ -14,9 +14,9 @@ use = function(name, a, b){
 #use("unif", 0, 1)
 
 
-m = 1000
+m = 1000 # number of mcmc
 alpha = 100
-n = 1000
+n = 1000 # the approximate to infinity
 tl = 500
 
 
@@ -40,10 +40,22 @@ dp_draw = function(n, alpha, Gdraw){
     y = sample(theta, replace = TRUE, prob = pi_vec)
     return (y)
     }
+dp_draw2 = function(n, alpha, Gdraw){
+    get_pi = function(n, alpha){
+        V = c(0, rbeta(n, 1, alpha))
+        return (V[-1] * cumprod(1-V[-(n+1)]))
+        }
+
+    pi_vec = get_pi(n, alpha)
+    reps = sample(n, replace = TRUE, prob = pi_vec)
+    tab = table(reps)
+
+    y = rep(Gdraw(length(tab)), times = tab)
+    return (y)
+    }
+
 
 x = matrix(0, m, n)
-
-
 for (i in 1:m)
     x[i,] = dp_draw(n, alpha, Gdraw)
 #x = t(replicate(m, dp_draw(n, alpha, Gdraw)))
@@ -74,3 +86,6 @@ lines(tvec, flines[1,], col = rgb(1, 0.65, 0, 0.7), lwd = 2, lty = 2)
 lines(tvec, flines[3,], col = rgb(1, 0.65, 0, 0.7), lwd = 2, lty = 2)
 
 #plot(density(f[100,]))
+
+#e = function(eps, alpha) log(eps * alpha) / log(alpha / (alpha + 1))
+#e(0.009, 100)
