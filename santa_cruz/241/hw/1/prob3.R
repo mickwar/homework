@@ -18,9 +18,9 @@ gen.y2 = function(n){
 
 B = 1000
 
-alpha = 50
-m = -3
-s = 1
+ alpha = 100; m = -4; s = 2
+#alpha = 1; m = -4; s = 2
+#alpha = 100; m = -1; s = 0.1
 G0.dist = function(t)
     pnorm(t, m, s)
 
@@ -28,11 +28,11 @@ G0.dist.post = function(t)
     alpha/(alpha+n)*G0.dist(t) + 1/(alpha+n)*sapply(t, function(t) sum(y <= t))
 
 #tvec = seq(m-3*s, m+s*3, length = 1000)
-tvec = seq(-7, 11, length = 1000)
+tvec = seq(-9, 5, length = 1000)
 n = c(20, 200, 2000)
 
 
-#pdf("./figs/prob3a.pdf", height = 18, width = 15)
+pdf("./figs/prob3a.pdf", height = 18, width = 15)
 par(mfrow = c(3,2), mar = c(4.1, 3.1, 3.1, 1.1), oma = c(0, 0, 3, 0))
 for (n in c(20, 200, 2000)){
     ### Ferguson
@@ -50,16 +50,13 @@ for (n in c(20, 200, 2000)){
 
     plot(0, xlim = range(tvec), ylim = c(0, 1), cex.main = 3.0, xlab = "", type='n',
         main = bquote(alpha == .(alpha) ~ "," ~ n == .(n)))
-#   matplot(tvec, G.draws, type = 'l', col = rgb(0.5, 0.5, 0.5, 0.4), lty = 1, add = TRUE)
     polygon(c(tvec, rev(tvec)), c(Glines[1,], rev(Glines[2,])), col = 'steelblue', border = NA)
     curve(G0.dist(x), col = rgb(1, 0, 0, 0.7), add = TRUE, lwd = 3)
     lines(tvec, Gmean, col = rgb(0, 0, 1, 0.7), lwd = 3)
     legend(min(tvec), 1, legend = c("eCDF of data", "Estimated posterior mean", 
         "95% p.w. credible intervals", paste0("CDF of baseline: N(", m, ",", s, ")")),
-        lwd = c(3, 3, 3, 3), lty = c(1, 1, 1, 1), col = c(rgb(0,0,0,0.5), rgb(0,0,1,0.7),
-        "steelblue", rgb(1,0,0,0.7)))
-#   points(tvec, cdf(y, tvec), col = rgb(0.0, 0.0, 0.0, 0.7), pch = 15, cex = 0.8)
-#   lines(tvec, cdf(y, tvec), col = rgb(0.0, 0.0, 0.0, 0.7), lwd = 3)
+        lwd = c(1, 3, 3, 3), lty = c(1, 1, 1, 1), col = c(rgb(0,0,0), rgb(0,0,1,0.7),
+        "steelblue", rgb(1,0,0,0.7)), pch = c(20, NA, NA, NA))
     lines(ecdf(y), col.01line = NA, verticals = TRUE)
 
     # posterior
@@ -75,21 +72,16 @@ for (n in c(20, 200, 2000)){
 
     plot(0, xlim = range(tvec), ylim = c(0, 1), cex.main = 3.0, xlab = "", type='n',
         main = bquote(alpha == .(alpha) ~ "," ~ n == .(n)))
-#   matplot(tvec, G.draws, type = 'l', col = rgb(0.5, 0.5, 0.5, 0.4), lty = 1, add = TRUE)
     polygon(c(tvec, rev(tvec)), c(Glines[1,], rev(Glines[2,])), col = 'steelblue', border = NA)
     curve(G0.dist(x), col = rgb(1, 0, 0, 0.7), add = TRUE, lwd = 3)
     lines(tvec, Gmean, col = rgb(0, 0, 1, 0.7), lwd = 3)
     legend(min(tvec), 1, legend = c("eCDF of data", "Estimated posterior mean", 
         "95% p.w. credible intervals", paste0("CDF of baseline: N(", m, ",", s, ")")),
-        lwd = c(3, 3, 3, 3), lty = c(1, 1, 1, 1), col = c(rgb(0,0,0,0.7), rgb(0,0,1,0.7),
-        "steelblue", rgb(1,0,0,0.7)))
-#   legend(min(tvec), 1, legend = c("Posterior draws", "Estimated posterior mean",
-#       "Estimated posterior variance", paste0("CDF of baseline: N(", m, ",", s, ")")),
-#       lwd = c(1, 3, 3, 3), lty = c(1, 1, 1, 1), col = c("gray50", "blue", "green", "red"))
-#   points(tvec, cdf(y, tvec), col = rgb(0.0, 0.0, 0.0, 0.7), pch = 15, cex = 0.8)
+        lwd = c(1, 3, 3, 3), lty = c(1, 1, 1, 1), col = c(rgb(0,0,0), rgb(0,0,1,0.7),
+        "steelblue", rgb(1,0,0,0.7)), pch = c(20, NA, NA, NA))
     lines(ecdf(y), col.01line = NA, verticals = TRUE)
 
     }
 title("               Data: N(0,1)                     Data: Mixture of normals", outer = TRUE, cex.main = 3)
-#dev.off()
+dev.off()
 
