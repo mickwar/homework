@@ -1,4 +1,5 @@
 library(MCMCpack)
+source("~/files/R/mcmc/bayes_functions.R")
 
 cdf = function(x, t){
     out = length(t)
@@ -19,7 +20,16 @@ gen.y2 = function(n){
 n = 300
 
 set.seed(1)
-y = gen.y2(n)
+ y = gen.y1(n)
+#sig = matrix(c(326, -1.644, -1.644, 0.116), 2, 2) * 2.4^2
+
+#y = gen.y2(n)
+#sig = 
+matrix(c(38, -1.871, -1.871, 0.441), 2, 2) * 2.4^2
+
+
+sig = diag(2)
+
 
 nj = as.vector(table(y))
 ystar = as.numeric(names(table(y))) # sort(unique(y))
@@ -37,17 +47,15 @@ calc.like = function(alpha, lambda){
 F0.dist.post = function(t, alpha, lambda)
     alpha/(alpha+n)*ppois(t, lambda) + 1/(alpha+n)*sapply(t, function(t) sum(y <= t))
 
-tvec = seq(0, 30, by = 1)
+tvec = seq(-1, 30, by = 1)
 
-nburn = 1000
+nburn = 10000
 nmcmc = 20000
+window = 200
 
-alpha = double(nburn + nmcmc)
-lambda = double(nburn + nmcmc)
 fparam = matrix(0, nburn + nmcmc, length(tvec))
+al.param = matrix(0, nburn + nmcmc, 2)
 al.accept = double(nburn + nmcmc)
-#sig = matrix(c(29.1, -0.059, -0.059, 0.222), 2, 2) * 2.4^2/2
-sig = matrix(c(326, -1.644, -1.644, 0.116), 2, 2) * 2.4^2
 
 a.alpha = 1/10
 b.alpha = 1/10
@@ -55,64 +63,107 @@ a.lambda = 5/2
 b.lambda = 1/2
 
 ### Initial values
-alpha[1] = rgamma(1, a.alpha, b.alpha)
-lambda[1] = rgamma(1, a.lambda, b.lambda)
-fparam[1,] = F0.dist.post(c(tvec[-1], Inf), alpha[1], lambda[1]) - 
-    F0.dist.post(tvec, alpha[1], lambda[1])
-fparam[1,] = F0.dist.post(c(tvec[-1], Inf), alpha[1], lambda[1]) - 
-    F0.dist.post(tvec, alpha[1], lambda[1])
-#fparam[1,] = cumsum(rdirichlet(1, (alpha[1] + n)*fparam[1,]))
+al.param[1, 1] = rgamma(1, a.alpha, b.alpha)
+al.param[1, 2] = rgamma(1, a.lambda, b.lambda)
+fparam[1,] = F0.dist.post(c(tvec[-1], Inf), al.param[1, 1], al.param[1, 2]) - 
+    F0.dist.post(tvec, al.param[1, 1], al.param[1, 2])
+fparam[1,] = rdirichlet(1, (al.param[1,1] + n)*fparam[1,])
 
+keep.det = double(nburn / window)
+keep.acc = double(nburn / window)
+
+### mcmc
+par(mfrow = c(1, 1))
 for (i in 2:(nburn + nmcmc)){
     cat("\r", i, "/", nburn+nmcmc)
     # update alpha, lambda
-    alpha[i] = alpha[i-1]
-    lambda[i] = lambda[i-1]
-    cand = mvrnorm(1, c(alpha[i-1], lambda[i-1]), sig)
+    al.param[i,] = al.param[i-1,]
+    cand = mvrnorm(1, al.param[i-1,], sig)
     if (all(cand > 0)){
-        post = calc.like(alpha[i-1], lambda[i-1]) +
-            dgamma(alpha[i-1], a.alpha, b.alpha, log = TRUE) +
-            dgamma(lambda[i-1], a.lambda, b.lambda, log = TRUE)
+        post = calc.like(al.param[i-1, 1], al.param[i-1, 2]) +
+            dgamma(al.param[i-1, 1], a.alpha, b.alpha, log = TRUE) +
+            dgamma(al.param[i-1, 2], a.lambda, b.lambda, log = TRUE)
         cand.post = calc.like(cand[1], cand[2]) +
             dgamma(cand[1], a.alpha, b.alpha, log = TRUE) +
             dgamma(cand[2], a.lambda, b.lambda, log = TRUE)
         if (log(runif(1)) <= cand.post - post){
+            al.param[i,] = cand
             al.accept[i] = 1
-            alpha[i] = cand[1]
-            lambda[i] = cand[2]
             }
+        }
+    if ((floor(i/window) == i/window) && (i <= nburn)){
+        keep.acc[i/window] = mean(al.accept[(i-window+1):i])
+#       sig = (sig + autotune(mean(al.accept[(i-window+1):i]), k = max(1.5, window / 50)) *
+#           cov(al.param[(i-window+1):i,])) / 2
+        sig = autotune(mean(al.accept[(i-window+1):i]), k = max(1.5, window / 50)) * (sig +
+            cov(al.param[(i-window+1):i,])) / 2
+        keep.det[i/window] = determinant(sig)$modulus[1]
+        plot(keep.det, type='b', pch = 20)
+        text(1:250, keep.det, round(keep.acc, 2))
         }
 
     # update F (fparam)
-    fparam[i,] = F0.dist.post(c(tvec[-1]-0.5, Inf), alpha[i], lambda[i]) -
-        F0.dist.post(tvec-0.5, alpha[i], lambda[i])
-    fparam[i,] = F0.dist.post(c(tvec[-1]-0.5, Inf), alpha[i], lambda[i]) -
-        F0.dist.post(tvec-0.5, alpha[i], lambda[i])
-    fparam[i,] = rdirichlet(1, (alpha[i] + n)*fparam[i,])
+    fparam[i,] = F0.dist.post(c(tvec[-1], Inf), al.param[i, 1], al.param[i, 2]) - 
+        F0.dist.post(tvec, al.param[i, 1], al.param[i, 2])
+    fparam[i,] = rdirichlet(1, (al.param[i, 1] + n)*fparam[i,])
     if (i == (nburn + nmcmc))
         cat("\n")
     }
 
-alpha = tail(alpha, nmcmc)
-lambda = tail(lambda, nmcmc)
+plot(al.param, col = rgb(seq(0, 1, length = nburn + nmcmc), 0, 0), pch = 20)
+
+al.param = tail(al.param, nmcmc)
 fparam = tail(fparam, nmcmc)
 al.accept = tail(al.accept, nmcmc)
 
-mean(al.accept)
-var(cbind(alpha, lambda))
-
-par(mfrow = c(2,2))
-plot(alpha, type = 'l')
-plot(density(alpha), xlab = expression(alpha), main="")
-plot(lambda, type = 'l')
-plot(density(lambda), xlab = expression(lambda), main = "")
+plot(al.param, col = rgb(seq(0, 1, length = nmcmc), 0, 0), pch = 20)
 
 qlines = apply(fparam, 2, quantile, c(0, 0.025, 0.5, 0.975, 1))
+cdfparam = apply(fparam, 1, cumsum)
 
-par(mfrow = c(1,1))
-plot(tvec, qlines[4,], pch = "_", col = 'darkgreen', cex = 2)
+mean(al.accept)
+
+apply(al.param, 2, mean)
+var(al.param)
+
+### posterior predictive
+temp.1 = sample(y, nmcmc, replace = TRUE)
+temp.2 = rpois(nmcmc, al.param[,2])
+pred = ifelse(runif(nmcmc) <= al.param[,1] / (al.param[,1] + n), temp.2, temp.1)
+
+### 95% hpd
+hpds = apply(al.param, 2, hpd.uni)
+
+### Alpha and Lambda
+par(mfrow = c(2,2))
+plot(al.param[,1], type = 'l', main = paste0("Acceptance rate: ", round(mean(al.accept), 3)),
+    xlab = "Iteration")
+hpd.plot(density(al.param[,1]), hpds[,1], xlab = expression(alpha),
+    main=expression("Marginal posterior for" ~ alpha))
+plot(al.param[,2], type = 'l', main = paste0("Acceptance rate: ", round(mean(al.accept), 3)),
+    xlab = "Iteration")
+hpd.plot(density(al.param[,2]), hpds[,2], xlab = expression(lambda),
+    main=expression("Marginal posterior for" ~ lambda))
+
+
+### pmf and cdf
+par(mfrow = c(2,1))
+plot(tvec, qlines[4,], pch = "_", col = 'darkgreen', cex = 2,
+    main = "Posterior p.m.f. from DP", xlab = "y", ylab = "mass")
 lines(tvec, qlines[3,], type='h', col = 'green', lwd = 3)
+lines(as.numeric(names(table(pred)))+0.2, table(pred)/nmcmc, type='h', col = 'blue', lwd = 2)
 points(tvec, qlines[2,], pch = "_", col = 'darkgreen', cex = 2)
 #lines(as.numeric(names(table(y)))+0.3, table(y)/n, col = 'blue', type='h', lwd = 2)
 points(as.numeric(names(table(y))), table(y)/n, col = 'black', pch = 20, lwd = 2)
+legend("topright", border = NA, box.lty = 0,
+    legend = c("", "Data", "Median", "95% intervals", "Posterior predictive"),
+    col = c(NA, "black", "green", "darkgreen", "blue"), pch = c(NA, 20, NA, NA, NA),
+    lty = c(NA, NA, 1, 1, 1), lwd = c(NA, NA, 3, 1, 2))
+
+matplot(tvec, cdfparam, type = 's', lty = 1, col = rgb(0.0, 0.7, 0.0),
+    main = "Posterior c.d.f. from DP", xlab = "y", ylab = "Cumulative mass")
+plot(ecdf(y), add = TRUE, verticals = TRUE, col.01line = NA)
+legend("bottomright", border = NA, box.lty = 0, legend = c("Data", "Posterior draws", ""),
+    col = c("black", rgb(0, 0.7, 0), NA), pch = c(20, NA, NA), lty = c(1, 1, NA),
+    lwd = c(1, 1, NA))
 
