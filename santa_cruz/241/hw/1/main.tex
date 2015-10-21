@@ -97,4 +97,33 @@ because $\nu_i\geq 0$. The covariance between $\gamma_1=G(B_1)$ and $\gamma_2=G(
 
 \section*{Problem 4}
 
+\noindent Plots from the two generating distribution are given on the next two pages. The first set uses $n=300$ data points from a $Poisson(5)$ and the second is from the mixture $0.7Poisson(3) + 0.3Poisson(11)$.
+\bigskip
+
+\noindent For both data sets I use the same priors for $\alpha$ (gamma with mean $10$ and variance $100$) and $\lambda$ (gamma with mean $5$ and variance $20$). These priors are intended to be non-informative. Informal studies suggested that $\alpha$ was highly susceptible to the choice of prior distribution. We wanted to give about the same weight to both low and high values for $\alpha$. Too high and the DP is too restrictive, too low and it's too flexible.
+\bigskip
+
+\noindent The prior for $\alpha$ also had an effect on $\lambda$. It seemed that as $\alpha$ increase, $\lambda$ tended toward the mean of the data. We feel the prior for $\lambda$ is relative non-informative, giving appropriate weights to reasonable values for parameter. The prior for $\lambda$ was centered around the mean of the data, but with moderate variance. This would seem appropriate in practice.
+\bigskip
+
+\newpage
+
+\begin{center}
+\includegraphics[scale=0.45]{figs/prob4a1.pdf}
+\end{center}
+
+\begin{center}
+\includegraphics[scale=0.45]{figs/prob4a2.pdf}
+\end{center}
+
+\newpage
+
+\begin{center}
+\includegraphics[scale=0.45]{figs/prob4b1.pdf}
+\end{center}
+
+\begin{center}
+\includegraphics[scale=0.45]{figs/prob4b2.pdf}
+\end{center}
+
 \end{document}

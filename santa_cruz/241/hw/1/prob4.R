@@ -20,8 +20,8 @@ gen.y2 = function(n){
 n = 300
 
 set.seed(1)
-#y = gen.y1(n)
- y = gen.y2(n)
+ y = gen.y1(n)
+#y = gen.y2(n)
 
 # initial candidate sigma
 sig = diag(2)
@@ -52,10 +52,10 @@ fparam = matrix(0, nburn + nmcmc, length(tvec))
 al.param = matrix(0, nburn + nmcmc, 2)
 al.accept = double(nburn + nmcmc)
 
-a.alpha = 1/10
+a.alpha = 1
 b.alpha = 1/10
-a.lambda = 5/2
-b.lambda = 1/2
+a.lambda = 5/4
+b.lambda = 1/4
 
 ### Initial values
 al.param[1, 1] = rgamma(1, a.alpha, b.alpha)
@@ -90,8 +90,8 @@ for (i in 2:(nburn + nmcmc)){
         keep.acc[i/window] = mean(al.accept[(i-window+1):i])
 #       sig = (sig + autotune(mean(al.accept[(i-window+1):i]), k = max(1.5, window / 50)) *
 #           cov(al.param[(i-window+1):i,])) / 2
-        sig = autotune(mean(al.accept[(i-window+1):i]), target = 0.25, k = window/50) *
-            (sig + var(al.param[(i-window+1):i,]) / 2)
+        sig = autotune(mean(al.accept[(i-window+1):i]), target = 0.234, k = window/50) *
+            (sig + window * var(al.param[(i-window+1):i,]) / i)
         keep.det[i/window] = determinant(sig)$modulus[1]
         plot(keep.det, type='l', pch = 20, ylim = range(keep.det[1:(i/window)]))
         text(1:(nburn/window), keep.det, round(keep.acc, 2))
@@ -109,6 +109,7 @@ al.param = tail(al.param, nmcmc)
 fparam = tail(fparam, nmcmc)
 al.accept = tail(al.accept, nmcmc)
 
+### joint posterior of alpha and lambda, colored by iteration number
 plot(al.param, col = rgb(seq(0, 1, length = nmcmc), 0, 0), pch = 20)
 
 qlines = apply(fparam, 2, quantile, c(0, 0.025, 0.5, 0.975, 1))
@@ -128,18 +129,38 @@ pred = ifelse(runif(nmcmc) <= al.param[,1] / (al.param[,1] + n), temp.2, temp.1)
 hpds = apply(al.param, 2, hpd.uni)
 
 ### Alpha and Lambda
-par(mfrow = c(2,2))
+#pdf("figs/prob4a1.pdf", width = 9, height = 9)
+#pdf("figs/prob4b1.pdf", width = 9, height = 9)
+par(mfrow = c(2,2), mar = c(4.1, 4.1, 3.1, 1.1))
 plot(al.param[,1], type = 'l', main = paste0("Acceptance rate: ", round(mean(al.accept), 3)),
-    xlab = "Iteration")
-hpd.plot(density(al.param[,1]), hpds[,1], xlab = expression(alpha),
+    xlab = "Iteration", ylab = expression(alpha))
+dens = density(al.param[,1])
+mp = mean(al.param[,1])
+hpd.plot(dens, hpds[,1], xlab = expression(alpha),
     main=expression("Marginal posterior for" ~ alpha))
+lines(rep(bound(mp, dens), 2), c(0, bound(mp, dens, FALSE)), col = 'red', lwd = 2)
+legend("topright", box.lwd = NA, legend = c(NA, paste0("Mean = ", round(mp,2)),
+    paste0("Lower HPD = ", round(hpds[1,1], 2)), paste0("Upper HPD = ", round(hpds[2,1], 2))),
+    col = c(NA, 'red', col.mult('dodgerblue', 'gray50'), col.mult('dodgerblue', 'gray50')),
+    lwd = c(NA, 2, 2, 2))
+
+dens = density(al.param[,2])
+mp = mean(al.param[,2])
 plot(al.param[,2], type = 'l', main = paste0("Acceptance rate: ", round(mean(al.accept), 3)),
-    xlab = "Iteration")
-hpd.plot(density(al.param[,2]), hpds[,2], xlab = expression(lambda),
+    xlab = "Iteration", ylab = expression(lambda))
+hpd.plot(dens, hpds[,2], xlab = expression(lambda),
     main=expression("Marginal posterior for" ~ lambda))
+lines(rep(bound(mp, dens), 2), c(0, bound(mp, dens, FALSE)), col = 'red', lwd = 2)
+legend("topright", box.lwd = NA, legend = c(NA, paste0("Mean = ", round(mp,2)),
+    paste0("Lower HPD = ", round(hpds[1,2], 2)), paste0("Upper HPD = ", round(hpds[2,2], 2))),
+    col = c(NA, 'red', col.mult('dodgerblue', 'gray50'), col.mult('dodgerblue', 'gray50')),
+    lwd = c(NA, 2, 2, 2))
+#dev.off()
 
 
 ### pmf and cdf
+#pdf("figs/prob4a2.pdf", height = 9, width = 9)
+#pdf("figs/prob4b2.pdf", height = 9, width = 9)
 par(mfrow = c(1,1))
 plot(tvec, qlines[4,], pch = "_", col = 'darkgreen', cex = 2,
     main = "Posterior p.m.f. from DP", xlab = "y", ylab = "mass")
@@ -154,6 +175,7 @@ legend("topright", border = NA, box.lty = 0,
         "Posterior predictive distribution"),
     col = c(NA, "black", "green", "darkgreen", "blue"), pch = c(NA, 20, NA, NA, NA),
     lty = c(NA, NA, 1, 1, 1), lwd = c(NA, NA, 3, 1, 2), cex = 1.3)
+#dev.off()
 
 # matplot(tvec, cdfparam, type = 's', lty = 1, col = rgb(0.0, 0.7, 0.0),
 #     main = "Posterior c.d.f. from DP", xlab = "y", ylab = "Cumulative mass")
