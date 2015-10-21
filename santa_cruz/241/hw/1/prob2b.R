@@ -24,13 +24,13 @@ tl = 500
 a_vec = c(1, 50, 1/5)
 b_vec = c(10, 1, 1/100)
 
-#pdf("./figs/prob2b.pdf", height = 18, width = 12)
+pdf("./figs/prob2b.pdf", height = 18, width = 12)
 par(mfrow = c(3,1), mar = c(4.1, 3.1, 3.1, 1.1), oma = c(0, 0, 3, 0))
 for (j in 1:3){
 
     ### Constructive
     set.seed(1)
-    B = 400
+    B = 300
     n = 850
     x = matrix(0, B, n)
     alpha = rgamma(B, a_vec[j], b_vec[j])
@@ -72,5 +72,5 @@ for (j in 1:3){
     par("mfg" = c(min(j+1, 3), 1, 3, 1))
 
     }
-#dev.off()
+dev.off()
 

@@ -20,12 +20,11 @@ gen.y2 = function(n){
 n = 300
 
 set.seed(1)
- y = gen.y1(n)
+#y = gen.y1(n)
 #sig = matrix(c(326, -1.644, -1.644, 0.116), 2, 2) * 2.4^2
 
-#y = gen.y2(n)
-#sig = 
-matrix(c(38, -1.871, -1.871, 0.441), 2, 2) * 2.4^2
+ y = gen.y2(n)
+#sig = matrix(c(38, -1.871, -1.871, 0.441), 2, 2) * 2.4^2
 
 
 sig = diag(2)
@@ -47,10 +46,10 @@ calc.like = function(alpha, lambda){
 F0.dist.post = function(t, alpha, lambda)
     alpha/(alpha+n)*ppois(t, lambda) + 1/(alpha+n)*sapply(t, function(t) sum(y <= t))
 
-tvec = seq(-1, 30, by = 1)
+tvec = seq(0, 30, by = 1)
 
-nburn = 10000
-nmcmc = 20000
+nburn = 5000
+nmcmc = 10000
 window = 200
 
 fparam = matrix(0, nburn + nmcmc, length(tvec))
@@ -103,8 +102,8 @@ for (i in 2:(nburn + nmcmc)){
         }
 
     # update F (fparam)
-    fparam[i,] = F0.dist.post(c(tvec[-1], Inf), al.param[i, 1], al.param[i, 2]) - 
-        F0.dist.post(tvec, al.param[i, 1], al.param[i, 2])
+    fparam[i,] = F0.dist.post(c(tvec[-1]-0.5, Inf), al.param[i, 1], al.param[i, 2]) - 
+        F0.dist.post(tvec-0.5, al.param[i, 1], al.param[i, 2])
     fparam[i,] = rdirichlet(1, (al.param[i, 1] + n)*fparam[i,])
     if (i == (nburn + nmcmc))
         cat("\n")

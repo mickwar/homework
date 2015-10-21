@@ -1,0 +1,100 @@
+\documentclass[12pt]{article}
+
+\usepackage{graphicx}
+\usepackage[margin=1.25in]{geometry}
+
+\usepackage{bm}
+\newcommand{\m}[1]{\mathbf{\bm{#1}}}
+
+\begin{document}
+
+\noindent Mickey Warner
+
+\noindent AMS 241
+
+\section*{Problem 1}
+
+\noindent Since $G\sim DP(\alpha, G_0)$, then
+\[ (G(B_1), G(B_2), G(B_3)) \sim Dirichlet(\alpha G_0(B_1), \alpha G_0(B_2), \alpha G_0(B_3)) \]
+for a partition $B_1, B_2, B_3$ on $\cal{X}$ where $B_3=(B_1 \cup B_2)^c$. So, without loss of generality, $B_1$ and $B_2$ are any measurable subsets of the sample space.
+\bigskip
+
+\noindent Write $\gamma_i = G(B_i)$ and $\nu_i = G_0(B_i)$ for $i=1,2,3$. We solve for $Cov(\gamma_1, \gamma_2) = E(\gamma_1\gamma_2) - E(\gamma_1)E(\gamma_2)$. Since we know $\gamma_i$ follows a $Beta(\alpha \nu_i, \alpha (1 - \nu_i))$, $E(\gamma_i)=\nu_i$. Now, solve $E(\gamma_1\gamma_2)$,
+
+\addtolength{\jot}{18pt}
+\begin{eqnarray*}
+E(\gamma_1\gamma_2) &=& \int\int\int \gamma_1\gamma_2\frac{\gamma_1^{\alpha \nu_1-1} \gamma_2^{\alpha \nu_2-1} \gamma_3^{\alpha \nu-1}}{\mathrm{Beta}(\alpha \nu_1,\alpha \nu_2,\alpha \nu_3)}d\gamma_1d\gamma_2d\gamma_3 \\
+&=& \frac{1}{\mathrm{Beta}(\alpha \nu_1,\alpha \nu_2,\alpha \nu_3)} \int\int\int \gamma_1^{\alpha \nu_1} \gamma_2^{\alpha \nu_2} \gamma_3^{\alpha \nu-1}d\gamma_1d\gamma_2d\gamma_3 \\
+&=& \frac{\mathrm{Beta}(\alpha \nu_1+1,\alpha \nu_2+1,\alpha \nu_3)}{\mathrm{Beta}(\alpha \nu_1,\alpha \nu_2,\alpha \nu_3)} \\
+&=& \frac{\Gamma(\alpha\nu_1 + 1)\Gamma(\alpha\nu_2+1)\Gamma(\alpha\nu_3)}{\Gamma(\alpha\nu_1 + \alpha\nu_2 + \alpha\nu_3 + 2)}\times\frac{\Gamma(\alpha\nu_1 + \alpha\nu_2 + \alpha\nu_3)}{\Gamma(\alpha\nu_1)\Gamma(\alpha\nu_2)\Gamma(\alpha\nu_3)} \\
+&=& \frac{\alpha\nu_1\nu_2}{\alpha+1}
+\end{eqnarray*}
+
+\noindent Recall that for the gamma function $\Gamma(t+1)=t\Gamma(t)$ and the fact that $\nu_1+\nu_2+\nu_3=1$ by definition. The final equality follows simply after using these properties.
+\bigskip
+
+\noindent We are then left with
+
+\[ Cov(\gamma_1, \gamma_2) = \frac{\alpha\nu_1\nu_2}{\alpha+1} - \frac{\nu_1\nu_2(\alpha+1)}{\alpha+1} = \frac{-\nu_1\nu_2}{\alpha+1} \leq 0\]
+because $\nu_i\geq 0$. The covariance between $\gamma_1=G(B_1)$ and $\gamma_2=G(B_2)$ is negative and subsequently the correlation is also negative. Since probabilities in a sample space sum to one, the negative corelation is not induced by the DP prior alone. The sum-to-one constraint forces that there be low probabilities in the presence of high ones, and vice versa, i.e. a negative correlation.
+
+\newpage
+
+\section*{Problem 2}
+
+\noindent I choose $\alpha$ to be $0.1$, $1$, and $10$. DP's are drawn from Ferguson's definition as well as from the constructive definition (both are comparable). Notice as $\alpha$ increases, we see less ``discreteness'' and less variability from the baseline distribution. I only draw $B=50$ distributions for better clarity in the figure.
+
+\begin{center}
+\includegraphics[scale=0.40]{figs/prob2a.pdf}
+\end{center}
+
+\noindent Three prior distributions are selected for $\alpha$. The first (top plot), has low variance and also small mean, putting heavy emphasis on highly discrete DP draws. The second (middle) has rather large values for $\alpha$, causing low variability. The third (bottom) has a gamma distribution with low mean and high variance, showing both low and high variance in the DP draws. Here, $B=300$. The draws from the $\alpha$ priors are inserted in each plot.
+
+\begin{center}
+\includegraphics[scale=0.40]{figs/prob2b.pdf}
+\end{center}
+
+\newpage
+
+\section*{Problem 3}
+
+\noindent Plots are shown on the next three pages. For each set of plots, the left column uses data generated from a $N(0, 1)$ and the right column uses data from $0.5N(-2.5, 0.5^2) + 0.3N(0.5, 0.7^2) + 0.2N(1.5, 2^2)$. The first row uses $n=20$, the second row $n=200$ and third row $n=2000$. I use the original definition to obtain $B=1000$ posterior DP draws.
+\bigskip
+
+\noindent In each plot, the red curve marks the baseline distribution, a $N(m, s^2)$, and the black points mark the empirical cdf of the data. The blue shaded region is pointwise 95\% posterior probability intervals (i.e. for each subset of the sample space). The darker blue line marks the estimated posterior mean.
+\bigskip
+
+\noindent The first set of plot uses $\alpha=100$, $m=-4$, and $s=2$ for each combition of generating distribution and sample size. The high $\alpha$, in combination with the low $m$, brings the posterior closer to the baseline.
+\bigskip
+
+\noindent The second set uses $\alpha=100$, $m=-1$, and $s=0.1$. Again, we see the posterior tending more towards the baseline. It should be clear that this is due mostly to the high $\alpha$. The values for $m$ and $s$ serve mostly to affect the shape.
+\bigskip
+
+\noindent The third set uses $\alpha=1$, $m=-4$, and $s=2$. These are the same $m$ and $s$ from the first plot, but notice that the posterior distribution in every case is very close to the data. This further suggests that $m$ and $s$ affect the shape of the posterior distribution insofar as $\alpha$ will allow. 
+\bigskip
+
+\noindent Though we have looked at fixed values for $\alpha$, $m$, and $s$, we could just as well put priors on these values. We may let $m$ follow a normal distribution and $s$ an inverse gamma distribution. The posterior distribution for $m, s$ may be estimated, but as we have seen, it was the $\alpha$ that had more of an impact on the posterior distribution. Thus, the posterior distribution for $\alpha$ is of more interest. A reasonable prior may be gamma, inverse gamma, or some other distribution with positive support.
+
+\newpage
+
+\begin{center}
+\includegraphics[scale=0.60]{figs/prob3a.pdf}
+\end{center}
+
+\newpage
+
+\begin{center}
+\includegraphics[scale=0.60]{figs/prob3b.pdf}
+\end{center}
+
+\newpage
+
+\begin{center}
+\includegraphics[scale=0.60]{figs/prob3c.pdf}
+\end{center}
+
+\newpage
+
+\section*{Problem 4}
+
+\end{document}

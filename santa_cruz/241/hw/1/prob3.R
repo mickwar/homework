@@ -18,9 +18,9 @@ gen.y2 = function(n){
 
 B = 1000
 
- alpha = 100; m = -4; s = 2
-#alpha = 1; m = -4; s = 2
+#alpha = 100; m = -4; s = 2
 #alpha = 100; m = -1; s = 0.1
+ alpha = 1; m = -4; s = 2
 G0.dist = function(t)
     pnorm(t, m, s)
 
@@ -32,7 +32,7 @@ tvec = seq(-9, 5, length = 1000)
 n = c(20, 200, 2000)
 
 
-pdf("./figs/prob3a.pdf", height = 18, width = 15)
+pdf("./figs/prob3c.pdf", height = 12, width = 10)
 par(mfrow = c(3,2), mar = c(4.1, 3.1, 3.1, 1.1), oma = c(0, 0, 3, 0))
 for (n in c(20, 200, 2000)){
     ### Ferguson
