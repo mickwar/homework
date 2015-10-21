@@ -21,14 +21,10 @@ n = 300
 
 set.seed(1)
 #y = gen.y1(n)
-#sig = matrix(c(326, -1.644, -1.644, 0.116), 2, 2) * 2.4^2
-
  y = gen.y2(n)
-#sig = matrix(c(38, -1.871, -1.871, 0.441), 2, 2) * 2.4^2
 
-
+# initial candidate sigma
 sig = diag(2)
-
 
 nj = as.vector(table(y))
 ystar = as.numeric(names(table(y))) # sort(unique(y))
@@ -48,9 +44,9 @@ F0.dist.post = function(t, alpha, lambda)
 
 tvec = seq(0, 30, by = 1)
 
-nburn = 5000
-nmcmc = 10000
-window = 200
+nburn = 10000
+nmcmc = 25000
+window = 500
 
 fparam = matrix(0, nburn + nmcmc, length(tvec))
 al.param = matrix(0, nburn + nmcmc, 2)
@@ -94,11 +90,11 @@ for (i in 2:(nburn + nmcmc)){
         keep.acc[i/window] = mean(al.accept[(i-window+1):i])
 #       sig = (sig + autotune(mean(al.accept[(i-window+1):i]), k = max(1.5, window / 50)) *
 #           cov(al.param[(i-window+1):i,])) / 2
-        sig = autotune(mean(al.accept[(i-window+1):i]), k = max(1.5, window / 50)) * (sig +
-            cov(al.param[(i-window+1):i,])) / 2
+        sig = autotune(mean(al.accept[(i-window+1):i]), target = 0.25, k = window/50) *
+            (sig + var(al.param[(i-window+1):i,]) / 2)
         keep.det[i/window] = determinant(sig)$modulus[1]
-        plot(keep.det, type='b', pch = 20)
-        text(1:250, keep.det, round(keep.acc, 2))
+        plot(keep.det, type='l', pch = 20, ylim = range(keep.det[1:(i/window)]))
+        text(1:(nburn/window), keep.det, round(keep.acc, 2))
         }
 
     # update F (fparam)
@@ -108,8 +104,6 @@ for (i in 2:(nburn + nmcmc)){
     if (i == (nburn + nmcmc))
         cat("\n")
     }
-
-plot(al.param, col = rgb(seq(0, 1, length = nburn + nmcmc), 0, 0), pch = 20)
 
 al.param = tail(al.param, nmcmc)
 fparam = tail(fparam, nmcmc)
@@ -146,23 +140,25 @@ hpd.plot(density(al.param[,2]), hpds[,2], xlab = expression(lambda),
 
 
 ### pmf and cdf
-par(mfrow = c(2,1))
+par(mfrow = c(1,1))
 plot(tvec, qlines[4,], pch = "_", col = 'darkgreen', cex = 2,
     main = "Posterior p.m.f. from DP", xlab = "y", ylab = "mass")
-lines(tvec, qlines[3,], type='h', col = 'green', lwd = 3)
+segments(x0 = tvec, y0 = qlines[2,], y1 = qlines[4,], col = 'darkgreen', lwd = 1)
+points(tvec, qlines[3,], pch = 1, col = 'green', lwd = 3)
 lines(as.numeric(names(table(pred)))+0.2, table(pred)/nmcmc, type='h', col = 'blue', lwd = 2)
 points(tvec, qlines[2,], pch = "_", col = 'darkgreen', cex = 2)
 #lines(as.numeric(names(table(y)))+0.3, table(y)/n, col = 'blue', type='h', lwd = 2)
-points(as.numeric(names(table(y))), table(y)/n, col = 'black', pch = 20, lwd = 2)
+points(as.numeric(names(table(y)))-0.2, table(y)/n, col = 'black', pch = 20, lwd = 2)
 legend("topright", border = NA, box.lty = 0,
-    legend = c("", "Data", "Median", "95% intervals", "Posterior predictive"),
+    legend = c("", "Data (frequency)", "Posterior median", "95% posterior DP pointwise intervals",
+        "Posterior predictive distribution"),
     col = c(NA, "black", "green", "darkgreen", "blue"), pch = c(NA, 20, NA, NA, NA),
-    lty = c(NA, NA, 1, 1, 1), lwd = c(NA, NA, 3, 1, 2))
+    lty = c(NA, NA, 1, 1, 1), lwd = c(NA, NA, 3, 1, 2), cex = 1.3)
 
-matplot(tvec, cdfparam, type = 's', lty = 1, col = rgb(0.0, 0.7, 0.0),
-    main = "Posterior c.d.f. from DP", xlab = "y", ylab = "Cumulative mass")
-plot(ecdf(y), add = TRUE, verticals = TRUE, col.01line = NA)
-legend("bottomright", border = NA, box.lty = 0, legend = c("Data", "Posterior draws", ""),
-    col = c("black", rgb(0, 0.7, 0), NA), pch = c(20, NA, NA), lty = c(1, 1, NA),
-    lwd = c(1, 1, NA))
+# matplot(tvec, cdfparam, type = 's', lty = 1, col = rgb(0.0, 0.7, 0.0),
+#     main = "Posterior c.d.f. from DP", xlab = "y", ylab = "Cumulative mass")
+# plot(ecdf(y), add = TRUE, verticals = TRUE, col.01line = NA)
+# legend("bottomright", border = NA, box.lty = 0, legend = c("Data", "Posterior draws", ""),
+#     col = c("black", rgb(0, 0.7, 0), NA), pch = c(20, NA, NA), lty = c(1, 1, NA),
+#     lwd = c(1, 1, NA))
 
