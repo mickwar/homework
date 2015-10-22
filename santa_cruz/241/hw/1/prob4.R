@@ -20,8 +20,8 @@ gen.y2 = function(n){
 n = 300
 
 set.seed(1)
- y = gen.y1(n)
-#y = gen.y2(n)
+#y = gen.y1(n)
+ y = gen.y2(n)
 
 # initial candidate sigma
 sig = diag(2)
@@ -113,6 +113,7 @@ al.accept = tail(al.accept, nmcmc)
 plot(al.param, col = rgb(seq(0, 1, length = nmcmc), 0, 0), pch = 20)
 
 qlines = apply(fparam, 2, quantile, c(0, 0.025, 0.5, 0.975, 1))
+qlines[3,] = apply(fparam, 2, mean)
 cdfparam = apply(fparam, 1, cumsum)
 
 mean(al.accept)
@@ -171,10 +172,10 @@ points(tvec, qlines[2,], pch = "_", col = 'darkgreen', cex = 2)
 #lines(as.numeric(names(table(y)))+0.3, table(y)/n, col = 'blue', type='h', lwd = 2)
 points(as.numeric(names(table(y)))-0.2, table(y)/n, col = 'black', pch = 20, lwd = 2)
 legend("topright", border = NA, box.lty = 0,
-    legend = c("", "Data (frequency)", "Posterior median", "95% posterior DP pointwise intervals",
+    legend = c("", "Data (frequency)", "Posterior mean", "95% posterior DP pointwise intervals",
         "Posterior predictive distribution"),
-    col = c(NA, "black", "green", "darkgreen", "blue"), pch = c(NA, 20, NA, NA, NA),
-    lty = c(NA, NA, 1, 1, 1), lwd = c(NA, NA, 3, 1, 2), cex = 1.3)
+    col = c(NA, "black", "green", "darkgreen", "blue"), pch = c(NA, 20, 1, NA, NA),
+    lty = c(NA, NA, NA, 1, 1), lwd = c(NA, NA, 3, 1, 2), cex = 1.3)
 #dev.off()
 
 # matplot(tvec, cdfparam, type = 's', lty = 1, col = rgb(0.0, 0.7, 0.0),

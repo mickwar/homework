@@ -106,6 +106,14 @@ because $\nu_i\geq 0$. The covariance between $\gamma_1=G(B_1)$ and $\gamma_2=G(
 \noindent The prior for $\alpha$ also had an effect on $\lambda$. It seemed that as $\alpha$ increase, $\lambda$ tended toward the mean of the data. We feel the prior for $\lambda$ is relative non-informative, giving appropriate weights to reasonable values for parameter. The prior for $\lambda$ was centered around the mean of the data, but with moderate variance. This would seem appropriate in practice.
 \bigskip
 
+\noindent We update $(\alpha, \lambda)$ in blocks with a Metropolis step using a multivariate normal proposal distribution. Acceptance rates are given above the trace plots (top left) of the marginal distributions. After a burn-in period, we run our sampler for $25,000$ draws. The trace plots seem to suggest convergence and we accept the draws as if from the posterior distribution.
+\bigskip
+
+\noindent Kernel density estimates for the marginal posteriors, with mean and 95\% hpd intervals, are given in the right column. The figure on the bottom of each page shows the data (black dots) and the posterior predictive distribution (blue lines). The posterior mean (green circle) and 95\% equal-tailed intervals (green lines) are estimated from the posterior DP for $F$.
+\bigskip
+
+\noindent A desirable outcome is that our posterior predictive distribution agrees closely with the data (as well as the posterior mean, but this was expected). We note for both data sets the seemingly large posterior variance at each location. This is due mostly to $n$, which could easily be increased for tighter bounds. We are especially pleased that the DP recovered the underlying distribution.
+
 \newpage
 
 \begin{center}
