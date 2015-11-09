@@ -1,0 +1,73 @@
+\documentclass[12pt]{article}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage[margin=1.20in]{geometry}
+
+\usepackage{bm}
+\newcommand{\m}[1]{\mathbf{\bm{#1}}}
+
+\begin{document}
+
+\noindent Mickey Warner
+
+\noindent AMS 241
+
+\section*{Problem 1}
+
+\subsection*{The DP mixture model}
+
+A simulated dataset consisting of $n=250$ random draws from the mixture of normals $0.2N(-5, 1)+0.5N(0,1)+0.3N(3.5,1)$ will be analyzed in this problem. We consider the location normal Dirichlet process mixture model
+
+\[ f(\cdot|G, \phi) = \int k_N(\cdot|\theta, \phi)dG(\theta),~~~G|\alpha,\mu,\tau^2\sim DP(\alpha, G_0=N(\mu,\tau^2)) \]
+
+\noindent where $k_N(\cdot|\theta,\phi)$ is the density function of a normal distribution with mean $\theta$ and variance $\phi$. Hence, we are mixing over the location of the normal distribution. The hierarchical version of the model is given by 
+\begin{align*}
+y_i|\theta_i,\phi &\overset{ind}\sim k_N(y_i|\theta_i,\phi),~~~i=1,\ldots,n \\
+\theta_i|G &\overset{iid}\sim G,~~~i=1,\ldots,n \\
+G|\alpha,\mu,\tau^2 &\sim DP(\alpha, G_0=N(\mu,\tau^2)) \\
+\alpha,\mu,\tau^2,\phi &\sim p(\alpha)p(\mu)p(\tau^2)p(\phi) 
+\end{align*}
+
+\noindent The priors on $\alpha, \mu, \tau^2, \phi$ are chosen for convenience in the sampling. We will discuss the actual choices in the next section.
+
+Posterior inference is made by sampling from the marginal posterior $p(\m{\theta},\alpha,\mu,\tau^2,\phi|\m{y})$, where $\m{\theta}=(\theta_1,\ldots,\theta_n)$ are the latent mixing parameters and $\m{y}=(y_1,\ldots,y_n)$ are the data. This marginal posterior is found by integrating out the infinite-dimensional parameter $G$ from the full posterior distribution
+
+\[p(\m{\theta},\alpha,\mu,\tau^2,\phi|\m{y}) = \int p(G,\m{\theta},\alpha,\mu,\tau^2,\phi|\m{y})dG \]
+
+\noindent or, rather, by noting that the full posterior may be factored, using Bayes' formula, into a product of the full conditional of $G$ and the marginal posterior
+
+\[ p(G,\m{\theta},\alpha,\mu,\tau^2,\phi|\m{y}) = p(G|\m{\theta},\alpha,\mu,\tau^2,\phi,\m{y})p(\m{\theta},\alpha,\mu,\tau^2,\phi|\m{y}). \]
+
+\subsection*{Full conditionals of the marginal posterior}
+
+\noindent To simulate from $p(\m{\theta},\alpha,\mu,\tau^2,\phi|\m{y})$ we iteratively draw from the full conditionals of each parameter $\theta_1,\ldots,\theta_n,\alpha,\mu,\tau^2,\phi$. The expressions for the condtional distributions are based on the P{\'o}lya urn representation. Before we present the distributions, we introduce some notation.
+
+Since $G$ is almost surely discrete there will be a clustering among the $\theta_i$s and the Gibbs sampler we employ takes advantage of this fact. The following list describes the notation used throughout this section:
+\begin{itemize}[label=$\cdot$]
+\item $n^*$ denotes the number of distinct $\theta_i$s
+\item $\theta_j^*$, $j=1,\ldots,n^*$ are the distinct $\theta_i$s
+\item $\m{w}=(w_1,\ldots,w_n)$ is the vector that matches each $\theta_i$ to its corresponding $\theta_j^*$, i.e., $w_i=j$ if and only if $\theta_i=\theta_j^*$
+\item $n_j$ is the size of the $j$th cluster, $|\{i:w_i=j\}|$, $j=1,\ldots,n^*$
+\end{itemize}
+
+\noindent The vectors $(n^*, \m{w}, \theta_1^*,\ldots,\theta_{n^*}^*)$ and $(\theta_1,\ldots,\theta_n)$ are equivalent. The former will simplify the calculations to follow.
+
+For each $\theta_i, i=1,\ldots,n$, the full conditional $p(\theta_i|\{\theta_k:k\neq i\},\alpha,\mu,\tau^2,\phi,\m{y})$ is given by
+\[ \frac{\alpha q_0}{\alpha q_0 + \sum_{j=1}^{n^{*-}} n_j^-q_j}h(\theta_i|\mu,\tau^2,\phi,y_i)+\sum_{j=1}^{n^{*-}}\frac{n_j^-q_j}{\alpha q_0 + \sum_{j=1}^{n^{*-}}n_j^-q_j}\delta_{\theta_j^{*-}}(\theta_i) \]
+\[ =Ah(\theta_i|\mu,\tau^2,\phi,y_i)+\sum_{j=1}^{n^{*-}}B_j \delta_{\theta_j^{*-}}(\theta_i) \]
+
+\noindent where
+\begin{itemize}[label=$\cdot$]
+\item $q_j=k_N(y_i|\theta_j^*,\phi)$,
+\item $q_0=\int k_N(y_i|\theta,\phi)g_0(\theta|\mu,\tau^2)d\theta$,
+\item $h(\theta_i|\mu,\tau^2,\phi,y_i) \propto k_N(y_i|\theta_i,\phi)g_0(\theta_i|\mu,\tau^2)$,
+\item $g_0$ is the density of $G_0=N(\cdot|\mu,\tau^2)$, and
+\item The superscript ``$^-$'' denotes the appropriate change to $n^{*-}$, $n_j^-$, and $\theta_j^{*-}$ when omitting $\theta_i$ from their calculations.
+\end{itemize}
+
+\noindent Updating $p(\theta_i|\{\theta_k:k\neq i\},\alpha,\mu,\tau^2,\phi,\m{y})$ is done by drawing either (1) a new value from $h$ with probability $A$, or (2) $\theta_j^*$ with probability $B_j$ ($A+B_1+\cdots+B_{n^{*-}}=1$). Note that to use the Gibbs sampler we require conjugacy with $k_N$ and $G_0$. Without conjugacy we would have to resort to other methods for updating $\theta_i$.
+
+
+\end{document}
