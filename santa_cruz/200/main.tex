@@ -1,0 +1,119 @@
+\documentclass[mathserif, 12pt, t]{beamer}
+
+\let\Tiny=\tiny
+%\usepackage{xcolor}
+%\usepackage{pdfpages}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{natbib}
+\usepackage{amsmath}
+\usepackage{bm}
+\geometry{vmargin=0.5in}
+
+%colors
+\definecolor{col1}{rgb}{1.00, 0.40, 0.00}
+%\definecolor{col2}{rgb}{0.80, 0.35, 0.00}
+\definecolor{col2}{rgb}{0.00, 0.35, 0.80}
+
+%commands
+%\newcommand{\lra}{\longrightarrow}
+%\newcommand{\ra}{\rightarrow}
+\newcommand{\m}[1]{\mathbf{\bm{#1}}}
+%\renewcommand{\frametitle}[1]{\vspace{0.15cm}\hspace{-0.70cm}\textcolor{col1}{%
+%    \Large{#1}}\vspace{0.15cm}\newline}
+\renewcommand{\frametitle}[1]{\vspace{0.14cm}\hspace{-0.70cm}\textcolor{col2}{%
+    \Large{#1}}\vspace{0.15cm}\newline}
+
+%\renewcommand{\subtitle}[1]{\vspace{0.45cm}\textcolor{col2}{
+%    {\textbf{#1}}}\vspace{0.15cm}\newline}
+
+%\newcommand{\tlb}[1]{\large{\textbf{#1}}}
+
+%slide colors
+\pagecolor{col1!70}
+
+\begin{document}
+
+%%% begin title frame
+\begin{center}
+\ \\ [-0.5in]
+\vfill
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+
+\begin{Large}
+\begin{center}
+Reversible jump Markov chain Monte Carlo
+\end{center}
+\end{Large}
+\vfill
+
+Mickey Warner
+\vfill
+
+15 November 2015
+\smallskip
+
+UC Santa Cruz -- AMS 200
+
+\bigskip
+\bigskip
+\vfill
+\ \\ [-0.5in]
+\end{center}
+%\end{frame}
+%%% end title frame
+
+
+
+\begin{frame}
+\frametitle{Markov chain Monte Carlo (MCMC)}
+
+A general set of methods that allows us to obtain random samples from a target distribution
+\bigskip
+
+In the Bayesian setting, the target distribution is the posterior distribution $p(\m{\theta}|\m{y})$
+\bigskip
+
+MCMC is useful when directly sampling from $p(\m{\theta}|\m{y})$ is difficulty
+\bigskip
+
+Standard MCMC methods require the parameters $\m{\theta}$ to have fixed dimension
+
+%\begin{itemize}[label=$\cdot$]
+%\item A general set of methods that allows us to obtain random samples from a target distribution
+%\item In the Bayesian setting, the target distribution is the posterior distribution $p(\m{\theta}|\m{y})$
+%\item MCMC is useful when directly sampling from $p(\m{\theta}|\m{y})$ is difficulty
+%\item Standard MCMC methods require the parameters $\m{\theta}$ to have fixed dimension
+%\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Reversible jump MCMC}
+
+What about when $\m{\theta}$ does not have fixed dimensions?
+\bigskip
+
+For example, consider the mixture model
+\begin{align*}
+y_i &\overset{iid}\sim \sum_{j=1}^\nu \pi_j f(y_i|\phi) \\
+\nu,\pi_1,\ldots,\pi_\nu,\phi &\sim p(\nu)p(\pi_1,\ldots,\pi_\nu)p(\phi) 
+\end{align*}
+
+Here, $\m{\theta}=(\nu,\pi_1,\ldots,\pi_\nu,\phi)$ has dimension $\nu+2$, but $\nu$ is random.
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Reversible jump MCMC}
+
+\end{frame}
+
+
+\end{document}
