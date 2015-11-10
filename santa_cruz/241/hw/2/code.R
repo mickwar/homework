@@ -1,38 +1,28 @@
 y = as.numeric(unlist(read.table("./data.txt")))
 
-#y = c(rnorm(20, -5, 1), rnorm(40, 15, 1))
 n = length(y)
+ord = order(y)
 
+par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
 plot(density(y))
+curve(0.2*dnorm(x, -5, 1) + 0.5*dnorm(x, 0, 1) + 0.3*dnorm(x, 3.5, 1), add = TRUE, col = 'red')
+legend("topleft", legend = c("data", "truth"), col = c("black", "red"), lwd = 1, box.lwd = 0, cex = 1.5)
 
 ### Inverse gamma functions
 # Mean = rate / (shape - 1)
 # What I'm calling rate for the inverse gamma, Wikipedia calls scale
 dinvgamma = function(x, shape, rate, log = FALSE){
+    out = shape * log(rate) - lgamma(shape) - (shape + 1) * log(x) - rate / x
     if (log)
-        return (shape * log(rate) - lgamma(shape) - (shape + 1) * log(x) - rate / x)
-    return (rate^shape / gamma(shape) * x^(-shape-1) * exp(-rate / x))
+        return (out)
+    return (exp(out))
     }
 rinvgamma = function(n, shape, rate)
     1/rgamma(n, shape = shape, rate = rate)
 
-### Other functions
-#calc.q0 = function(x, mu, tau2, phi){
-#    sig = phi*tau2 / (phi + tau2)
-##   sqrt(sig/(2*pi*phi*tau2)) * exp(mu^2*phi*(1-phi) - 2*mu*phi*x*tau2 + x^2*tau2*(1-tau2))
-#    exp(1/2 * (log(sig) - log(2*pi*phi*tau2)) +
-#        mu^2*phi*(1-phi) - 2*mu*phi*x*tau2 + x^2*tau2*(1-tau2))
-#    }
-
-#x = y[1]
-#mu = param.psi[1,1]
-#tau2 = param.psi[1,2]
-#phi = param.phi[1]
-
-
 
 ### MCMC
-nburn = 10000
+nburn = 500
 nmcmc = 5000
 
 # Parameter objects
@@ -41,15 +31,26 @@ param.alpha = double(nburn + nmcmc)
 param.psi = matrix(0, nburn + nmcmc, 2) # [,1] is mu, [,2] is tau^2
 param.phi = double(nburn + nmcmc)
 
+# Joe's Priors
+# prior.phi.a   = 1.5  # Inverse Gamma (shape)
+# prior.phi.b   = 1 # Inverse Gamma (rate)
+# prior.alpha.a = 2  # Gamma (shape)           alpha controls n.star (discreteness of G)
+# prior.alpha.b = 3  # Gamma (rate)
+# prior.mu.mean = median(y)  # Normal (mean)
+# prior.mu.var  = 1  # Normal (variance)
+# prior.tau2.a  = 10 # Inverse Gamma (shape)
+# prior.tau2.b  = 0.5 # Inverse Gamma (rate)
+
 # Priors
 prior.phi.a   = 3  # Inverse Gamma (shape)
-prior.phi.b   = 20 # Inverse Gamma (rate)
+prior.phi.b   = 10 # Inverse Gamma (rate)
 prior.alpha.a = 1  # Gamma (shape)           alpha controls n.star (discreteness of G)
 prior.alpha.b = 1  # Gamma (rate)
 prior.mu.mean = 0  # Normal (mean)
 prior.mu.var  = 3  # Normal (variance)
 prior.tau2.a  = 3  # Inverse Gamma (shape)
-prior.tau2.b  = 20 # Inverse Gamma (rate)
+prior.tau2.b  = 10 # Inverse Gamma (rate)
+
 
 # Initial values
 param.theta[1,] = y
@@ -75,10 +76,6 @@ for (iter in 2:(nburn + nmcmc)){
         theta.star.minus = as.numeric(names(n.j.minus))
         n.star.minus = length(theta.star.minus)
 
-#       # mean of h
-#       mu.star = (c.mu * c.phi + y[i] * c.tau2) / (c.phi + c.tau2)
-#       # variance of h
-#       sig.star = c.phi * c.tau2 / (c.phi + c.tau2)
 
         # q0 here is a normal density (after annoying integration)
         q0 = dnorm(y[i], c.mu, sqrt(c.phi + c.tau2))
@@ -87,11 +84,13 @@ for (iter in 2:(nburn + nmcmc)){
         qj = dnorm(y[i], theta.star.minus, sqrt(c.phi))
 
 
+        # Probabilities of determining which to draw
         # Calculate A
         A = c.alpha * q0 / (c.alpha * q0 + sum(n.j.minus * qj))
         
         # Calculate B's
         Bj = n.j.minus * qj / (c.alpha * q0 + sum(n.j.minus * qj))
+
 
         # Make the update
         draw = sample(n.star.minus + 1, 1, prob = c(A, Bj))
@@ -138,29 +137,75 @@ for (iter in 2:(nburn + nmcmc)){
         cat("\n")
     }
 
+### Burn in
+param.theta = tail(param.theta, nmcmc)
+param.alpha = tail(param.alpha, nmcmc)
+param.phi = tail(param.phi, nmcmc)
+param.psi = tail(param.psi, nmcmc)
+
+### Individual plots for the theta's
 par(mfrow = c(4, 2), mar = c(3.1, 2.1, 2.1, 1.1))
 for (k in 1:n){
-    plot(tail(param.theta[,k], nmcmc), type = 'l')
-    plot(density(tail(param.theta[,k], nmcmc)))
+    plot(param.theta[,k], type = 'l')
+    abline(h = y[k], col = 'red', lty = 2)
+    plot(density(param.theta[,k]), main = k)
+    abline(v = y[k], col = 'red', lty = 2)
     if (k %% 4 == 0)
         readline()
     }
 
+### Box plots of the theta's
+qlines = apply(param.theta, 2, quantile, c(0.025, 0.975))
+mline = apply(param.theta, 2, mean)
+
+par(mfrow = c(1,1), mar = c(3.1, 2.1, 2.1, 1.1))
+boxplot(param.theta, pch = 20, cex = 0.1)
+points(y, col = 'red', pch = 20, cex = 0.5)
+
+boxplot(param.theta[,ord], pch = 20, cex = 0.1)
+points(y[ord], col = 'red', pch = 20, cex = 0.5)
+lines(qlines[1,ord], col = 'green', lwd = 1.5)
+lines(qlines[2,ord], col = 'green', lwd = 1.5)
+lines(mline[ord], col = 'darkgreen', lwd = 1.5)
+
+
+### Posterior for n*
 par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
-clusters = apply(tail(param.theta, nmcmc), 1, function(x) length(unique(x)))
-plot(table(clusters) / nmcmc)
+clusters = apply(param.theta,1, function(x) length(unique(x)))
+plot(table(clusters) / nmcmc, main = expression(n^"*"), cex.main = 2)
 table(clusters) / nmcmc
 
-par(mfrow = c(1,2), mar = c(3.1, 2.1, 2.1, 1.1))
-plot(tail(param.alpha, nmcmc), type='l')
-plot(density(tail(param.alpha, nmcmc)))
+### Posterior for alpha, phi, mu, tau^2
+par(mfrow = c(4,2), mar = c(3.1, 2.1, 2.1, 1.1))
+plot(param.alpha, type='l')
+plot(density(param.alpha), main = expression(alpha))
 
-plot(tail(param.phi, nmcmc), type='l')
-plot(density(tail(param.phi, nmcmc)))
+plot(param.phi, type='l')
+plot(density(param.phi), main = expression(phi))
 
-plot(tail(param.psi[,1], nmcmc), type='l')
-plot(density(tail(param.psi[,1], nmcmc)))
+plot(param.psi[,1], type='l')
+plot(density(param.psi[,1]), main = expression(mu))
 
-plot(tail(param.psi[,2], nmcmc), type='l')
-plot(density(tail(param.psi[,2], nmcmc)))
+plot(param.psi[,2], type='l')
+plot(density(param.psi[,2]), main = expression(tau^2))
+
+
+
+### Get theta groups
+library(doMC)
+registerDoMC(4)
+par.fun = function(j){
+    out = double(n)
+    temp = table(unlist(apply(param.theta, 1, function(x) which(x == x[j]))))
+    out[as.numeric(names(temp))] = temp
+    return (out)
+    }
+group = foreach(j = 1:n, .combine = rbind) %dopar% par.fun(j) / nmcmc
+
+
+library(fields)
+par(mfrow = c(1,1), mar=c(5.1,4.1,4.1,2.1))
+image.plot(group)
+
+image.plot(group[ord, ord])
 

@@ -8,6 +8,9 @@
 \usepackage{bm}
 \newcommand{\m}[1]{\mathbf{\bm{#1}}}
 
+\usepackage[longnamesfirst]{natbib} % make it so the first citation
+\bibpunct{(}{)}{;}{a}{}{,}
+
 \begin{document}
 
 \noindent Mickey Warner
@@ -67,7 +70,42 @@ For each $\theta_i, i=1,\ldots,n$, the full conditional $p(\theta_i|\{\theta_k:k
 \item The superscript ``$^-$'' denotes the appropriate change to $n^{*-}$, $n_j^-$, and $\theta_j^{*-}$ when omitting $\theta_i$ from their calculations.
 \end{itemize}
 
-\noindent Updating $p(\theta_i|\{\theta_k:k\neq i\},\alpha,\mu,\tau^2,\phi,\m{y})$ is done by drawing either (1) a new value from $h$ with probability $A$, or (2) $\theta_j^*$ with probability $B_j$ ($A+B_1+\cdots+B_{n^{*-}}=1$). Note that to use the Gibbs sampler we require conjugacy with $k_N$ and $G_0$. Without conjugacy we would have to resort to other methods for updating $\theta_i$.
+\noindent We update $p(\theta_i|\{\theta_k:k\neq i\},\alpha,\mu,\tau^2,\phi,\m{y})$, for $i=1,\ldots,n$, sequentially by drawing either (1) a new value from $h$ with probability $A$, or (2) $\theta_j^*$ with probability $B_j$ ($A+B_1+\cdots+B_{n^{*-}}=1$). With each update of $\theta_i$ we also update the clustering ``parameters'' $n^*$, $\theta_j^*$, and $n_j$, for $j=1,\ldots,n^*$ ($\m{w}$ is more or less for bookkeeping and isn't explicitly used in the sampling algorithm).
+
+Note that to use the Gibbs sampler we require conjugacy with $k_N$ and $G_0$. Without conjugacy we would have to resort to other methods for updating $\theta_i$, say an algorithm from \cite{neal2000markov}.
+
+The functional form of $q_j$ is simply a normal density
+\begin{align*}
+q_j = (2\pi\phi)^{-1/2}\exp\left\{-\frac{1}{2\phi}(y_i - \theta_j^*)^2\right\}
+\end{align*}
+
+We solve for $q_0$ by integrating out $\theta$ (which has a normal kernel) and re-arranging terms to simplify to a nice normal density
+\begin{align*}
+q_0 &= \int (2\pi\phi)^{-1/2}\exp\left\{-\frac{1}{2\phi}(y_i-\theta)^2\right\}(2\pi\tau^2)^{-1/2}\exp\left\{-\frac{1}{2\tau^2}(\theta-\mu)^2\right\}d\theta \\
+ &= (4\pi^2\phi\tau^2)^{-1/2} \int \exp\left\{-\frac{1}{2\phi}(y_i-\theta)^2-\frac{1}{2\tau^2}(\theta-\mu)^2\right\}d\theta \\
+ &= (4\pi^2\phi\tau^2)^{-1/2} \int \exp\left\{-\frac{1}{2\phi\tau^2}\left[\tau^2y_i^2-2y_i\tau^2\theta +\tau^2\theta^2 + \phi\mu^2 - 2\mu\phi\theta + \phi\theta^2\right]\right\}d\theta \\
+ &= (4\pi^2\phi\tau^2)^{-1/2} \int \exp\left\{-\frac{1}{2\phi\tau^2}\left[ \theta^2(\phi+\tau^2) -2\theta(\mu\phi+y_i\tau^2)\right] -\frac{\phi\mu^2+\tau^2y_i^2}{2\phi\tau^2}\right\}d\theta \\
+ &= (4\pi^2\phi\tau^2)^{-1/2}\exp\left\{-\frac{\phi\mu^2+\tau^2y_i^2}{2\phi\tau^2}\right\} \int \exp\left\{-\frac{\phi+\tau^2}{2\phi\tau^2}\left[ \theta^2 -2\theta\frac{\mu\phi+y_i\tau^2}{\phi+\tau^2}\right]\right\}d\theta \\
+ &= (4\pi^2\phi\tau^2)^{-1/2}\exp\left\{-\frac{\phi\mu^2+\tau^2y_i^2}{2\phi\tau^2}\right\} \int \exp\left\{-\frac{1}{2\sigma^*}\left[ \theta^2 -2\theta \mu^* +\mu^{*2} - \mu^{*2}\right]\right\}d\theta \\
+& \mathrm{~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~(where~\mu^*=\frac{\mu\phi+y_i\tau^2}{\phi+\tau^2},~and~\sigma^* = \frac{\phi\tau^2}{\phi + \tau^2})} \\
+ &= (4\pi^2\phi\tau^2)^{-1/2}\exp\left\{-\frac{\phi\mu^2+\tau^2y_i^2}{2\phi\tau^2}\right\} (2\pi\sigma^*)^{1/2}\exp\left\{\frac{\mu^{*2}}{2\sigma^*}\right\} \\
+ &= (2\pi\phi\tau^2)^{-1/2}\left(\frac{\phi\tau^2}{\phi+\tau^2}\right)^{1/2}\exp\left\{-\frac{\phi\mu^2+\tau^2y_i^2}{2\phi\tau^2} + \frac{(\mu\phi+y_i\tau^2)^2}{2\phi\tau^2(\phi+\tau)}\right\} \\
+ &= (2\pi(\phi+\tau^2))^{-1/2}\exp\left\{\frac{-(\phi\mu^2+\tau^2y_i^2)(\phi+\tau^2) + (\mu\phi+y_i\tau^2)^2}{2\phi\tau^2(\phi+\tau^2)}\right\} \\
+ &= (2\pi(\phi+\tau^2))^{-1/2}\exp\left\{\frac{-\phi^2\mu^2-\phi\mu^2\tau^2-\phi y_i^2\tau^2-y_i^2\tau^2 + \mu^2\phi^2+2\mu\phi y_i\tau^2 + y_i^2\tau^2}{2\phi\tau^2(\phi+\tau^2)}\right\} \\
+ &= (2\pi(\phi+\tau^2))^{-1/2}\exp\left\{\frac{-\phi\mu^2\tau^2-\phi y_i^2\tau^2+2\mu\phi y_i\tau^2}{2\phi\tau^2(\phi+\tau^2)}\right\} \\
+ &= (2\pi(\phi+\tau^2))^{-1/2}\exp\left\{-\frac{y_i^2 - 2y_i\mu + \mu^2}{2(\phi+\tau^2)}\right\} \\
+ &= N(y_i|\mu, \phi+\tau^2)
+\end{align*}
+
+\noindent And thus the bookkeeping was worth it. More importantly, note the conjugacy requirement for the integral to be tractable.
+
+The density function $h(\theta_i|\cdot)$ has essentially already been derived when finding $q_0$. After dropping all the non $\theta_i$ terms, we are left with the part from $q_0$ that was inside the integral. That is, $h$ is a normal distribution with mean $\mu^*$ and variance $\sigma^*$ given above. This completes the marginal posterior for $\theta_i$.
+
+
+
+
+\bibliography{refs}
+\bibliographystyle{asa}
 
 
 \end{document}
