@@ -53,7 +53,7 @@ prior.tau2.b  = 10 # Inverse Gamma (rate)
 
 
 # Initial values
-param.theta[1,] = y
+#param.theta[1,] = y
 param.phi[1] = rinvgamma(1, prior.phi.a, prior.phi.b)
 param.alpha[1] = rgamma(1, prior.alpha.a, prior.alpha.b)
 param.psi[1,] = c(rnorm(1, prior.mu.mean, sqrt(prior.mu.var)),
@@ -76,13 +76,11 @@ for (iter in 2:(nburn + nmcmc)){
         theta.star.minus = as.numeric(names(n.j.minus))
         n.star.minus = length(theta.star.minus)
 
-
         # q0 here is a normal density (after annoying integration)
         q0 = dnorm(y[i], c.mu, sqrt(c.phi + c.tau2))
 
         # as is qj, by construction
         qj = dnorm(y[i], theta.star.minus, sqrt(c.phi))
-
 
         # Probabilities of determining which to draw
         # Calculate A
@@ -90,7 +88,6 @@ for (iter in 2:(nburn + nmcmc)){
         
         # Calculate B's
         Bj = n.j.minus * qj / (c.alpha * q0 + sum(n.j.minus * qj))
-
 
         # Make the update
         draw = sample(n.star.minus + 1, 1, prob = c(A, Bj))
@@ -101,7 +98,8 @@ for (iter in 2:(nburn + nmcmc)){
             c.theta[i] = theta.star.minus[draw-1]
             }
         }
-    theta.star = as.numeric(names(table(c.theta)))
+    n.j = table(c.theta)
+    theta.star = as.numeric(names(n.j))
     n.star = length(theta.star)
 
     # Update alpha
@@ -126,7 +124,15 @@ for (iter in 2:(nburn + nmcmc)){
     # Update phi
     c.phi = rinvgamma(1, prior.phi.a + n/2, prior.phi.b + 1/2 * sum((y - c.theta)^2))
 
-    # Put the c. objects into the regular ones
+#   # Extra improvement step (only updating the clusters, not individuals)
+#   for (j in 1:n.star){
+#       temp.w = which(c.theta == theta.star[j])
+#       c.theta[temp.w] = rnorm(1,
+#           (c.phi*c.mu + c.tau2*sum(y[temp.w])) / (c.phi + n.j[j]*c.tau2),
+#           sqrt(c.phi*c.tau2 / (c.phi + n.j[j]*c.tau2)))
+#       }
+
+    # Put the c.* objects into the regular ones
     param.theta[iter,] = c.theta
     param.alpha[iter] = c.alpha
     param.psi[iter,1] = c.mu
@@ -154,14 +160,28 @@ for (k in 1:n){
         readline()
     }
 
+### "Trace plot" for clusters
+par(mfrow = c(2,1), mar = c(3.1, 2.1, 2.1, 1.1))
+plot(0, type='n', xlim = c(1, nrow(pback)), ylim = range(pback),
+    xlab = "MCMC Iteration", ylab = "Unique cluster locations", main = "Posterior clusters")
+for (i in 1:nrow(pback)){
+    unq = unique(pback[i,])
+    points(rep(i, length(unq)), unq, pch = 20, cex = 0.2)
+    }
+plot(0, type='n', xlim = c(1, nrow(param.theta)), ylim = range(param.theta),
+    xlab = "MCMC Iteration", ylab = "Unique cluster locations", main = "Posterior clusters")
+for (i in 1:nrow(param.theta)){
+    unq = unique(param.theta[i,])
+    points(rep(i, length(unq)), unq, pch = 20, cex = 0.2)
+    }
+
 ### Box plots of the theta's
 qlines = apply(param.theta, 2, quantile, c(0.025, 0.975))
 mline = apply(param.theta, 2, mean)
 
 par(mfrow = c(1,1), mar = c(3.1, 2.1, 2.1, 1.1))
-boxplot(param.theta, pch = 20, cex = 0.1)
-points(y, col = 'red', pch = 20, cex = 0.5)
-
+#boxplot(param.theta, pch = 20, cex = 0.1)
+#points(y, col = 'red', pch = 20, cex = 0.5)
 boxplot(param.theta[,ord], pch = 20, cex = 0.1)
 points(y[ord], col = 'red', pch = 20, cex = 0.5)
 lines(qlines[1,ord], col = 'green', lwd = 1.5)
@@ -171,9 +191,12 @@ lines(mline[ord], col = 'darkgreen', lwd = 1.5)
 
 ### Posterior for n*
 par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
-clusters = apply(param.theta,1, function(x) length(unique(x)))
+clusters = apply(param.theta, 1, function(x) length(unique(x)))
 plot(table(clusters) / nmcmc, main = expression(n^"*"), cex.main = 2)
 table(clusters) / nmcmc
+
+#plot(density(apply(param.theta[clusters == 3,], 1, unique)))
+#x  =apply(param.theta[clusters == 3,], 1, unique)
 
 ### Posterior for alpha, phi, mu, tau^2
 par(mfrow = c(4,2), mar = c(3.1, 2.1, 2.1, 1.1))
@@ -200,12 +223,28 @@ par.fun = function(j){
     out[as.numeric(names(temp))] = temp
     return (out)
     }
-group = foreach(j = 1:n, .combine = rbind) %dopar% par.fun(j) / nmcmc
+group = (foreach(j = 1:n, .combine = rbind) %dopar% par.fun(j)) / nmcmc
 
 
 library(fields)
 par(mfrow = c(1,1), mar=c(5.1,4.1,4.1,2.1))
-image.plot(group)
-
+#image.plot(group)
 image.plot(group[ord, ord])
+
+# csort = group
+# #finalorder = double(n)
+# for (i in 1:n){
+#     cat("\r", i)
+#     cord = order(csort[i, i:n], decreasing = TRUE)
+#     if (i > 1)
+#         cord = c(1:(i-1), cord + i - 1)
+#     csort = csort[cord,cord]
+# #   finalorder[i] = which(cord == i)
+#     image.plot(csort)
+# #   readline()
+#     }
+# 
+# image.plot(csort)
+# image.plot(group[finalorder, finalorder])
+
 
