@@ -41,15 +41,25 @@ param.phi = double(nburn + nmcmc)
 # prior.tau2.a  = 10 # Inverse Gamma (shape)
 # prior.tau2.b  = 0.5 # Inverse Gamma (rate)
 
+# Arthur's Priors
+# prior.phi.a   = 3  # Inverse Gamma (shape)
+# prior.phi.b   = 3 # Inverse Gamma (rate)
+# prior.alpha.a = 1  # Gamma (shape)           alpha controls n.star (discreteness of G)
+# prior.alpha.b = 1  # Gamma (rate)
+# prior.mu.mean = 0  # Normal (mean)
+# prior.mu.var  = 3  # Normal (variance)
+# prior.tau2.a  = 3  # Inverse Gamma (shape)
+# prior.tau2.b  = 3 # Inverse Gamma (rate)
+
 # Priors
 prior.phi.a   = 3  # Inverse Gamma (shape)
-prior.phi.b   = 3 # Inverse Gamma (rate)
+prior.phi.b   = 10 # Inverse Gamma (rate)
 prior.alpha.a = 1  # Gamma (shape)           alpha controls n.star (discreteness of G)
 prior.alpha.b = 1  # Gamma (rate)
 prior.mu.mean = 0  # Normal (mean)
 prior.mu.var  = 3  # Normal (variance)
 prior.tau2.a  = 3  # Inverse Gamma (shape)
-prior.tau2.b  = 3 # Inverse Gamma (rate)
+prior.tau2.b  = 10 # Inverse Gamma (rate)
 
 
 # Initial values

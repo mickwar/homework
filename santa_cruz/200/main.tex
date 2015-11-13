@@ -114,7 +114,7 @@ y_i &\overset{iid}\sim \sum_{j=1}^\nu \pi_j N(\phi_j, 1),~~~~~i=1,\ldots,n \\
 \nu,\m{\pi},\m{\phi} &\sim p(\nu)p(\m{\pi})p(\m{\phi}) 
 \end{align*}
 
-Here, $\m{\theta}=(\nu,\m{\pi}, \m{\phi})$ has dimension $2\nu+1$, with $\nu$ random, and $\pi=(\pi_1,\ldots,\pi_\nu)$, $\phi=(\phi_1,\ldots,\phi_\nu)$
+Here, $\m{\theta}=(\nu,\m{\pi}, \m{\phi})$ has dimension $2\nu+1$, with random $\nu\geq 1$, and $\pi=(\pi_1,\ldots,\pi_\nu)$, $\phi=(\phi_1,\ldots,\phi_\nu)$
 
 \end{frame}
 
@@ -134,8 +134,8 @@ We need a method that allows us to \emph{jump} from one dimension, or model, to 
 \begin{frame}
 \frametitle{Green's (1995) algorithm}
 
-Green's idea is to augment $\Theta_i$ and $\Theta_j$ with artificial spaces to create a bijection between them
-\bigskip
+%Green's idea is to augment $\Theta_i$ and $\Theta_j$ with artificial spaces to create a bijection between them
+%\bigskip
 
 Let $\pi(k, \theta_k)$ denote the posterior density for model $\mathcal{M}_k$
 \bigskip
@@ -164,18 +164,19 @@ At iteration $t$, if $x^{(t)}=(i,\theta_i^{(t)})$,
 
 \end{frame}
 
-\begin{frame}
-\frametitle{Implementation}
-
-Proposals are often made to another model that is similar (e.g. has only one additional or fewer parameters)
-\bigskip
-
-Difficult to tune for efficient sampling: choices for $T$, $P$, $g$
-\bigskip
-
-
-
-\end{frame}
+%\begin{frame}
+%\frametitle{Comments on implementation}
+%
+%Proposals are often made to another model that is similar in dimension (e.g. has only one additional or fewer parameters)
+%\bigskip
+%
+%Difficult to tune for efficient sampling: choices for $T$, $P$, $g$?
+%\bigskip
+%
+%Diagnostics for the Markov chain?
+%\bigskip
+%
+%\end{frame}
 
 \begin{frame}
 \frametitle{References}
