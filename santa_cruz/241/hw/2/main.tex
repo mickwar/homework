@@ -1,9 +1,11 @@
 \documentclass[12pt]{article}
 
+\usepackage{float}
 \usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage{enumitem}
-\usepackage[margin=1.20in]{geometry}
+\usepackage[margin=1.00in]{geometry}
+%\usepackage[font=footnotesize]{caption}
 
 \usepackage{bm}
 \newcommand{\m}[1]{\mathbf{\bm{#1}}}
@@ -33,7 +35,7 @@ G|\alpha,\mu,\tau^2 &\sim DP(\alpha, G_0=N(\mu,\tau^2)) \\
 \alpha,\mu,\tau^2,\phi &\sim p(\alpha)p(\mu)p(\tau^2)p(\phi) 
 \end{align*}
 
-\noindent The priors on $\alpha, \mu, \tau^2, \phi$ are chosen for convenience in the sampling. We will discuss the actual choices in the next section.
+\noindent We let $\alpha\sim Gamma(a_\alpha, b_\alpha)$, $\mu\sim N(a_\mu, b_\mu)$, $\tau^2\sim IG(a_{\tau^2}, b_{\tau^2})$, and $\phi\sim IG(a_\phi, b_\phi)$, where the gamma has mean $a/b$ and the inverse gamma has mean $b/(a-1)$. These lead to easily sampled full conditionals.
 
 Posterior inference is made by sampling from the marginal posterior $p(\m{\theta},\alpha,\mu,\tau^2,\phi|\m{y})$, where $\m{\theta}=(\theta_1,\ldots,\theta_n)$ are the latent mixing parameters and $\m{y}=(y_1,\ldots,y_n)$ are the data. This marginal posterior is found by integrating out the infinite-dimensional parameter $G$ from the full posterior distribution
 
@@ -43,7 +45,7 @@ Posterior inference is made by sampling from the marginal posterior $p(\m{\theta
 
 \[ p(G,\m{\theta},\alpha,\mu,\tau^2,\phi|\m{y}) = p(G|\m{\theta},\alpha,\mu,\tau^2,\phi,\m{y})p(\m{\theta},\alpha,\mu,\tau^2,\phi|\m{y}). \]
 
-\subsection*{Full conditionals of the marginal posterior}
+\subsection*{(part 1) Full conditionals of the marginal posterior}
 
 \noindent To simulate from $p(\m{\theta},\alpha,\mu,\tau^2,\phi|\m{y})$ we iteratively draw from the full conditionals of each parameter $\theta_1,\ldots,\theta_n,\alpha,\mu,\tau^2,\phi$. The expressions for the condtional distributions are based on the P{\'o}lya urn representation. Before we present the distributions, we introduce some notation.
 
@@ -101,6 +103,112 @@ q_0 &= \int (2\pi\phi)^{-1/2}\exp\left\{-\frac{1}{2\phi}(y_i-\theta)^2\right\}(2
 
 The density function $h(\theta_i|\cdot)$ has essentially already been derived when finding $q_0$. After dropping all the non $\theta_i$ terms, we are left with the part from $q_0$ that was inside the integral. That is, $h$ is a normal distribution with mean $\mu^*$ and variance $\sigma^*$ given above. This completes the marginal posterior for $\theta_i$.
 
+The conditionals for the other parameters are much easier in comparison. We update $\alpha$ by first drawing an auxiliary variable $\eta|\alpha\sim Beta(\alpha+1,n)$ and then drawing from the conditional 
+\[\alpha|\eta,n^*,\m{y}\sim\epsilon Gamma(a_\alpha+n^*, b_\alpha-\log\eta) + (1-\epsilon)Gamma(a_\alpha+n^*-1,b_\alpha-\log\eta)\]
+\noindent where $\epsilon=(a_\alpha+n^*-1)/(n(b_\alpha-\log\eta)+a_\alpha+n^*-1)$. Draws for $\eta$ are discarded. This update works since $\alpha$ has a gamma prior.
+
+The joint conditional $p(\mu, \tau^2|\m{\theta}^*, n^*, \m{y})\propto p(\mu,\tau^2)\prod_{j=1}^{n^*}g_0(\theta_j^*|\mu, \tau^2)$ is basically the canonical example of Gibbs sampling. Because of our choice of priors and $G_0$, we will update $\mu$ and $\tau^2$ separately. For $\mu|\cdot$, we have
+\begin{align*}
+p(\mu|\tau^2,\m{\theta}^*, n^*, \m{y}) &\propto \exp\left\{-\frac{1}{2b_\mu}(\mu-a_\mu)^2\right\}\exp\left\{-\frac{1}{2\tau^2}\sum_{j=1}^{n^*}(\theta_j^*-\mu)^2\right\} \\
+&\propto \exp\left\{-\frac{1}{2b_\mu}(\mu^2-2a_\mu\mu+a_\mu^2)-\frac{1}{2\tau^2}(\sum_{j=1}^{n^*}\theta_j^{*2}-2\mu\sum_{j=1}^{n^*}\theta_j^*+n^*\mu^2)\right\} \\
+&\propto \exp\left\{-\frac{1}{2b_\mu}(\mu^2-2a_\mu\mu)-\frac{1}{2\tau^2}(-2\mu S+n^*\mu^2)\right\},~~~~~(S=\sum_{j=1}^{n^*}\theta_j^*) \\
+&\propto \exp\left\{-\frac{1}{2b_\mu\tau^2}(\mu^2\tau^2-2a_\mu\mu\tau^2 - 2\mu Sb_\mu + \mu^2n^*b_\mu)\right\} \\
+&\propto \exp\left\{-\frac{1}{2b_\mu\tau^2}(\mu^2(\tau^2+b_\mu n^*) -2\mu(a_\mu\tau^2 + b_\mu S))\right\} \\
+&\propto \exp\left\{-\frac{\tau^2+b_\mu n^*}{2b_\mu\tau^2}\left[\mu^2 -2\mu\left(\frac{a_\mu\tau^2 + b_\mu S}{\tau^2+b_\mu n^*}\right)\right]\right\} \\
+&\propto \exp\left\{-\frac{1}{2\sigma'}(\mu-\mu')^2\right\},~~~~~(\mu'=\frac{a_\mu\tau^2+b_\mu S}{\tau^2+b_\mu n^*},~\sigma'=\frac{b_\mu\tau^2}{\tau^2+b_\mu n^*})
+\end{align*}
+Thus $\mu|\cdot \sim N(\mu', \sigma')$. For $\tau^2|\cdot$, we have
+\begin{align*}
+p(\tau^2|\mu,\m{\theta}^*, n^*, \m{y}) &\propto (\tau^2)^{-a_{\tau^2}-1}\exp\left(-\frac{b_{\tau^2}}{\tau^2}\right)(\tau^2)^{-n^*/2}\exp\left\{-\frac{1}{2\tau^2}\sum_{j=1}^{n^*}(\theta_j^*-\mu)^2\right\} \\
+&\propto (\tau^2)^{-(a_{\tau^2}+n^*/2)-1}\exp\left\{-\frac{1}{\tau^2}\left(b_{\tau^2}+\frac{1}{2}\sum_{j=1}^{n^*}(\theta_j^*-\mu)^2\right)\right\}
+\end{align*}
+which is an $IG(a_{\tau^2}+n^*/2, b_{\tau^2}+\frac{1}{2}\sum_{j=1}^{n^*}(\theta_j^*-\mu)^2)$
+
+Finally, we need the conditional distribution for $\phi$. We have
+\begin{align*}
+p(\phi|\cdot) &\propto p(\phi)\prod_{i=1}^nk(y_i|\theta_i,\phi) \\
+&\propto \phi^{-a_\phi-1}\exp\left(-\frac{b_\phi}{\phi}\right)\prod_{i=1}^n \phi^{-1/2}\exp\left\{-\frac{1}{2\phi}(y_i-\theta_i)^2\right\} \\
+&\propto \phi^{-(a_\phi+n/2)-1}\exp\left\{-\frac{1}{\phi}\left(b_\phi+\frac{1}{2}\sum_{i=1}^n(y_i-\theta_i)^2\right)\right\}
+\end{align*}
+which is an $IG(a_\phi+n/2, b_\phi+\frac{1}{2}\sum_{i=1}^n(y_i-\theta_i)^2)$. This completes the formulation for all necessary full conditionals to sample from the marginal posterior.
+
+An additional, but not necessary, step is included to improve the sampling of the cluster locations $\theta_j^*$. It can be shown that the full conditional for each $\theta_j^*$ is normally distributed with mean and variance
+\[ \frac{\phi\mu+\tau^2\sum_{\{i:w_i=j\}}y_i}{\phi+n_j\tau^2},~~~~~\frac{\phi\tau^2}{\phi+n_j\tau^2} \]
+Including this step basically rocked my world when I saw how much better the clustering was.
+
+\subsection*{(part 2) Priors for $\phi$, $\mu$, and $\tau^2$}
+
+The priors I decided upon for the analysis are:
+\begin{itemize}[label=$\cdot$]
+\item $\phi$ -- $a_\phi=3$, $b_\phi=10$ (mean 5, variance 25)
+\item $\mu$ -- $a_\mu=0$, $b_\mu=3$ (mean 0, variance 3)
+\item $\tau^2$ -- $a_{\tau^2}=3$, $b_{\tau^2}=10$ (mean 5, variance 25)
+\end{itemize}
+Plots of the posteriors (along with predictive distributions) are given at the end of this section (just before problem 2). In choosing these hyperparameters, I wanted something a bit non-informative, but still small since I knew the data didn't contain anything very extreme. The posterior predictive distributions for a new cluster $\theta_0$ and data point $y_0$ seem to appropriately model the data. I did consider other choices of hyperparameters, and these are discussed now.
+
+I do not show the plots for the following analyses. I ran the sampler with some extreme values for the hyperparameters:
+\begin{itemize}[label=$\cdot$]
+\item $\phi$ -- $a_\phi=3$, $b_\phi=90$ (mean 45, variance 2025)
+\item $\mu$ -- $a_\mu=10$, $b_\mu=0.1$ (mean 10, variance 0.1)
+\item $\tau^2$ -- $a_{\tau^2}=2.1$, $b_{\tau^2}=0.1$ (mean 0.09, variance 0.08)
+\end{itemize}
+Interestingly, the posterior for $\tau^2$ was much higher than its prior, having a 95\% hpd of (4.6, 130.7); $\phi$ was bimodal around 5 and 10; and $\mu$ was concentrated close to 10. The number of posterior clusters also dropped dramatically (concentrated around 1 cluster). The posterior predictive showed the new $\theta_0$ be at the three ``main'' locations (-5, 0, 3.5) of the original prior selection, however the predictive $y_0$ was now unimodal around 0 with variance 10.
+
+Again, I ran the sampler with the previous list of hyperparameters, except I changed $b_\mu$ to equal 10. This time, the bimodality in $\phi$ went away, however it was now centered around 10. The posteriors for $\alpha$, $\mu$, $n^*$, and $\tau^2$ went to much more reasonable values (close to what we see in the plots). The posterior predictive distribution for $\theta_0$ was unimodal and $y_0$ was about the same as before. $\phi$ was still too high, which is why I was seeing poor predictions. Since $\phi$ was high (10, when it should really be closer to 1), there was no emphasis on creating clusters away from $\mu$.
+
+I believe my choice of priors (the original list) to be reasonable as they yield appropriate posterior predictive distributions.
+
+\subsection*{(part 3) Prior for $\alpha$}
+
+In choosing several different hyperparameters for $\alpha$, I noticed that the prior had a large impact on the number of distinct clusters $n^*$. For the analysis, I a selected $a_\alpha=b_\alpha=1$, which gives a prior mean of $\alpha$ to be $1$ and variance $1$. This in turn gives an approximate prior mean for $n^*$ to be about $6.1$.
+
+\subsection*{(part 4) Posteriors for $n^*$ and $\theta_i$}
+
+\subsection*{(part 5) Posterior predictive for a new $\theta_0$ and new $y_0$}
+ 
+\newpage
+
+%\subsection*{Plots for problem 1}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.42]{figs/posts_1.pdf}
+\caption{Trace plots and posterior distributions for $\phi$, $\mu$, and $\tau^2$}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.45]{figs/nstar_1.pdf}
+\caption{Top left: posterior distribution for the number of distinct labels, or clusters, $n^*$. Top right: a heatmap showing how often two labels (or observations) were part of the same cluster; blue denotes fewer times in common and red is for very often paired together. Bottom: (left) trace plot and (right) posterior distribution (and 95\% hpd) for $\alpha$.}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.75]{figs/lines_1.pdf}
+\caption{This figure shows each cluster label $\theta_i$, sorted by the order of the observations. Black: equal-tailed 95\% credible intervals for each $\theta_i$. Green: posterior mean for each $\theta_i$. Red: the observations.}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.55]{figs/prior_1.pdf}
+\caption{\emph{Prior} predictive distributions for a new cluster $\theta_0$ and new data point $y_0$}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.55]{figs/pred_1.pdf}
+\caption{\emph{Posterior} predictive distributions for a new cluster $\theta_0$ and new data point $y_0$. Note the appearance of three ``main'' clusters. Though the posterior for the \emph{number} of clusters $n^*$ showed more than three clusters, most of these were still around the three modes.}
+\end{center}
+\end{figure}
+
+
+\newpage
+
+\section*{Problem 2}
 
 
 
