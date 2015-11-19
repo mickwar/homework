@@ -144,7 +144,7 @@ The priors I decided upon for the analysis are:
 \item $\mu$ -- $a_\mu=0$, $b_\mu=3$ (mean 0, variance 3)
 \item $\tau^2$ -- $a_{\tau^2}=3$, $b_{\tau^2}=10$ (mean 5, variance 25)
 \end{itemize}
-Plots of the posteriors (along with predictive distributions) are given at the end of this section (just before problem 2). In choosing these hyperparameters, I wanted something a bit non-informative, but still small since I knew the data didn't contain anything very extreme. The posterior predictive distributions for a new cluster $\theta_0$ and data point $y_0$ seem to appropriately model the data. I did consider other choices of hyperparameters, and these are discussed now.
+Plots of the posteriors (Fig. 1), along with predictive distributions (Fig. 5), are given at the end of this section (just before problem 2). In choosing these hyperparameters, I wanted something a bit non-informative, but still small since I knew the data didn't contain anything very extreme. The posterior predictive distributions for a new cluster $\theta_0$ and data point $y_0$ seem to appropriately model the data. I did consider other choices of hyperparameters, and these are discussed now.
 
 I do not show the plots for the following analyses. I ran the sampler with some extreme values for the hyperparameters:
 \begin{itemize}[label=$\cdot$]
@@ -162,9 +162,23 @@ I believe my choice of priors (the original list) to be reasonable as they yield
 
 In choosing several different hyperparameters for $\alpha$, I noticed that the prior had a large impact on the number of distinct clusters $n^*$. For the analysis, I a selected $a_\alpha=b_\alpha=1$, which gives a prior mean of $\alpha$ to be $1$ and variance $1$. This in turn gives an approximate prior mean for $n^*$ to be about $6.1$.
 
+The posterior distribution for $\alpha$ is shown in Fig. 2.
+
+Having a higher prior mean and variance for $\alpha$ did increase the posterior mean and variance. However, the number of clusters $n^*$ and the posterior predictive distributions were not affected by this change. When I put a very tight, low prior for $\alpha$, one with very small mean and variance, the posterior mean for $n^*$ was much smaller, but the posterior predictive distributions remained about the same. This leads me to believe that though $\alpha$ plays a key role in the posterior of $n^*$, it does not have so much of an impact on the other parameters in the model nor on the predictions.
+
 \subsection*{(part 4) Posteriors for $n^*$ and $\theta_i$}
 
+Fig. 2 shows the posterior for $n^*$ (top left) and a heatmap of how the cluster labels $\theta_i$ were grouped (top right). In Fig. 3, I show the mean and equal-tailed 95\% credible interval for each $\theta_i$. Together, these figures show that there are three main clusters that the $\theta_i$'s fall in.
+
+The three main groups might seem contradictory to what we're seeing in the posterior for $n^*$. What is happening is that when new clusters are formed, they are still around the main groups.
+
+In Fig. 5 (left) we see the posterior predictive distribution of a new cluster label $\theta_0$. A simple look at a kernel density estimate of the data would suggest that the distributional shape of $\theta_0$ is appropriate.
+
 \subsection*{(part 5) Posterior predictive for a new $\theta_0$ and new $y_0$}
+
+In Fig. 4 I show the prior predictive distributions for a new cluster $\theta_0$ and a new observation $y_0$. My prior specification results in fairly widespread normal predictive distributions. On the right, I overlay a KDE of the data. This shows that my priors clearly do not capture the shape of the data.
+
+In Fig. 5 we see the posterior predictive distributions for a new cluster and a new observation. Now, we are able to nicely capture the cluster locations as well as the shape of the data. In these plots and in previous ones with a shaded density, the darker blue region denotes the 95\% highest posterior density set. In the predictive distribution of $\theta_0$ we have a set made up of three intervals.
  
 \newpage
 
@@ -209,6 +223,9 @@ In choosing several different hyperparameters for $\alpha$, I noticed that the p
 \newpage
 
 \section*{Problem 2}
+
+
+
 
 
 

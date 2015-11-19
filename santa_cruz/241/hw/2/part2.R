@@ -1,3 +1,4 @@
+library(DPpackage)
 source("~/files/R/mcmc/bayes_functions.R")
 
 y = as.numeric(unlist(read.table("./data.txt")))
@@ -10,107 +11,32 @@ plot(density(y))
 curve(0.2*dnorm(x, -5, 1) + 0.5*dnorm(x, 0, 1) + 0.3*dnorm(x, 3.5, 1), add = TRUE, col = 'red')
 legend("topleft", legend = c("data", "truth"), col = c("black", "red"), lwd = 1, box.lwd = 0, cex = 1.5)
 
-### Inverse gamma functions
-# Mean = rate / (shape - 1)
-# What I'm calling rate for the inverse gamma, Wikipedia calls scale
-dinvgamma = function(x, shape, rate, log = FALSE){
-    out = shape * log(rate) - lgamma(shape) - (shape + 1) * log(x) - rate / x
-    if (log)
-        return (out)
-    return (exp(out))
-    }
-rinvgamma = function(n, shape, rate)
-    1/rgamma(n, shape = shape, rate = rate)
-
-
-### MCMC
 nburn = 2000
-nmcmc = 10000
-
-# Parameter objects
-param.theta = matrix(0, nburn + nmcmc, n)
-param.alpha = double(nburn + nmcmc)
-param.psi = matrix(0, nburn + nmcmc, 2) # [,1] is mu, [,2] is tau^2
-param.phi = double(nburn + nmcmc)
-
-# Priors
-prior.phi.a   = 3   # Inverse Gamma (shape)
-prior.phi.b   = 10  # Inverse Gamma (rate)
-prior.alpha.a = 1   # Gamma (shape)           alpha controls n.star (discreteness of G)
-prior.alpha.b = 1   # Gamma (rate)
-prior.mu.mean = 0   # Normal (mean)
-prior.mu.var  = 3   # Normal (variance)
-prior.tau2.a  = 3   # Inverse Gamma (shape)
-prior.tau2.b  = 10  # Inverse Gamma (rate)
+nmcmc = 7000
 
 
-# Initial values
-#param.theta[1,] = y
-param.phi[1] = rinvgamma(1, prior.phi.a, prior.phi.b)
-param.alpha[1] = rgamma(1, prior.alpha.a, prior.alpha.b)
-param.psi[1,] = c(rnorm(1, prior.mu.mean, sqrt(prior.mu.var)),
-    rinvgamma(1, prior.tau2.a, prior.tau2.b))
+prior1 = list(m2 = 0, s2 = sqrt(3),    # prior mean and sd for mean of normal part of G0
+              tau1 = 2, tau2 = 2,      # twice the shape and rate for kappa
+              nu1 = 3,                 # fixed c, shape in inverse gamma part of G0
+              nu2 = 5, psiinv2 = 1/10, # rate in inverse gamma part of G0 (an inverse gamma itself)
+              a0 = 1, b0 = 1)          # priors on alpha (same as prob 1)
+mcmc1 = list(nburn = nburn, nsave = nmcmc, ndisplay = 100)
+                
 
-# Iterations
-for (iter in 2:(nburn + nmcmc)){
-    cat("\r", iter, "/", nburn + nmcmc)
+fit1 = DPdensity(y = y, prior = prior1, mcmc = mcmc1, state = NULL, status = TRUE)
 
-    # Current parameters (used for convenience)
-    c.theta = param.theta[iter-1,]
-    c.alpha = param.alpha[iter-1]
-    c.mu = param.psi[iter-1,1]
-    c.tau2 = param.psi[iter-1,2]
-    c.phi = param.phi[iter-1]
+str(fit1$save.state)
 
-    # Update thetas
-    for (i in 1:n){
-        n.j.minus = table(c.theta[-i])
-        theta.star.minus = as.numeric(names(n.j.minus))
-        n.star.minus = length(theta.star.minus)
+plot(table(fit1$save.state$thetasave[,4])/nmcmc)
 
-        # q0 here is a normal density (after annoying integration)
-        q0 = dnorm(y[i], c.mu, sqrt(c.phi + c.tau2))
 
-        # as is qj, by construction
-        qj = dnorm(y[i], theta.star.minus, sqrt(c.phi))
+plot(density(fit1$save.state$randsave[,501]))
+plot(density(fit1$save.state$randsave[,502]))
 
-        # Probabilities of determining which to draw
-        # Calculate A
-        A = c.alpha * q0 / (c.alpha * q0 + sum(n.j.minus * qj))
-        
-        # Calculate B's
-        Bj = n.j.minus * qj / (c.alpha * q0 + sum(n.j.minus * qj))
 
-        # Make the update
-        draw = sample(n.star.minus + 1, 1, prob = c(A, Bj))
-        if (draw == 1){ # Make a draw from h
-            c.theta[i] = rnorm(1, (c.mu*c.phi + y[i]+c.tau2)/(c.phi + c.tau2),
-                sqrt(c.phi*c.tau2/(c.phi + c.tau2)))
-        } else { # Make a draw from the existing groups
-            c.theta[i] = theta.star.minus[draw-1]
-            }
-        }
-    n.j = table(c.theta)
-    theta.star = as.numeric(names(n.j))
-    n.star = length(theta.star)
+plot(density(fit1$save.state$randsave[,503]))
+lines(density(y), col = 'red')
 
-    # Update alpha
-    # Use an auxiliary variable eta to draw a new alpha
-    eta = rbeta(1, c.alpha + 1, n)
-    eps = (prior.alpha.a + n.star - 1) /
-        (n*(prior.alpha.b - log(eta)) + prior.alpha.a + n.star - 1)
-    if (runif(1) < eps){
-        c.alpha = rgamma(1, prior.alpha.a + n.star, prior.alpha.b - log(eta))
-    } else {
-        c.alpha = rgamma(1, prior.alpha.a + n.star - 1, prior.alpha.b - log(eta))
-        }
-
-    # Update psi = (mu, tau^2)
-    S = sum(theta.star)
-    c.mu = rnorm(1, (prior.mu.mean*c.tau2 + prior.mu.var * S) /
-        (c.tau2 + prior.mu.var * n.star),
-        sqrt(c.tau2 * prior.mu.var / (c.tau2 + prior.mu.var * n.star)))
-    c.tau2 = rinvgamma(1, prior.tau2.a + n.star/2,
         prior.tau2.b + 1/2 * sum((theta.star - c.mu)^2))
 
     # Update phi
