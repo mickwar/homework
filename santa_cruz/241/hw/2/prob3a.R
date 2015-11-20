@@ -106,5 +106,6 @@ segments(x0 = jity, y0 = q0[1,], y1 = q0[2,], col = 'forestgreen')
 points(jity, m0, col = 'darkgreen', pch = 20)
 abline(0, 1, lwd = 3, lty = 2)
 
-pplc(y, y0, Inf)
-# 950.46
+pplc(y, y0, 0)                      # 300.73
+pplc(y, y0, Inf)                    # 950.46
+pplc(y, y0, Inf) - pplc(y, y0, 0)   # 649.73

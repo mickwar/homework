@@ -15,7 +15,8 @@ pplc = function(y, ypred, k = Inf){
     }
 
 dat = read.table("~/files/data/fabric.txt", header = TRUE)
-x = as.numeric(scale(dat$length))
+ x = dat$length / 100
+#x = as.numeric(scale(dat$length))
 y = dat$faults
 n = length(y)
 ord = order(y)
@@ -63,10 +64,26 @@ prior.beta.a  = 0   # Normal (mean)
 prior.beta.b  = 1   # Normal (sd)
 prior.alpha.a = 1   # Gamma (shape)           alpha controls n.star (discreteness of G)
 prior.alpha.b = 1/2 # Gamma (rate)
-prior.zeta.a  = 4   # Gamma (shape)
-prior.zeta.b  = 1/4 # Gamma (rate)
-prior.mu.a    = 4   # Gamma (shape)
-prior.mu.b    = 1/4 # Gamma (rate)
+#prior.zeta.a  = 2   # Gamma (shape)
+#prior.zeta.b  = 1/4 # Gamma (rate)
+#prior.mu.a    = 8   # Gamma (shape)
+#prior.mu.b    = 1/2 # Gamma (rate)
+ prior.zeta.a  = 1   # Gamma (shape)
+ prior.zeta.b  = 1/2 # Gamma (rate)
+ prior.mu.a    = 1   # Gamma (shape)
+ prior.mu.b    = 1/2 # Gamma (rate)
+
+#p1 = rgamma(50000, prior.zeta.a, prior.zeta.b)
+#p2 = rgamma(50000, prior.mu.a, prior.mu.b)
+#p3 = rgamma(50000, p1, p1 / p2)
+#
+#mean(p1); sd(p1)
+#mean(p2); sd(p2)
+#mean(p3); sd(p3)
+#
+#plot(density(p1))
+#plot(density(p2))
+#plot(density(p3))
 
 
 # Initial values
@@ -96,11 +113,9 @@ for (iter in 2:(nburn + nmcmc)){
         theta.star.minus = as.numeric(names(n.j.minus))
         n.star.minus = length(theta.star.minus)
 
-        # q0 is negative binomial
         temp.p = (c.zeta / c.mu) / (exp(c.beta*x[i]) + c.zeta / c.mu)
         q0 = dnbinom(y[i], size = c.zeta, prob = temp.p)
 
-        # as is qj, by construction
         qj = dpois(y[i], theta.star.minus*exp(c.beta*x[i]))
 
         # Probabilities of determining which to draw
@@ -305,6 +320,7 @@ plot(param.psi[,2], type='l', main = "Traceplot")
 hpd.plot(density(param.psi[,2]), hpd.mu, main = expression(mu), xlab="", cex.main = 2)
 title(main = "Posterior distributions (with 95% hpd set)", outer = TRUE, cex.main = 2)
 #dev.off()
+par(oma = c(0,0,0,0))
 
 
 
@@ -339,23 +355,21 @@ for (k in 1:n)
 n_j = apply(param.theta, 1, table)
 theta_star = lapply(n_j, function(x) as.numeric(names(x)))
 
-# A new cluster
+# A new cluster (to predict further with this, we would need to specify a particular x)
 theta_0 = double(nmcmc)
 for (i in 1:nmcmc){
     cat("\r", i, "/", nmcmc)
     prob = c(param.alpha[i] / (param.alpha[i] + n), n_j[[i]] / (param.alpha[i] + n))
     draw = sample(length(prob), 1, replace = FALSE, prob = prob)
     if (draw == 1){
-        theta_0[i] = rgamma(1, param.psi[i, 1], param.psi[i,1] / param.psi[i, 2])
+        theta_0[i] = rgamma(1, param.psi[i,1], param.psi[i,1] / param.psi[i,2])
     } else {
         theta_0[i] = theta_star[[i]][draw - 1]
         }
     if (i == nmcmc)
         cat("\n")
     }
-y_0 = matrix(0, nmcmc, n)
-for (i in 1:n)
-    y_0[,i] = rpois(nmcmc, theta_0*exp(param.beta*x[i]))
+
 
 hpd.theta_0 = hpd.mult(theta_0, density(theta_0))
 #hpd.y_0 = hpd.mult(y_0, density(y_0))
@@ -372,7 +386,12 @@ hpd.plot(density(theta_0), hpd.theta_0, main = expression("Posterior predictive 
 # #dev.off()
 
 
-### predictions
+### predictions of observations
+# Predictions at each x[i]
+y_0 = matrix(0, nmcmc, n)
+for (i in 1:n)
+    y_0[,i] = rpois(nmcmc, param.theta[,i]*exp(param.beta*x[i]))
+
 q0 = apply(y_0, 2, quantile, c(0.025, 0.975))
 m0 = apply(y_0, 2, mean)
 
@@ -389,6 +408,7 @@ segments(x0 = jity, y0 = q0[1,], y1 = q0[2,], col = 'forestgreen')
 points(jity, m0, col = 'darkgreen', pch = 20)
 abline(0, 1, lwd = 3, lty = 2)
 
-pplc(y, y_0, 0)
-pplc(y, y_0, Inf)
+pplc(y, y_0, 0)                     # 457.03
+pplc(y, y_0, Inf)                   # 590.09
+pplc(y, y_0, Inf) - pplc(y, y_0, 0) # 133.06
 

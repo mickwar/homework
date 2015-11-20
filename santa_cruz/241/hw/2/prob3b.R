@@ -16,7 +16,8 @@ pplc = function(y, ypred, k = Inf){
     }
 
 dat = read.table("~/files/data/fabric.txt", header = TRUE)
-x = dat$length / 100
+ x = dat$length / 100
+#x = as.numeric(scale(dat$length))
 y = dat$faults
 n = length(y)
 ord = order(y)
@@ -55,18 +56,18 @@ prior.zeta.b = 1/2
 
 
 nburn = 5000
-nmcmc = 20000
+nmcmc = 10000
 
-last = tail(params, 1)
+#last = tail(params, 1)
 nparam = n + 3 # n thetas, 1 for beta, mu, and zeta
 params = matrix(0, nburn + nmcmc, nparam)
 accept = double(nburn + nmcmc)
 cand.sig = diag(0.01, nparam)
-params[1,] = last
+#params[1,] = last
 
-#params[1, c(n+2, n+3)] = rgamma(2, c(prior.mu.a, prior.zeta.a), c(prior.mu.b, prior.zeta.b))
-#params[1,1:(n+1)] = c(rgamma(n, params[1,n+3], params[1,n+3]/params[1,n+2]),
-#    rnorm(1, prior.beta.a, prior.beta.b))
+params[1, c(n+2, n+3)] = rgamma(2, c(prior.mu.a, prior.zeta.a), c(prior.mu.b, prior.zeta.b))
+params[1,1:(n+1)] = c(rgamma(n, params[1,n+3], params[1,n+3]/params[1,n+2]),
+    rnorm(1, prior.beta.a, prior.beta.b))
 
 lower = c(rep(0, n), -Inf, 0, 0)
 upper = rep(Inf, nparam)
@@ -115,7 +116,7 @@ q0 = apply(y0, 2, quantile, c(0.025, 0.975))
 m0 = apply(y0, 2, mean)
 
 ### Predictions at each x_i
-par(mfrow = c(2,1), mar = c(5.1,4.1,4.1,2.1))
+par(mfrow = c(2,1), mar = c(3.1,2.1,2.1,1.1))
 plot(x, y, pch = 1, ylim = range(c(y, q0)), lwd = 1.5)
 segments(x0 = x, y0 = q0[1,], y1 = q0[2,], col = 'forestgreen')
 points(x, m0, col = 'darkgreen', pch = 20)
@@ -127,8 +128,7 @@ segments(x0 = jity, y0 = q0[1,], y1 = q0[2,], col = 'forestgreen')
 points(jity, m0, col = 'darkgreen', pch = 20)
 abline(0, 1, lwd = 3, lty = 2)
 
-pplc(y, y0, Inf)
-# 552.28
-# An improvement over the non-hierarchical model (for k = Inf, but not for k = 0)
+pplc(y, y0, 0)                      # 448.37
+pplc(y, y0, Inf)                    # 516.14
+pplc(y, y0, Inf) - pplc(y, y0, 0)   # 67.76
 
-# The variance has increased, but are predictions are much better
