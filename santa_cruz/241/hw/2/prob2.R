@@ -20,7 +20,7 @@ prior1 = list(m2 = 0, s2 = sqrt(3),    # prior mean and sd for mean of normal pa
               nu1 = 3,                 # fixed c, shape in inverse gamma part of G0
               nu2 = 5, psiinv2 = 1/10, # rate in inverse gamma part of G0 (an inverse gamma itself)
               a0 = 1, b0 = 1)          # priors on alpha (same as prob 1)
-mcmc1 = list(nburn = nburn, nsave = nmcmc, ndisplay = 100)
+mcmc1 = list(nburn = nburn, nsave = nmcmc, ndisplay = 1)
                 
 
 fit1 = DPdensity(y = y, prior = prior1, mcmc = mcmc1, state = NULL, status = TRUE)
@@ -42,6 +42,16 @@ plot(density(fit1$save.state$thetasave[,5]), main=expression(alpha))
 
 plot(density(fit1$save.state$randsave[,501]))
 plot(density(fit1$save.state$randsave[,502]))
+fit1$save.state$randsave[,seq(1, 2*n, by = 2)]
+fit1$save.state$randsave[,seq(2, 2*n, by = 2)], 2, mean)
+
+z1 = apply(fit1$save.state$randsave[,c(2*245-1,2*245+0)], 1,
+    function(x) length(unique(x)))
+z2 = apply(fit1$save.state$randsave[,c(2*140-1,2*140+0)], 1,
+    function(x) length(unique(x)))
+z3 = apply(fit1$save.state$randsave[,c(2*245-1,2*245+0,2*140-1,2*140+0)], 1,
+    function(x) length(unique(x)))
+table(z1); table(z2); table(z3)
 
 ### Plot of posterior means for location and scale of eath observation
 cluster_loc = apply(fit1$save.state$randsave[,seq(1, 2*n, by = 2)], 2, mean)
