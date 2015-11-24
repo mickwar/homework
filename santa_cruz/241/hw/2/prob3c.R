@@ -42,8 +42,8 @@ rinvgamma = function(n, shape, rate)
 
 
 ### MCMC
-nburn = 5000
-nmcmc = 10000
+nburn = 20000
+nmcmc = 100000
 
 # Parameter objects
 param.theta = matrix(0, nburn + nmcmc, n)
@@ -57,7 +57,7 @@ acc.beta = double(nburn + nmcmc)
 sig.psi = diag(0.01, 2)
 acc.psi = double(nburn + nmcmc)
 
-window = 100
+window = 200
 
 # Priors
 prior.beta.a  = 0   # Normal (mean)
@@ -233,9 +233,11 @@ par(mfrow = c(1,1), mar = c(3.1, 4.1, 2.1, 1.1))
 plot(0, type='n', xlim = c(1, nrow(param.theta)), ylim = range(param.theta),
     xlab = "MCMC Iteration", ylab = "Unique cluster locations")
 for (i in 1:nrow(param.theta)){
-    unq = unique(param.theta[i,])
-    points(rep(i, length(unq)), unq, pch = 20, cex = 0.2)
+#   unq = unique(param.theta[i,])
+#   points(rep(i, length(unq)), unq, pch = 20, cex = 0.2)
+    points(rep(i, n), param.theta[i,], pch = 20, cex = 0.2)
     }
+matplot(param.theta, pch = 20, cex = 0.2)
 
 ### Box plots of the theta's
 qlines = apply(param.theta, 2, quantile, c(0.025, 0.975))
@@ -369,20 +371,23 @@ for (i in 1:nmcmc){
     if (i == nmcmc)
         cat("\n")
     }
+y_0 = matrix(0, nmcmc, n)
+for (i in 1:n)
+    y_0[,i] = rpois(nmcmc, theta_0*exp(param.beta*x[i]))
 
 
 hpd.theta_0 = hpd.mult(theta_0, density(theta_0))
-#hpd.y_0 = hpd.mult(y_0, density(y_0))
+hpd.y_0 = hpd.mult(y_0, density(y_0))
 
 #pdf("./figs/pred_1.pdf", height = 6, width = 12)
-par(mfrow = c(1, 1), mar = c(3.1, 2.1, 2.1, 1.1))
+par(mfrow = c(2, 1), mar = c(3.1, 2.1, 2.1, 1.1))
 hpd.plot(density(theta_0), hpd.theta_0, main = expression("Posterior predictive for" ~ theta[0] ~ "(with 95% hpd set)"), cex.main = 1, xlab = expression(theta[0]))
 
 # # A new data point (just need theta_0 and phi)
 # #par(mfrow = c(1, 1), mar = c(5.1, 4.1, 4.1, 2.1))
-# hpd.plot(density(y_0), hpd.y_0, main = expression("Posterior predictive for" ~ y[0] ~ "(with 95% hpd set)"), cex.main = 1, xlab = expression(y[0]))
-# lines(density(y), lwd =3)
-# legend("topleft", box.lty = 0, legend = "Data", lwd = 3, cex = 1.5)
+ hpd.plot(density(y_0), hpd.y_0, main = expression("Posterior predictive for" ~ y[0] ~ "(with 95% hpd set)"), cex.main = 1, xlab = expression(y[0]))
+ lines(density(y), lwd =3)
+ legend("topleft", box.lty = 0, legend = "Data", lwd = 3, cex = 1.5)
 # #dev.off()
 
 

@@ -81,13 +81,13 @@ prior.mu.B = diag(5)
 
 # G0 (basline) covariance
 prior.sigma.df = 5
-prior.sigma.V = diag(10, 5)
+prior.sigma.V = diag(1, 5)
 
 
 
 ### MCMC
-nburn = 20000
-nmcmc = 2000
+nburn = 5000
+nmcmc = 20000
 
 nparam = 5 # Parameters in JC model
 param.theta = matrix(0, nburn + nmcmc, nparam * n)                  # JC parameters
@@ -222,12 +222,20 @@ param.mu = tail(param.mu, nmcmc)
 param.sigma = tail(param.sigma, nmcmc)
 param.tau =tail(param.tau, nmcmc)
 
+### Stack theta matrix
+new.theta = matrix(0, nmcmc*n, nparam)
+for (i in 1:n)
+    new.theta[((i-1)*nmcmc + 1):(i*nmcmc),] = param.theta[,((i-1)*nparam+1):(i*nparam)]
+
 ### Some plots of the posteriors
 pairs(param.mu, pch = 20)
 plot(sapply(param.sigma, function(x) determinant(x)$modulus[1]), type='l')
 
 plot(param.tau, type='l')
 plot(param.alpha, type='l')
+
+### May take a while (mean of theta overlain by individual thetas)
+pairs(rbind(param.mu, new.theta), pch = 20, col = c(rep("black", nmcmc),rep(cols, each = nmcmc)))
 
 
 
@@ -245,5 +253,5 @@ for (i in 1:n){
 
     matplot(dat[[i]]$xy[,1], t(pred), type='l', lty = 1, col = 'steelblue', lwd = 0.5)
     lines(dat[[i]]$xy, lwd = 3, col = cols[i])
-#   readline()
+    readline()
     }

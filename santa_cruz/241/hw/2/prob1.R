@@ -1,5 +1,18 @@
 source("~/files/R/mcmc/bayes_functions.R")
 
+### Posterior predictive loss criterion
+pplc = function(y, ypred, k = Inf){
+    n = length(y)
+    vars = apply(ypred, 2, var)
+    means = apply(ypred, 2, mean)
+
+    factor = k / (k + 1)
+    if (k == Inf)
+        factor = 1
+
+    return (sum(vars) + factor*sum((y - means)^2))
+    }
+
 y = as.numeric(unlist(read.table("./data.txt")))
 
 n = length(y)
@@ -328,6 +341,17 @@ hpd.plot(density(y_0), hpd.y_0, main = expression("Posterior predictive for" ~ y
 lines(density(y), lwd =3)
 legend("topleft", box.lty = 0, legend = "Data", lwd = 3, cex = 1.5)
 #dev.off()
+
+y2 = matrix(0, nmcmc, n)
+for (i in 1:n)
+    y2[,i] = rnorm(nmcmc, param.theta[,i], sqrt(param.phi))
+
+### Replicate for each observation (don't really need to, but it makes pplc work)
+y1 = matrix(rep(y_0, n), ncol = n)
+
+pplc(y, y1, 0)                      # 2353.17
+pplc(y, y1, Inf)                    # 4707.39
+pplc(y, y1, Inf) - pplc(y, y1, 0)   # 2354.22
 
 ### Prior predictive
 library(MCMCpack)

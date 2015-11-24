@@ -1,6 +1,19 @@
 library(DPpackage)
 source("~/files/R/mcmc/bayes_functions.R")
 
+### Posterior predictive loss criterion
+pplc = function(y, ypred, k = Inf){
+    n = length(y)
+    vars = apply(ypred, 2, var)
+    means = apply(ypred, 2, mean)
+
+    factor = k / (k + 1)
+    if (k == Inf)
+        factor = 1
+
+    return (sum(vars) + factor*sum((y - means)^2))
+    }
+
 y = as.numeric(unlist(read.table("./data.txt")))
 
 n = length(y)
@@ -12,7 +25,7 @@ curve(0.2*dnorm(x, -5, 1) + 0.5*dnorm(x, 0, 1) + 0.3*dnorm(x, 3.5, 1), add = TRU
 legend("topleft", legend = c("data", "truth"), col = c("black", "red"), lwd = 1, box.lwd = 0, cex = 1.5)
 
 nburn = 2000
-nmcmc = 7000
+nmcmc = 10000
 
 
 prior1 = list(m2 = 0, s2 = sqrt(3),    # prior mean and sd for mean of normal part of G0
@@ -20,7 +33,7 @@ prior1 = list(m2 = 0, s2 = sqrt(3),    # prior mean and sd for mean of normal pa
               nu1 = 3,                 # fixed c, shape in inverse gamma part of G0
               nu2 = 5, psiinv2 = 1/10, # rate in inverse gamma part of G0 (an inverse gamma itself)
               a0 = 1, b0 = 1)          # priors on alpha (same as prob 1)
-mcmc1 = list(nburn = nburn, nsave = nmcmc, ndisplay = 1)
+mcmc1 = list(nburn = nburn, nsave = nmcmc, ndisplay = 100)
                 
 
 fit1 = DPdensity(y = y, prior = prior1, mcmc = mcmc1, state = NULL, status = TRUE)
@@ -81,8 +94,17 @@ hpd.plot(density(theta[,2]), hpd.theta[[2]], main = "new scale")
 ### Predictions on new observation
 y0 = fit1$save.state$randsave[,503]
 hpd.y = hpd.mult(y0, density(y0))
+
+pdf("./figs/pred_2.pdf", width = 6, height = 6)
 par(mfrow = c(1,1), mar = c(3.1, 2.1, 2.1, 1.1))
 hpd.plot(density(y0), hpd.y, lwd = 3, main=expression("Posterior predictions of new" ~ y[0]))
 lines(density(y), lwd = 3)
 legend("topleft", box.lty = 0, legend = "Data", lwd = 3, cex = 1.5)
+dev.off()
 
+### Replicate for each observation (don't really need to, but it makes pplc work)
+y1 = matrix(rep(y0, n), ncol = n)
+
+pplc(y, y1, 0)                      # 2390.80
+pplc(y, y1, Inf)                    # 4745.31
+pplc(y, y1, Inf) - pplc(y, y1, 0)   # 2354.51

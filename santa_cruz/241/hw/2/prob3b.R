@@ -1,4 +1,4 @@
-### Simple Bayesian model
+### Hierarchical Bayesian model
 library(MASS)
 source("~/files/R/mcmc/bayes_functions.R")
 
@@ -55,8 +55,8 @@ prior.zeta.a = 1
 prior.zeta.b = 1/2
 
 
-nburn = 5000
-nmcmc = 10000
+nburn = 100000
+nmcmc = 100000
 
 #last = tail(params, 1)
 nparam = n + 3 # n thetas, 1 for beta, mu, and zeta
@@ -71,7 +71,7 @@ params[1,1:(n+1)] = c(rgamma(n, params[1,n+3], params[1,n+3]/params[1,n+2]),
 
 lower = c(rep(0, n), -Inf, 0, 0)
 upper = rep(Inf, nparam)
-window = 100
+window = 400
 
 post = calc.post(params[1,])
 
@@ -101,8 +101,13 @@ accept = tail(accept, nmcmc)
 par(mfrow = c(8,4), mar = c(0,0,0,0))
 for (i in 1:n)
     plot(params[,i], type='l')
-par(mfrow = c(3,1), mar = c(5.1,4.1,4.1,2.1))
-plot(params[,n+1], type='l')
+
+hpds = apply(params[,n+(1:3)], 2, hpd.uni)
+par(mfrow = c(3,2), mar = c(5.1,4.1,4.1,2.1))
+for (i in 1:3){
+    plot(params[,n+i], type='l')
+    hpd.plot(density(params[,n+i]), hpds[,i])
+    }
 plot(params[,n+2], type='l')
 plot(params[,n+3], type='l')
 
