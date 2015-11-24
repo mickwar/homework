@@ -5,7 +5,7 @@
 \usepackage{graphicx}
 \usepackage{enumitem}
 \usepackage[margin=1.00in]{geometry}
-%\usepackage[font=footnotesize]{caption}
+\usepackage[font=footnotesize]{caption}
 
 \usepackage{bm}
 \newcommand{\m}[1]{\mathbf{\bm{#1}}}
@@ -47,7 +47,7 @@ Posterior inference is made by sampling from the marginal posterior $p(\m{\theta
 
 \subsection*{(part 1) Full conditionals of the marginal posterior}
 
-\noindent To simulate from $p(\m{\theta},\alpha,\mu,\tau^2,\phi|\m{y})$ we iteratively draw from the full conditionals of each parameter $\theta_1,\ldots,\theta_n,\alpha,\mu,\tau^2,\phi$. The expressions for the condtional distributions are based on the P{\'o}lya urn representation. Before we present the distributions, we introduce some notation.
+\noindent To simulate from $p(\m{\theta},\alpha,\mu,\tau^2,\phi|\m{y})$ we iteratively draw from the full conditionals of each parameter $\theta_1,\ldots,\theta_n,\alpha,\mu,\tau^2,\phi$. The expressions for the conditional distributions are based on the P{\'o}lya urn representation. Before we present the distributions, we introduce some notation.
 
 Since $G$ is almost surely discrete there will be a clustering among the $\theta_i$s and the Gibbs sampler we employ takes advantage of this fact. The following list describes the notation used throughout this section:
 \begin{itemize}[label=$\cdot$]
@@ -179,6 +179,8 @@ In Fig. 5 (left) we see the posterior predictive distribution of a new cluster l
 In Fig. 4 I show the prior predictive distributions for a new cluster $\theta_0$ and a new observation $y_0$. My prior specification results in fairly widespread normal predictive distributions. On the right, I overlay a KDE of the data. This shows that my priors clearly do not capture the shape of the data.
 
 In Fig. 5 we see the posterior predictive distributions for a new cluster and a new observation. Now, we are able to nicely capture the cluster locations as well as the shape of the data. In these plots and in previous ones with a shaded density, the darker blue region denotes the 95\% highest posterior density set. In the predictive distribution of $\theta_0$ we have a set made up of three intervals.
+
+For model comparison purposes, I use the posterior predictive loss criterion: $D(M)=P(M)+\frac{k}{k+1}G(M)$ where $k>0$, $P(M) = \sum_{i=1}^n \Var(y_{0,i}|data)$, and $G(M) = \sum_{i=1}^n[y_i-E(y_{0,i}|data)]^2$. I prefer to have an equal weight between the variance $P$ and goodness-of-fit $G$ components, so $k=\infty$. This model yielded $D(M)=4707.39$.
  
 \newpage
 
@@ -224,9 +226,124 @@ In Fig. 5 we see the posterior predictive distributions for a new cluster and a 
 
 \section*{Problem 2}
 
+\subsection*{Location-scale normal DP mixture model}
 
+We fit the same $n=250$ observations as in problem 1 to the following model
 
+\[ f(\cdot|G) = \int k_N(\cdot|\theta,\phi)dG(\theta,\phi), ~~~~~~ G|\alpha,\m{\psi} \sim DP(\alpha, G_0(\m{\psi}), \]
+where the baseline distribution is given by
+\[ G_0(\theta,\phi|\m{\psi}) = Normal(\theta|\mu,\phi/\kappa)InvGamma(\phi|c, \beta) \]
+with $c=3$ fixed. I tried to specify comparable, noninformative priors for this model as the one in problem 1. I let $\mu\sim N(0, \sqrt{3}^2)$, $\kappa\sim Gamma(1,1)$, $\beta\sim InvGamma(5, 10)$}. Perhaps the least intuitive part of this model is the role that $\phi$ plays as it now appears in both parts of $G_0$. From the previous analysis, I expect $\phi$ to be around $1$ despite the added complexity. For $\phi$, the prior mean is about $1$ and prior variance is about $3$.
 
+This specification does put quite a bit of mass on the tails for the (implicit) prior of $\theta$, having a variance in the tens of thousands, but there didn't seem to be any issues in the posterior distribution that would make me seriously question my choice of priors. In fact, the posterior predictions were very similar to that from model 1 (Fig. 6). For this model $D(M)=4745.31$, which indicates a very slight preference toward model 1, but this is nearly negligible.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.55]{figs/pred_2.pdf}
+\caption{Left: contour plot of the joint posterior distribution of the mixing parameters $\theta,\phi$. Right: posterior predictive distribution for a new data point $y_0$ of the location-scale mixture model.}
+\end{center}
+\end{figure}
+
+\newpage
+
+\section*{Problem 3}
+
+\subsection*{Poisson regression}
+
+We consider a new data set consisting for $n=32$ observations of $(x_i, y_i)$ pairs. The data are incidents of faults in the manufacturing of rolls of fabric. The covariate $x_i$ is the length of the roll (which I scale down by 100), and the response $y_i$ is the number of faults.
+
+We will compare three models in this section. Posterior distributions are sampled using a tuned Metropolis algorithm for models 1 and 2. Model 3, which has a DP mixture, uses the Gibbs sampler as in problem 1, and a Metropolis step on the parameters without conjugate priors. There didn't seem to be any issue with convergence in our sampler.
+
+\subsection*{Model 1, simple Bayesian model}
+
+The first model is written
+\[ y_i|x_i,\theta,\beta \sim Poisson(\theta\exp(\beta x_i)), ~~~~~ i=1,\ldots,32 \]
+I choose $\theta \sim Gamma(4, 1)$ and $\beta \sim Normal(0, 1)$. I believe these priors to put mass on plausible values for the parameters. Since the $\beta$ is exponentiated, this is a fairly noninformative prior for $\beta$.
+
+The table below gives a summary of the posterior distributions for $\theta$ and $\beta$.
+
+\begin{center}
+\begin{tabular}{lrrrrrr}
+         &      & \multicolumn{5}{c}{Quantiles} \\
+         & Mean & \multicolumn{1}{|r}{0\%}  & 2.5\% & 50\% & 97.5\% & 100\% \\ \hline\hline
+$\theta$ & 2.81 &  1.23 & 1.82  & 2.77 &  3.97  & 5.35  \\
+$\beta$  & 0.18 &  0.08 & 0.13  & 0.18 &  0.24  & 0.29  \\ \hline
+\end{tabular}
+\end{center}
+
+Figure 7 shows the posterior predictions in two ways: first, as a plot of the predictions at each covariate from the data set; and second, as a plot of the predictions against their observed values. For the second plot, an ideal model would have the mean predictions (green dots) be very close to the dotted line and small errors (green bars). For this model $D(M)=955.09$, with $P(M)\approx 300$ and $G(M)\approx 650$.
+
+\subsection*{Model 2, hierarchical Bayesian model}
+
+We extend the first model to a hierarchical formulation,
+\begin{align*}
+y_i|x_i,\theta_i,\beta &\sim Poisson(\theta_i\exp(\beta x_i)), ~~~~~ i=1,\ldots,32 \\
+\theta_i|\zeta, \mu &\sim Gamma(\zeta, \zeta\mu^{-1}) 
+\end{align*}
+This model allows us to account for overdispersion, relative to the Poisson, in the data. I choose $\zeta \sim Gamma(1, 1/2)$ and $\mu\sim Gamma(1, 1/2)$. This yields a prior mean for $\theta_i$ to be about $2$ and a variance of around $30$. I use the same prior for $\beta$ as in model 1.
+
+\newpage
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.55]{figs/pred_3a.pdf}
+\caption{Model 1. Left: a plot of the model predictions for each $x_i$ in the data set. Right: a plot of the observed versus fitted values. The green bars indicate 95\% predictive regions, and the green circles are the predictive means. In the right plot, a good model should have the bars crossing the dotted line (which indicates observed equals fitted).}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.55]{figs/pred_3b.pdf}
+\caption{Model 2. Posterior predictions, as in model 1's figure. However, to make predictions for a new observation $y_0$ we must now generate a new $\theta_0$ based on the posteriors for $\zeta$ and $\mu$.}
+\end{center}
+\end{figure}
+
+\newpage
+
+Since there are now $n=32$ $\theta_i$'s, I will not show a summary of them. But a summary of $\beta$, $\zeta$, and $\mu$ are given in the following table
+
+\begin{center}
+\begin{tabular}{lrrrrrr}
+         &      & \multicolumn{5}{c}{Quantiles} \\
+         & Mean & \multicolumn{1}{|r}{0\%}  & 2.5\% & 50\% & 97.5\% & 100\% \\ \hline\hline
+ $\beta$ & 0.19 & 0.05 & 0.10 & 0.19 &  0.27 &  0.31 \\
+ $\zeta$ & 6.11 & 1.54 & 2.90 & 5.72 & 11.53 & 15.97 \\
+ $\mu$   & 2.74 & 1.05 & 1.54 & 2.60 &  4.50 &  6.30 \\ \hline
+\end{tabular}
+\end{center}
+Predictions for this model are shown in Figure 8. Note that we do not use the posteriors of each $\theta_i$ to make the predictions at each $x_i$. Doing this would imply we know the random effect for a particular observation, but we wish to make a prediction for a new observable whose random effect is unknown. Hence, we first generate $\theta_0$ based on the posteriors of $\zeta$ and $\mu$ and then generate a new $y_0$ based on $\theta_0$.
+
+It is readily seen that the variance in the predictions has increased and now cross the dotted line. This increase in variance leads to $D(M)=1538.68$ with $P(M) \approx 900$ and $G(M) \approx 650$. So the goodness-of-fit term is about the same as in model 1, but we are penalized more for the variance. This may seem to favor model 1 over model 2, but recall that prediction bands for model 1 struggled to cross the dotted line. This further suggests we should be using other criteria for model comparison. Another time, another day, that's what I always say.
+
+\subsection*{Model 3, semiparametric DP mixture}
+
+The model is extended again to a semiparametric DP mixture, similar to that from problem 1. We write
+\begin{align*}
+y_i|x_i,\theta_i,\phi &\overset{ind}\sim Poisson(y_i|\theta_i\exp(\beta x_i)),~~~i=1,\ldots,n \\
+\theta_i|G &\overset{iid}\sim G,~~~i=1,\ldots,n \\
+G|\alpha,\zeta,\mu &\sim DP(\alpha, G_0=Gamma(\zeta,\zeta\mu^{-1})) \\
+\alpha,\mu,\tau^2,\phi &\sim p(\alpha)p(\mu)p(\tau^2)p(\phi) 
+\end{align*}
+This model includes as limiting cases both models 1 and 2. I use the same priors for $\beta$, $\zeta$, and $\mu$ as in model 2. I let $\alpha\sim Gamma(1, 1/2)$. The same kind of tedious details described in problem 1 apply here as well (e.g. solving for the full conditional of each $\theta_i$), but I omit the details for brevity. A summary for $\alpha$, $\beta$, $\zeta$, and $\mu$ are given in the following table:
+\begin{center}
+\begin{tabular}{lrrrrrr}
+         &      & \multicolumn{5}{c}{Quantiles} \\
+         & Mean & \multicolumn{1}{|r}{0\%}  & 2.5\% & 50\% & 97.5\% & 100\% \\ \hline\hline
+$\alpha$ & 2.64 & 0.00 & 0.23 & 2.02 & 8.50 & 24.50 \\ 
+$\beta$ & 0.19 & 0.01 & 0.10 & 0.18 & 0.27 &  0.36 \\
+$\zeta$ & 3.88 & 0.03 & 0.75 & 3.46 & 9.27 & 18.19 \\
+$\mu$   & 2.96 & 0.29 & 1.26 & 2.75 & 5.85 & 13.50 \\ \hline
+\end{tabular}
+\end{center}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.55]{figs/pred_3c.pdf}
+\caption{Model 3. Similar to the figures for models 1 and 2.}
+\end{center}
+\end{figure}
+
+Plots of the predictions for model 3 are shown in Figure 9, comparable to Figures 7 and 8 for the other two models. The predictions look surprisingly close to the hierarchical model's. Here, $D(M)=1421.57$ with $P(M)\approx 770$ and $\G(M)\approx 650$. For all three models, the goodness-of-fit term $G(M)$ is practically equivalent. The only difference being the penalty or variance term $P(M)$. Model 1 had the smallest variance but 95\% predictive intervals didn't correctly capture the observations. Whereas in models 2 and 3 we see an increase in variance to accommodate the poor predictions. My preference, in this case, would be toward the DP mixture model.
 
 
 \bibliography{refs}

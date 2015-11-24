@@ -324,6 +324,12 @@ title(main = "Posterior distributions (with 95% hpd set)", outer = TRUE, cex.mai
 #dev.off()
 par(oma = c(0,0,0,0))
 
+mean(param.beta)
+quantile(param.beta, c(0, 0.025, 0.5, 0.975, 1))
+
+apply(param.psi, 2, mean)
+t(apply(param.psi, 2, quantile, c(0, 0.025, 0.5, 0.975, 1)))
+
 
 
 #csort = group
@@ -360,7 +366,8 @@ theta_star = lapply(n_j, function(x) as.numeric(names(x)))
 # A new cluster (to predict further with this, we would need to specify a particular x)
 theta_0 = double(nmcmc)
 for (i in 1:nmcmc){
-    cat("\r", i, "/", nmcmc)
+    if (floor(i/window) == i/window)
+        cat("\r", i, "/", nmcmc)
     prob = c(param.alpha[i] / (param.alpha[i] + n), n_j[[i]] / (param.alpha[i] + n))
     draw = sample(length(prob), 1, replace = FALSE, prob = prob)
     if (draw == 1){
@@ -375,43 +382,45 @@ y_0 = matrix(0, nmcmc, n)
 for (i in 1:n)
     y_0[,i] = rpois(nmcmc, theta_0*exp(param.beta*x[i]))
 
+#hpd.theta_0 = hpd.mult(theta_0, density(theta_0))
+#hpd.y_0 = hpd.mult(y_0, density(y_0))
 
-hpd.theta_0 = hpd.mult(theta_0, density(theta_0))
-hpd.y_0 = hpd.mult(y_0, density(y_0))
-
-#pdf("./figs/pred_1.pdf", height = 6, width = 12)
-par(mfrow = c(2, 1), mar = c(3.1, 2.1, 2.1, 1.1))
-hpd.plot(density(theta_0), hpd.theta_0, main = expression("Posterior predictive for" ~ theta[0] ~ "(with 95% hpd set)"), cex.main = 1, xlab = expression(theta[0]))
-
-# # A new data point (just need theta_0 and phi)
-# #par(mfrow = c(1, 1), mar = c(5.1, 4.1, 4.1, 2.1))
- hpd.plot(density(y_0), hpd.y_0, main = expression("Posterior predictive for" ~ y[0] ~ "(with 95% hpd set)"), cex.main = 1, xlab = expression(y[0]))
- lines(density(y), lwd =3)
- legend("topleft", box.lty = 0, legend = "Data", lwd = 3, cex = 1.5)
-# #dev.off()
+##pdf("./figs/pred_1.pdf", height = 6, width = 12)
+#par(mfrow = c(2, 1), mar = c(3.1, 2.1, 2.1, 1.1))
+#hpd.plot(density(theta_0), hpd.theta_0, main = expression("Posterior predictive for" ~ theta[0] ~ "(with 95% hpd set)"), cex.main = 1, xlab = expression(theta[0]))
+#
+## # A new data point (just need theta_0 and phi)
+## #par(mfrow = c(1, 1), mar = c(5.1, 4.1, 4.1, 2.1))
+# hpd.plot(density(y_0), hpd.y_0, main = expression("Posterior predictive for" ~ y[0] ~ "(with 95% hpd set)"), cex.main = 1, xlab = expression(y[0]))
+# lines(density(y), lwd =3)
+# legend("topleft", box.lty = 0, legend = "Data", lwd = 3, cex = 1.5)
+## #dev.off()
 
 
 ### predictions of observations
 # Predictions at each x[i]
-y_0 = matrix(0, nmcmc, n)
-for (i in 1:n)
-    y_0[,i] = rpois(nmcmc, param.theta[,i]*exp(param.beta*x[i]))
+#y_0 = matrix(0, nmcmc, n)
+#for (i in 1:n)
+#    y_0[,i] = rpois(nmcmc, param.theta[,i]*exp(param.beta*x[i]))
 
 q0 = apply(y_0, 2, quantile, c(0.025, 0.975))
 m0 = apply(y_0, 2, mean)
 
 ### Predictions at each x_i
-par(mfrow = c(2,1), mar = c(3.1,2.1,2.1,1.1))
-plot(x, y, pch = 1, ylim = range(c(y, q0)), lwd = 1.5)
+pdf("./figs/pred_3c.pdf", width = 12, height = 6)
+par(mfrow = c(1,2), mar = c(4.1,4.1,2.1, 1.1))
+plot(x, y, pch = 1, ylim = range(c(y, q0)), lwd = 1.5, main = "Predictions")
 segments(x0 = x, y0 = q0[1,], y1 = q0[2,], col = 'forestgreen')
 points(x, m0, col = 'darkgreen', pch = 20)
+legend("topleft", box.lty = 0, legend = "Data", pch = 1, cex = 1.5)
 
 ### Observed vs. Fitted plot
 plot(0, type='n', xlim = range(y), ylim = range(c(y, q0)),
-    xlab = "Observed", ylab = "Fitted")
+    xlab = "Observed", ylab = "Fitted", main = "Observed vs. Fitted", cex.lab = 1.3)
 segments(x0 = jity, y0 = q0[1,], y1 = q0[2,], col = 'forestgreen')
 points(jity, m0, col = 'darkgreen', pch = 20)
 abline(0, 1, lwd = 3, lty = 2)
+dev.off()
 
 pplc(y, y_0, 0)                     # 457.03
 pplc(y, y_0, Inf)                   # 590.09

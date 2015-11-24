@@ -79,8 +79,6 @@ points(cluster_loc, cluster_sca, pch = 20, cex = 0.6, col = 'red')
 ### Predictions on mixing parameters
 theta = fit1$save.state$randsave[,c(501, 502)]
 d = kde2d(theta[,1], theta[,2], n = 200)
-contour(d, xlim = c(-7, 7), ylim = c(0, 3), nlevels = 100,
-    xlab = "location", ylab = "scale", main = "clusters")
 points(theta, pch = 20, cex = 0.5)
 
 points(fit1$save.state$randsave[,c(501, 502)], pch = 20, cex = 0.5,
@@ -95,9 +93,13 @@ hpd.plot(density(theta[,2]), hpd.theta[[2]], main = "new scale")
 y0 = fit1$save.state$randsave[,503]
 hpd.y = hpd.mult(y0, density(y0))
 
-pdf("./figs/pred_2.pdf", width = 6, height = 6)
-par(mfrow = c(1,1), mar = c(3.1, 2.1, 2.1, 1.1))
-hpd.plot(density(y0), hpd.y, lwd = 3, main=expression("Posterior predictions of new" ~ y[0]))
+pdf("./figs/pred_2.pdf", width = 12, height = 6)
+par(mfrow=c(1,2),  mar = c(4.1, 4.1, 2.1, 1.1))
+contour(d, xlim = c(-7, 7), ylim = c(0, 3), nlevels = 50, cex.lab = 1.3,
+    xlab = expression(theta), ylab = expression(phi), main = "Clusters")
+#par(mfrow = c(1,1), mar = c(3.1, 2.1, 2.1, 1.1))
+hpd.plot(density(y0), hpd.y, lwd = 3, main=expression("Posterior predictions of new" ~ y[0]),
+    xlab = "")
 lines(density(y), lwd = 3)
 legend("topleft", box.lty = 0, legend = "Data", lwd = 3, cex = 1.5)
 dev.off()

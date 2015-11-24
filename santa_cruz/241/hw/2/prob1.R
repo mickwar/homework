@@ -36,6 +36,9 @@ rinvgamma = function(n, shape, rate)
     1/rgamma(n, shape = shape, rate = rate)
 
 
+range(rnorm(10000, rnorm(10000, 0, sqrt(3)), rinvgamma(10000, 3, rinvgamma(10000, 5, 10)) / rgamma(10000, 1, 1)))
+
+
 ### MCMC
 nburn = 2000
 nmcmc = 10000
@@ -342,9 +345,9 @@ lines(density(y), lwd =3)
 legend("topleft", box.lty = 0, legend = "Data", lwd = 3, cex = 1.5)
 #dev.off()
 
-y2 = matrix(0, nmcmc, n)
-for (i in 1:n)
-    y2[,i] = rnorm(nmcmc, param.theta[,i], sqrt(param.phi))
+#y2 = matrix(0, nmcmc, n)
+#for (i in 1:n)
+#    y2[,i] = rnorm(nmcmc, param.theta[,i], sqrt(param.phi))
 
 ### Replicate for each observation (don't really need to, but it makes pplc work)
 y1 = matrix(rep(y_0, n), ncol = n)

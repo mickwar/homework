@@ -35,14 +35,14 @@ calc.post = function(param){
     return (out)
     }
 
-prior.theta.a = 1
+prior.theta.a = 4
 prior.theta.b = 1
 prior.beta.a = 0
 prior.beta.b = 1
 
 
 nburn = 5000
-nmcmc = 20000
+nmcmc = 100000
 
 nparam = 2
 params = matrix(0, nburn + nmcmc, nparam)
@@ -59,7 +59,8 @@ post = calc.post(params[1,])
 
 
 for (i in 2:(nburn + nmcmc)){
-    cat("\r", i, "/", nburn+nmcmc)
+    if (floor(i/window) == i/window)
+        cat("\r", i, "/", nburn+nmcmc)
     params[i,] = params[i-1,]
     cand = mvrnorm(1, params[i-1,], cand.sig)
     if (all(cand > lower) && all(cand < upper)){
@@ -86,6 +87,10 @@ plot(params[,2], type='l')
 
 mean(accept)
 
+
+apply(params, 2, mean)
+t(apply(params, 2, quantile, c(0, 0.025, 0.5, 0.975, 1)))
+
 ### predictions
 y0 = matrix(0, nmcmc, n)
 for (i in 1:n)
@@ -94,18 +99,21 @@ q0 = apply(y0, 2, quantile, c(0.025, 0.975))
 m0 = apply(y0, 2, mean)
 
 ### Predictions at each x_i
-plot(x, y, pch = 1, ylim = range(c(y, q0)), lwd = 1.5)
+pdf("./figs/pred_3a.pdf", width = 12, height = 6)
+par(mfrow = c(1,2), mar = c(4.1,4.1,2.1, 1.1))
+plot(x, y, pch = 1, ylim = range(c(y, q0)), lwd = 1.5, main = "Predictions")
 segments(x0 = x, y0 = q0[1,], y1 = q0[2,], col = 'forestgreen')
 points(x, m0, col = 'darkgreen', pch = 20)
-
+legend("topleft", box.lty = 0, legend = "Data", pch = 1, cex = 1.5)
 
 ### Observed vs. Fitted plot
 plot(0, type='n', xlim = range(y), ylim = range(c(y, y0)),
-    xlab = "Observed", ylab = "Fitted", main = "Predictions", cex.lab = 1.3, cex.main = 2)
+    xlab = "Observed", ylab = "Fitted", main = "Observed vs. Fitted", cex.lab = 1.3)
 segments(x0 = jity, y0 = q0[1,], y1 = q0[2,], col = 'forestgreen')
 points(jity, m0, col = 'darkgreen', pch = 20)
 abline(0, 1, lwd = 3, lty = 2)
+dev.off()
 
-pplc(y, y0, 0)                      # 300.73
-pplc(y, y0, Inf)                    # 950.46
-pplc(y, y0, Inf) - pplc(y, y0, 0)   # 649.73
+pplc(y, y0, 0)                      # 302.35
+pplc(y, y0, Inf)                    # 955.10
+pplc(y, y0, Inf) - pplc(y, y0, 0)   # 649.74

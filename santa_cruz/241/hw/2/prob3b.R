@@ -77,7 +77,8 @@ post = calc.post(params[1,])
 
 
 for (i in 2:(nburn + nmcmc)){
-    cat("\r", i, "/", nburn+nmcmc)
+    if (floor(i/window) == i/window)
+        cat("\r", i, "/", nburn+nmcmc)
     params[i,] = params[i-1,]
     cand = mvrnorm(1, params[i-1,], cand.sig)
     if (all(cand > lower) && all(cand < upper)){
@@ -97,6 +98,11 @@ params = tail(params, nmcmc)
 accept = tail(accept, nmcmc)
 
 
+
+apply(params[,n+c(1,3,2)], 2, mean)
+t(apply(params[,n+c(1,3,2)], 2, quantile, c(0, 0.025, 0.5, 0.975, 1)))
+
+
 ### Trace plots
 par(mfrow = c(8,4), mar = c(0,0,0,0))
 for (i in 1:n)
@@ -108,32 +114,41 @@ for (i in 1:3){
     plot(params[,n+i], type='l')
     hpd.plot(density(params[,n+i]), hpds[,i])
     }
-plot(params[,n+2], type='l')
-plot(params[,n+3], type='l')
 
 mean(accept)
 
 ### predictions
+theta0 = rgamma(nmcmc, params[,n+3], params[,n+3] / params[,n+2])
 y0 = matrix(0, nmcmc, n)
 for (i in 1:n)
-    y0[,i] = rpois(nmcmc, params[,i]*exp(params[,n+1]*x[i]))
+    y0[,i] = rpois(nmcmc, theta0*exp(params[,n+1]*x[i]))
 q0 = apply(y0, 2, quantile, c(0.025, 0.975))
 m0 = apply(y0, 2, mean)
 
+
+#y0 = matrix(0, nmcmc, n)
+#for (i in 1:n)
+#    y0[,i] = rpois(nmcmc, params[,i]*exp(params[,n+1]*x[i]))
+#q0 = apply(y0, 2, quantile, c(0.025, 0.975))
+#m0 = apply(y0, 2, mean)
+
 ### Predictions at each x_i
-par(mfrow = c(2,1), mar = c(3.1,2.1,2.1,1.1))
-plot(x, y, pch = 1, ylim = range(c(y, q0)), lwd = 1.5)
+pdf("./figs/pred_3b.pdf", width = 12, height = 6)
+par(mfrow = c(1,2), mar = c(4.1,4.1,2.1, 1.1))
+plot(x, y, pch = 1, ylim = range(c(y, q0)), lwd = 1.5, main = "Predictions")
 segments(x0 = x, y0 = q0[1,], y1 = q0[2,], col = 'forestgreen')
 points(x, m0, col = 'darkgreen', pch = 20)
+legend("topleft", box.lty = 0, legend = "Data", pch = 1, cex = 1.5)
 
 ### Observed vs. Fitted plot
 plot(0, type='n', xlim = range(y), ylim = range(c(y, q0)),
-    xlab = "Observed", ylab = "Fitted")
+    xlab = "Observed", ylab = "Fitted", main = "Observed vs. Fitted", cex.lab = 1.3)
 segments(x0 = jity, y0 = q0[1,], y1 = q0[2,], col = 'forestgreen')
 points(jity, m0, col = 'darkgreen', pch = 20)
 abline(0, 1, lwd = 3, lty = 2)
+dev.off()
 
-pplc(y, y0, 0)                      # 448.37
-pplc(y, y0, Inf)                    # 516.14
-pplc(y, y0, Inf) - pplc(y, y0, 0)   # 67.76
+pplc(y, y0, 0)                      # 888.66
+pplc(y, y0, Inf)                    # 1538.68
+pplc(y, y0, Inf) - pplc(y, y0, 0)   # 650.01
 
