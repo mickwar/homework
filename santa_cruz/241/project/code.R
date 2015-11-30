@@ -1,3 +1,4 @@
+source("~/files/R/mcmc/bayes_functions.R")
 library(MASS)
 
 ### Load the data (use load("./chen_gray_fake.RData") when real data not available)
@@ -28,9 +29,10 @@ jc = function(eps, t, eta){
 
 ### Multivariate normal density (up to a constant)
 dmvnorm = function(x, mu, sigma, log = TRUE){
-    if (NROW(sigma == 1)){
+    if (NROW(sigma) == 1){
         p = length(x)
-        out = 0.5*p*log(sigma) - 0.5/sigma * t(x-mu) %*% (x-mu)
+#       out = 0.5*p*log(sigma) - 0.5/sigma * t(x-mu) %*% (x-mu)
+        out = 0.5*p*log(sigma) - 0.5/sigma * sum((x-mu)^2)
     } else {
         inv = solve(sigma)
         out = 0.5*determinant(inv)$modulus[1] - 0.5*t(x-mu) %*% inv %*% (x-mu)
@@ -67,7 +69,7 @@ rwishart = function(V, df){
     }
 
 ### Priors
-# Measurement varianc
+# Measurement variance
 prior.tau.a = 10
 prior.tau.b = 1
 
@@ -86,7 +88,7 @@ prior.sigma.V = diag(1, 5)
 
 
 ### MCMC
-nburn = 5000
+nburn = 10000
 nmcmc = 20000
 
 nparam = 5 # Parameters in JC model
@@ -95,6 +97,10 @@ param.alpha = double(nburn + nmcmc)                                 # DP precisi
 param.mu = matrix(0, nburn + nmcmc, nparam)                         # G0 mean
 param.sigma = rep(list(matrix(0, nparam, nparam)), nburn + nmcmc)   # G0 variance
 param.tau = double(nburn + nmcmc)                                   # Measurement variance
+
+cand.sig = rep(list(0.1*diag(nparam)), n)
+accept = matrix(0, nburn + nmcmc, n)
+window = 200
 
 
 param.alpha[1] = 1
@@ -134,7 +140,8 @@ for (iter in 2:(nburn + nmcmc)){
         # Draw a candidate value from prior conditional
         temp.samp = sample(n.star.minus + 1, 1, prob = c(A, Bj))
         if (temp.samp == 1){ # Make a draw from G0
-            cand = mvrnorm(1, c.mu, c.sigma)
+#           cand = mvrnorm(1, c.mu, c.sigma)
+            cand = mvrnorm(1, c.theta[i,], cand.sig[[i]])
         } else { # Make a draw from the existing groups
             cand = theta.star.minus[temp.samp-1,]
             }
@@ -146,10 +153,22 @@ for (iter in 2:(nburn + nmcmc)){
         temp.curr = dmvnorm(dat[[i]]$xy[,2],
             jc(dat[[i]]$xy[,1], c(dat[[i]]$strain_rate, dat[[i]]$temperature), c.theta[i,]),
             c.tau)
+        if (temp.samp != 1){
+            temp.cand = temp.cand +
+                dmvnorm(cand, c.mu, c.sigma) - 0
+#               dmvnorm(cand, c.theta[i,], cand.sig[[i]])
+            temp.curr = temp.curr +
+                dmvnorm(c.theta[i,], c.mu, c.sigma) - 0
+#               dmvnorm(c.theta[i,], cand, cand.sig[[i]])
+        } else {
+            temp.cand = temp.cand + 
+            }
+#           temp.cand = temp.cand - dmvnorm(cand, c.theta[i,], cand.sig[[i]]) - log(A)
         temp.cand - temp.curr
         if (log(runif(1)) < temp.cand - temp.curr){
             c.theta[i,] = cand
             # Acceptance rate? Neal doesn't seem to mention it
+            accept[iter,i] = 1
 
             # Change clus.w
             if (temp.samp == 1){ # a new cluster was formed
@@ -164,6 +183,12 @@ for (iter in 2:(nburn + nmcmc)){
             if (b > a)
                 clus.w[clus.w == b] = a
 
+            }
+
+        if ((floor(iter/window) == iter/window) && iter <= nburn){
+            cand.sig[[i]] = (cand.sig[[i]] +
+                autotune(mean(accept[(iter-window+1):iter,i]), k = max(window/50,1.5)) *
+                cov(param.theta[(iter-window+1):iter, ((i-1)*nparam+1):(i*nparam)]))/2
             }
         }
     n.j = table(clus.w)
@@ -220,7 +245,10 @@ param.theta = tail(param.theta, nmcmc)
 param.alpha = tail(param.alpha, nmcmc)
 param.mu = tail(param.mu, nmcmc)
 param.sigma = tail(param.sigma, nmcmc)
-param.tau =tail(param.tau, nmcmc)
+param.tau = tail(param.tau, nmcmc)
+
+accept = tail(accept, nmcmc)
+apply(accept, 2, mean)
 
 ### Stack theta matrix
 new.theta = matrix(0, nmcmc*n, nparam)
@@ -233,6 +261,8 @@ plot(sapply(param.sigma, function(x) determinant(x)$modulus[1]), type='l')
 
 plot(param.tau, type='l')
 plot(param.alpha, type='l')
+
+plot(param.theta[,2], type='l')
 
 ### May take a while (mean of theta overlain by individual thetas)
 pairs(rbind(param.mu, new.theta), pch = 20, col = c(rep("black", nmcmc),rep(cols, each = nmcmc)))
