@@ -2,35 +2,34 @@ source("~/files/R/mcmc/bayes_functions.R")
 library(MASS)
 
 ### Load the data (use load("./chen_gray_fake.RData") when real data not available)
-source("./read_data.R")
-dat = read_data()
-n = length(dat)
+#source("./read_data.R")
+#dat = read_data()
+
+set.seed(1)
+n = 100
+b0 = rnorm(n, 3, 0.1)
+b1 = rnorm(n, 1.5, 0.3)
+truth = 1*(runif(n) < 0.5)
+b2 = ifelse(truth, rnorm(n, 0, 0.0), rnorm(n, -1, 0.1))
+plot(density(b2))
+
+x = seq(-0.5, 2, length = 10)
+y = matrix(0, n, length(x))
+for (i in 1:n)
+    y[i,] = b0[i] + b1[i]*x + b2[i]*x^2 + rnorm(1, 0, 0.05)
+
+matplot(x, t(y), type='l', lty = 1, lwd = 0.7)
+
+dat = rep(list(NULL), n)
+for (i in 1:n)
+    dat[[i]] = list("xy"=cbind(x, y[i,]), "fixed"=x)
 
 ni = sapply(dat, function(x) nrow(x$xy))
 
-# Plot the data
-cols = rainbow(n)
-plot(0, type='n', xlim = c(0, 0.27), ylim = c(0, 0.012), xlab = "Plastic Strain",
-    ylab = "Stress")
-for (i in 1:n){
-    lines(dat[[i]]$xy[,1], dat[[i]]$xy[,2], type='l', col = cols[i], lwd = 2)
-    # Combine some data
-    dat[[i]]$fixed = c(dat[[i]]$strain_rate, dat[[i]]$temperature, dat[[i]]$xy[,1])
-    }
 
-
-### Simplified Johnson-Cook model
-jc = function(x, theta){
-    A = theta[1]
-    B = theta[2]
-    n = theta[3]
-    C = theta[4]
-    m = theta[5]
-    strain_rate = x[1]
-    temperature = x[2] / 3250 # ~melting (kelvin)
-    eps = x[-(1:2)]
-    return ((A + B * eps^n) * (1 + C * log(strain_rate)) * (1 - temperature^m))
-    }
+### Called jc still cause lazy
+jc = function(x, theta)
+    theta[1]*x^0 + theta[2]*x^1 + theta[3]*x^2
 
 ### Multivariate normal density (up to a constant)
 dmvnorm = function(x, mu, sigma, log = TRUE){
@@ -75,20 +74,20 @@ rwishart = function(V, df){
 
 ### Priors
 # Measurement variance
-prior.tau.a = 10
+prior.tau.a = 1
 prior.tau.b = 1
 
 # DP precision
-prior.alpha.a = 5000
-prior.alpha.b = 50
+prior.alpha.a = 10
+prior.alpha.b = 1
 
 # G0 (baselin) mean
-prior.mu.a = c(1,1,0,1,0)
-prior.mu.B = diag(5)
+prior.mu.a = c(0,0,0)
+prior.mu.B = diag(3)
 
 # G0 (basline) covariance
-prior.sigma.df = 5
-prior.sigma.V = diag(1, 5)
+prior.sigma.df = 3
+prior.sigma.V = diag(1, 3)
 
 
 
@@ -96,7 +95,7 @@ prior.sigma.V = diag(1, 5)
 nburn = 10000
 nmcmc = 10000
 
-nparam = 5 # Parameters in JC model
+nparam = 3 # Parameters in the polynomial
 param.theta = matrix(0, nburn + nmcmc, nparam * n)                  # JC parameters
 param.alpha = double(nburn + nmcmc)                                 # DP precision
 param.mu = matrix(0, nburn + nmcmc, nparam)                         # G0 mean
@@ -106,17 +105,15 @@ param.tau = double(nburn + nmcmc)                                   # Measuremen
 # cand.sig = rep(list(0.1*diag(nparam)), n)
 # accept = matrix(0, nburn + nmcmc, n)
 # window = 200
-cand.sig = 0.001 * diag(nparam)
+cand.sig = 0.01 * diag(nparam)
 
 
 param.alpha[1] = 1
-param.mu[1,] = c(1,1,0,1,0)
+param.mu[1,] = c(0,0,0)
 param.sigma[[1]] = diag(1, nparam)
 param.tau[1] = 1
-#param.theta[1,] = rep(param.mu[1,], n)
-#clus.w = rep(1, n)
-param.theta[1,] = runif(nparam * n)
-clus.w = 1:n
+param.theta[1,] = rep(param.mu[1,], n)
+clus.w = rep(1, n)
 
 
 for (iter in 2:(nburn + nmcmc)){
@@ -253,13 +250,13 @@ for (iter in 2:(nburn + nmcmc)){
 
 
 
-
 ### Remove burnin
 param.theta = tail(param.theta, nmcmc)
 param.alpha = tail(param.alpha, nmcmc)
 param.mu = tail(param.mu, nmcmc)
 param.sigma = tail(param.sigma, nmcmc)
 param.tau = tail(param.tau, nmcmc)
+
 
 #accept = tail(accept, nmcmc)
 #apply(accept, 2, mean)
@@ -276,7 +273,7 @@ plot(sapply(param.sigma, function(x) determinant(x)$modulus[1]), type='l')
 plot(param.tau, type='l')
 plot(param.alpha, type='l')
 
-plot(param.theta[,4], type='l')
+plot(param.theta[,3], type='l')
 
 ### May take a while (mean of theta overlain by individual thetas)
 pairs(rbind(param.mu, new.theta), pch = 20, col = c(rep("black", nmcmc),rep(cols, each = nmcmc)))
@@ -292,8 +289,8 @@ for (i in 1:n){
     pred = matrix(0, nmcmc, nrow(dat[[i]]$xy))
     for (j in 1:nmcmc)
         pred[j,] = jc(dat[[i]]$fixed,
-            param.theta[j, seq((i-1)*nparam+1, i*nparam)]) + 0
-#           rnorm(ni[i], 0, sqrt(param.tau[j]))
+            param.theta[j, seq((i-1)*nparam+1, i*nparam)]) + 
+            rnorm(1, 0, sqrt(param.tau[j]))
 
     matplot(dat[[i]]$xy[,1], t(pred), type='l', lty = 1, col = 'steelblue', lwd = 0.5)
     lines(dat[[i]]$xy, lwd = 3, col = cols[i])
