@@ -18,7 +18,8 @@ y = matrix(0, n, length(x))
 for (i in 1:n)
     y[i,] = b0[i] + b1[i]*x + b2[i]*x^2 + rnorm(1, 0, 0.05)
 
-matplot(x, t(y), type='l', lty = 1, lwd = 0.7)
+cols = rainbow(n)
+matplot(x, t(y), type='l', lty = 1, lwd = 0.7, col = cols)
 
 dat = rep(list(NULL), n)
 for (i in 1:n)
@@ -36,7 +37,7 @@ dmvnorm = function(x, mu, sigma, log = TRUE){
     if (NROW(sigma) == 1){
         p = length(x)
 #       out = 0.5*p*log(sigma) - 0.5/sigma * t(x-mu) %*% (x-mu)
-        out = 0.5*p*log(sigma) - 0.5/sigma * sum((x-mu)^2)
+        out = -0.5*p*log(sigma) - 0.5/sigma * sum((x-mu)^2)
     } else {
         inv = solve(sigma)
         out = 0.5*determinant(inv)$modulus[1] - 0.5*t(x-mu) %*% inv %*% (x-mu)
@@ -92,8 +93,8 @@ prior.sigma.V = diag(1, 3)
 
 
 ### MCMC
-nburn = 10000
-nmcmc = 10000
+nburn = 20000
+nmcmc = 15000
 
 nparam = 3 # Parameters in the polynomial
 param.theta = matrix(0, nburn + nmcmc, nparam * n)                  # JC parameters
@@ -273,28 +274,69 @@ plot(sapply(param.sigma, function(x) determinant(x)$modulus[1]), type='l')
 plot(param.tau, type='l')
 plot(param.alpha, type='l')
 
-plot(param.theta[,3], type='l')
+#plot(param.theta[,3], type='l')
 
 ### May take a while (mean of theta overlain by individual thetas)
-pairs(rbind(param.mu, new.theta), pch = 20, col = c(rep("black", nmcmc),rep(cols, each = nmcmc)))
+#pairs(rbind(param.mu, new.theta), pch = 20, col = c(rep("black", nmcmc),rep(cols, each = nmcmc)))
 
 
 
-plot(0, type='n', xlim = c(1, nmcmc), ylim = range(param.theta))
-for (i in 1:n)
-    matplot(param.theta[,seq((i-1)*nparam+1, i*nparam)], lty = i, type = 'l', add = TRUE)
+#plot(0, type='n', xlim = c(1, nmcmc), ylim = range(param.theta))
+#for (i in 1:n)
+#    matplot(param.theta[,seq((i-1)*nparam+1, i*nparam)], lty = i, type = 'l', add = TRUE)
 
 
-for (i in 1:n){
-    pred = matrix(0, nmcmc, nrow(dat[[i]]$xy))
-    for (j in 1:nmcmc)
-        pred[j,] = jc(dat[[i]]$fixed,
-            param.theta[j, seq((i-1)*nparam+1, i*nparam)]) + 
-            rnorm(1, 0, sqrt(param.tau[j]))
+#for (i in 1:n){
+#    pred = matrix(0, nmcmc, nrow(dat[[i]]$xy))
+#    for (j in 1:nmcmc)
+#        pred[j,] = jc(dat[[i]]$fixed,
+#            param.theta[j, seq((i-1)*nparam+1, i*nparam)]) + 
+#            rnorm(1, 0, sqrt(param.tau[j]))
+#
+#    matplot(dat[[i]]$xy[,1], t(pred), type='l', lty = 1, col = 'steelblue', lwd = 0.5)
+#    lines(dat[[i]]$xy, lwd = 3, col = cols[i])
+#    readline()
+#    }
 
-    matplot(dat[[i]]$xy[,1], t(pred), type='l', lty = 1, col = 'steelblue', lwd = 0.5)
-    lines(dat[[i]]$xy, lwd = 3, col = cols[i])
-    readline()
+
+pred.theta_0 = matrix(0, nmcmc, nparam)
+for (i in 1:nmcmc){
+    prob = c(param.alpha[i] / (param.alpha[i] + n), rep(1/(param.alpha[i] + n), n))
+    draw = sample(n+1, 1, replace = FALSE, prob = prob)
+    if (draw == 1){
+        pred.theta_0[i,] = mvrnorm(1, param.mu[i,], param.sigma[[i]])
+    } else {
+        pred.theta_0[i,] = param.theta[i, (((draw-1)-1)*nparam + 1):((draw-1)*nparam)]
+        }
     }
+pred.x = seq(min(x), max(x), length = 50)
+#pred.x = x
+pred.y_0 = t(apply(pred.theta_0, 1,
+    function(y) y[1]*pred.x^0 + y[2]*pred.x^1 + y[3]*pred.x^2))
+for (i in 1:nmcmc)
+    pred.y_0[i,] = pred.y_0[i,] + rnorm(1, 0, sqrt(param.tau[i]))
+#qlines = apply(pred.y_0, 2, quantile, c(0.025, 0.975))
+qhpd = apply(pred.y_0, 2, function(x) hpd.mult(x, density(x), 0.90, 1000))
+for (i in 1:length(pred.x))
+    if (length(qhpd[[i]]) == 2)
+        qhpd[[i]] = c(qhpd[[i]][1], NA, NA, qhpd[[i]][2])
+
+matplot(pred.x, t(pred.y_0), type='l', lty = 1, lwd = 0.5, col = 'steelblue')
+matplot(x, t(y), type='l', lty = 1, lwd = 1.0, add = TRUE, col = 'gray20')
+#for (i in 1:length(pred.x))
+#    points(rep(pred.x[i], length(qhpd[[i]])), qhpd[[i]], col = 'blue', pch = 20)
+for (i in 1:4)
+    lines(pred.x, sapply(qhpd, function(x) x[i]), col = 'blue', lwd = 2)
+#lines(pred.x, qlines[2,], col = 'blue')
 
 
+#h = t(apply(pred.theta_0, 1, function(y) y[1]*x^0 + y[2]*x^1 + y[3]*x^2))
+#
+#
+#param.theta[i, (((draw-1)-1)*nparam + 1):((draw-1)*nparam)]
+#
+#dmvnorm(
+#y[1,]
+#dim(y)
+#for (i in 1:nmcmc)
+#    pred.y_0[i,] = pred.y_0[i,] + rnorm(1, 0, sqrt(param.tau[i]))

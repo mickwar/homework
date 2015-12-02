@@ -1,21 +1,31 @@
 source("~/files/R/mcmc/bayes_functions.R")
 library(MASS)
+library(tmvtnorm)
 
 ### Load the data (use load("./chen_gray_fake.RData") when real data not available)
 source("./read_data.R")
 dat = read_data()
+#dat = c(head(dat, 7), tail(dat, 1))
 n = length(dat)
 
 ni = sapply(dat, function(x) nrow(x$xy))
 
+temp = sapply(dat, function(x) x$xy[,2])
+dat.mean = mean(unlist(temp))
+dat.sd = sd(unlist(temp))
+
 # Plot the data
 cols = rainbow(n)
-plot(0, type='n', xlim = c(0, 0.27), ylim = c(0, 0.012), xlab = "Plastic Strain",
+darkcols = character(n)
+for (i in 1:n)
+    darkcols[i] = col.mult(cols[i], "gray50")
+plot(0, type='n', xlim = c(0, 0.27), ylim = c(-3, 3), xlab = "Plastic Strain",
     ylab = "Stress")
 for (i in 1:n){
+    dat[[i]]$xy[,2] = (dat[[i]]$xy[,2] - dat.mean) / dat.sd
+    dat[[i]]$fixed = c(dat[[i]]$strain_rate, dat[[i]]$temperature, dat[[i]]$xy[,1])
     lines(dat[[i]]$xy[,1], dat[[i]]$xy[,2], type='l', col = cols[i], lwd = 2)
     # Combine some data
-    dat[[i]]$fixed = c(dat[[i]]$strain_rate, dat[[i]]$temperature, dat[[i]]$xy[,1])
     }
 
 
@@ -34,13 +44,13 @@ jc = function(x, theta){
 
 ### Multivariate normal density (up to a constant)
 dmvnorm = function(x, mu, sigma, log = TRUE){
+    p = length(x)
     if (NROW(sigma) == 1){
-        p = length(x)
 #       out = 0.5*p*log(sigma) - 0.5/sigma * t(x-mu) %*% (x-mu)
-        out = 0.5*p*log(sigma) - 0.5/sigma * sum((x-mu)^2)
+        out = -p/2*log(2*pi) - 0.5*p*log(sigma) - 0.5/sigma * sum((x-mu)^2)
     } else {
         inv = solve(sigma)
-        out = 0.5*determinant(inv)$modulus[1] - 0.5*t(x-mu) %*% inv %*% (x-mu)
+        out = -p/2*log(2*pi) + 0.5*determinant(inv)$modulus[1] - 0.5*t(x-mu) %*% inv %*% (x-mu)
         }
     if (log) return (out)
     return (exp(out))
@@ -79,12 +89,17 @@ prior.tau.a = 10
 prior.tau.b = 1
 
 # DP precision
-prior.alpha.a = 5000
-prior.alpha.b = 50
+prior.alpha.a = 2
+prior.alpha.b = 1
 
-# G0 (baselin) mean
-prior.mu.a = c(1,1,0,1,0)
-prior.mu.B = diag(5)
+# G0 (baseline) mean
+prior.mu.a = c(0.04, 0.07, 0.7, 0.05, 0.04)
+prior.mu.B = 1*diag(5)
+
+#theta.lower = c(0.00, 0.00, 0.05, 0.00, 0.01)
+#theta.upper = c(0.15, 0.30, 0.95, 0.08, 0.09)
+theta.lower = rep(-Inf, 5)
+theta.upper = rep(Inf, 5)
 
 # G0 (basline) covariance
 prior.sigma.df = 5
@@ -92,8 +107,9 @@ prior.sigma.V = diag(1, 5)
 
 
 
+
 ### MCMC
-nburn = 10000
+nburn = 20000
 nmcmc = 10000
 
 nparam = 5 # Parameters in JC model
@@ -106,17 +122,18 @@ param.tau = double(nburn + nmcmc)                                   # Measuremen
 # cand.sig = rep(list(0.1*diag(nparam)), n)
 # accept = matrix(0, nburn + nmcmc, n)
 # window = 200
-cand.sig = 0.001 * diag(nparam)
+cand.sig = 0.005 * diag(nparam)
 
 
-param.alpha[1] = 1
-param.mu[1,] = c(1,1,0,1,0)
-param.sigma[[1]] = diag(1, nparam)
-param.tau[1] = 1
-#param.theta[1,] = rep(param.mu[1,], n)
-#clus.w = rep(1, n)
-param.theta[1,] = runif(nparam * n)
-clus.w = 1:n
+param.alpha[1] = rgamma(1, prior.alpha.a, prior.alpha.b)
+param.mu[1,] = prior.mu.a
+param.sigma[[1]] = diag(0.001, nparam)
+param.tau[1] = rinvgamma(1, prior.tau.a, prior.tau.b)
+param.theta[1,] = rep(param.mu[1,], n)
+clus.w = rep(1, n)
+#param.theta[1,] = runif(nparam * n)
+#clus.w = 1:n
+
 
 
 for (iter in 2:(nburn + nmcmc)){
@@ -148,7 +165,9 @@ for (iter in 2:(nburn + nmcmc)){
         # Draw a candidate value from prior conditional
         temp.samp = sample(n, 1, prob = temp.prob)
         if (temp.samp == i){ # Make a draw from G0
-            cand = mvrnorm(1, c.mu, c.sigma)
+#           cand = mvrnorm(1, c.mu, c.sigma)
+            cand = rtmvnorm(1, c.mu, c.sigma, lower = theta.lower, upper = theta.upper,
+                algorithm = "gibbs", burn.in.sample = 50, start.value = c.mu)
         } else { # Make a draw from the existing groups
             cand = c.theta[temp.samp,]
             }
@@ -170,8 +189,9 @@ for (iter in 2:(nburn + nmcmc)){
                 }
 
             # Re-arrange clus.w for empty clusters
-            a = which.min(1:n %in% clus.w)
-            b = n - which.max(n:1 %in% clus.w) + 1
+            # (the n+1 accounts for the possibility that all clusters are unique)
+            a = which.min(1:(n+1) %in% clus.w)
+            b = (n+1) - which.max((n+1):1 %in% clus.w) + 1
             if (b > a)
                 clus.w[clus.w == b] = a
 
@@ -218,7 +238,10 @@ for (iter in 2:(nburn + nmcmc)){
     temp.s = apply(theta.star, 2, sum)
     temp.G = solve(solve(prior.mu.B) + n.star * inv.c.sigma)
     temp.mu = temp.G %*% (solve(prior.mu.B) %*% prior.mu.a + inv.c.sigma %*% temp.s)
-    c.mu = mvrnorm(1, temp.mu, temp.G)
+#   c.mu = mvrnorm(1, temp.mu, temp.G)
+    c.mu = rtmvnorm(1, as.numeric(temp.mu), temp.G, lower = theta.lower, upper = theta.upper,
+        algorithm = "gibbs", burn.in.samples = 50, start.value = c.mu)
+    c.mu = as.numeric(c.mu)
 
     # Improve mixing on the unique thetas
     for (j in 1:n.star){
@@ -276,10 +299,10 @@ plot(sapply(param.sigma, function(x) determinant(x)$modulus[1]), type='l')
 plot(param.tau, type='l')
 plot(param.alpha, type='l')
 
-plot(param.theta[,4], type='l')
 
 ### May take a while (mean of theta overlain by individual thetas)
-pairs(rbind(param.mu, new.theta), pch = 20, col = c(rep("black", nmcmc),rep(cols, each = nmcmc)))
+pairs(rbind(param.mu, new.theta), pch = 20, col = c(rep("black", nmcmc),
+    rep(cols, each = nmcmc)), cex = 0.5)
 
 
 
@@ -288,16 +311,61 @@ for (i in 1:n)
     matplot(param.theta[,seq((i-1)*nparam+1, i*nparam)], lty = i, type = 'l', add = TRUE)
 
 
+### Predictions of the observations
 for (i in 1:n){
     pred = matrix(0, nmcmc, nrow(dat[[i]]$xy))
     for (j in 1:nmcmc)
         pred[j,] = jc(dat[[i]]$fixed,
-            param.theta[j, seq((i-1)*nparam+1, i*nparam)]) + 0
-#           rnorm(ni[i], 0, sqrt(param.tau[j]))
+            param.theta[j, seq((i-1)*nparam+1, i*nparam)]) +
+            rnorm(ni[i], 0, sqrt(param.tau[j]))
+    qlines = apply(pred, 2, quantile, c(0.025, 0.975))
+#   matplot(dat[[i]]$xy[,1], t(pred), type='l', lty = 1, col = 'steelblue', lwd = 0.5)
+    plot(dat[[i]]$xy, lwd = 3, col = cols[i], ylim = range(pred), type = 'l')
+    lines(dat[[i]]$xy[,1], qlines[1,], lwd = 3, col = col.mult("gray50", cols[i]))
+    lines(dat[[i]]$xy[,1], qlines[2,], lwd = 3, col = col.mult("gray50", cols[i]))
+    if (i != n)
+        readline()
+    }
 
-    matplot(dat[[i]]$xy[,1], t(pred), type='l', lty = 1, col = 'steelblue', lwd = 0.5)
-    lines(dat[[i]]$xy, lwd = 3, col = cols[i])
-    readline()
+### Predict a new observation
+pred.theta_0 = matrix(0, nmcmc, nparam)
+for (i in 1:nmcmc){
+    pred.theta_0
+    prob = c(param.alpha[i] / (param.alpha[i] + n), rep(1 / (param.alpha[i] + n), n))
+    draw = sample(n+1, 1, prob = prob)
+    if (draw == 1){
+        pred.theta_0[i,] = rtmvnorm(1, param.mu[i,], param.sigma[[i]],
+            lower = theta.lower, upper = theta.upper, algorithm = "gibbs",
+            burn.in.sample = 50, start.value = param.mu[i,])
+    } else {
+        pred.theta_0[i,] = param.theta[i, (((draw-1)-1)*nparam + 1):((draw-1)*nparam)]
+        }
+    }
+pairs(pred.theta_0, pch = 20, cex = 0.5)
+
+pred.y_0 = NULL
+for (i in 1:n){
+    pred.y_0[[i]] = matrix(0, nmcmc, ni[i])
+    for (j in 1:nmcmc){
+        pred.y_0[[i]][j,] = jc(dat[[i]]$fixed, pred.theta_0[j,]) +
+            rnorm(ni[i], 0, sqrt(param.tau[j]))
+        }
+    }
+
+mpred = lapply(pred.y_0, function(x) apply(x, 2, mean))
+qpred = lapply(pred.y_0, function(x) apply(x, 2, quantile, c(0.025, 0.975)))
+
+
+
+plot(0, type='n', xlim = c(0, 0.27), ylim = c(-3, 3), xlab = "Plastic Strain",
+    ylab = "Stress")
+for (i in 1:n){
+    lines(dat[[i]]$xy[,1], dat[[i]]$xy[,2], type='l', col = cols[i], lwd = 2)
+    lines(dat[[i]]$xy[,1], mpred[[i]], type='l', col = darkcols[i], lwd = 2, lty = 3)
+#   lines(dat[[i]]$xy[,1], qpred[[i]][1,], type='l', col = darkcols[i], lwd = 2)
+#   lines(dat[[i]]$xy[,1], qpred[[i]][2,], type='l', col = darkcols[i], lwd = 2)
+    if (i != n)
+        readline()
     }
 
 
