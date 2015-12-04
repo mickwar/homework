@@ -278,12 +278,26 @@ thin.alpha = param.alpha[thin]
 thin.mu = param.mu[thin,]
 thin.tau = param.tau[thin]
 
-old = thin.sigma
+old = param.sigma
 thin.sigma = rep(list(matrix(0, nparam, nparam)), length(thin))
 for (i in 1:length(thin))
     thin.sigma[[i]] = old[[thin[i]]]
 
 save(thin.theta, thin.alpha, thin.sigma, thin.mu, thin.tau, file = "./workspaces/toy_semi.RData")
+
+
+old.theta = param.theta
+old.alpha = param.alpha
+old.mu = param.mu
+old.sigma = param.sigma
+old.tau = param.tau
+
+param.theta = thin.theta
+param.alpha = thin.alpha
+param.mu = thin.mu
+param.sigma = thin.sigma
+param.tau = thin.tau
+nmcmc = nrow(param.theta)
 
 
 #accept = tail(accept, nmcmc)
@@ -353,20 +367,43 @@ pred.y_0 = t(apply(pred.theta_0, 1,
 for (i in 1:nmcmc)
     pred.y_0[i,] = pred.y_0[i,] + rnorm(1, 0, sqrt(param.tau[i]))
 #qlines = apply(pred.y_0, 2, quantile, c(0.025, 0.975))
-qhpd = apply(pred.y_0, 2, function(x) hpd.mult(x, density(x), 0.90, 1000))
+qhpd = apply(pred.y_0, 2, function(x) hpd.mult(x, density(x), 0.95, 1000))
 for (i in 1:length(pred.x))
     if (length(qhpd[[i]]) == 2)
         qhpd[[i]] = c(qhpd[[i]][1], NA, NA, qhpd[[i]][2])
 
-matplot(pred.x, t(pred.y_0), type='l', lty = 1, lwd = 0.5, col = 'steelblue')
-#plot(0, type='n', xlim = range(x), ylim = range(qhpd, na.rm = TRUE))
-matplot(x, t(y), type='l', lty = 1, lwd = 1.0, add = TRUE, col = 'gray20')
+save(pred.theta_0, pred.y_0, qhpd, pred.x, file = "./workspaces/toy_dpm_preds.RData")
+
+#matplot(pred.x, t(pred.y_0), type='l', lty = 1, lwd = 0.5, col = 'steelblue')
+plot(0, type='n', xlim = range(x), ylim = c(.5, 7.5), cex.lab = 1.5,
+    main = "DP mixture model posterior predictions", cex.main = 2, xlab = "x", ylab = "y")
+matplot(x, t(y), type='l', lty = 1, lwd = 0.5, add = TRUE, col = 'gray20')
 #for (i in 1:length(pred.x))
 #    points(rep(pred.x[i], length(qhpd[[i]])), qhpd[[i]], col = 'blue', pch = 20)
 for (i in 1:4)
-    lines(pred.x, sapply(qhpd, function(x) x[i]), col = 'blue', lwd = 2)
+    lines(pred.x, sapply(qhpd, function(x) x[i]), col = 'darkblue', lwd = 3)
 #lines(pred.x, qlines[2,], col = 'blue')
+legend("topleft", box.lty = 0, legend = c("Simulated data", "95% Prediction bounds"),
+    col = c("gray20", "darkblue"), lwd = c(0.5, 3), cex = 2)
 
+
+cpo = matrix(0, nmcmc, n)
+for (i in 1:n){
+    for (j in 1:nmcmc){
+        cpo[j,i] = -dmvnorm(y[i,], jc(x, param.theta[j, seq((i-1)*nparam+1, i*nparam)]), param.tau[j])
+        }
+    }
+
+cpo.dpm = 1/apply(exp(cpo), 2, mean)
+save(cpo.dpm, file = "./workspaces/toy_cpo_semi.RData")
+
+load("./workspaces/toy_cpo_para.RData")
+
+plot(log(cpo.dpm) - log(cpo.parametric), pch = 20, main = "log(CPO.DPM / CPO.Parametric)",
+    cex.main = 2)
+abline(h = 0, lty = 2)
+legend("topleft", box.lty = 0, legend = paste0(mean(cpo.dpm > cpo.parametric), "% favor the DPM"),
+    cex = 2)
 
 #h = t(apply(pred.theta_0, 1, function(y) y[1]*x^0 + y[2]*x^1 + y[3]*x^2))
 #

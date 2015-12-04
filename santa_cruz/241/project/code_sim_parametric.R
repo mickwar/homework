@@ -212,12 +212,23 @@ thin.mu = param.mu[thin,]
 thin.tau = param.tau[thin]
 thin.accept = accept[thin,]
 
-old = thin.sigma
+old = param.sigma
 thin.sigma = rep(list(matrix(0, nparam, nparam)), length(thin))
 for (i in 1:length(thin))
     thin.sigma[[i]] = old[[thin[i]]]
 
 save(thin.theta, thin.sigma, thin.mu, thin.tau, thin.accept, file = "./workspaces/toy_para.RData")
+
+old.theta = param.theta
+old.mu = param.mu
+old.sigma = param.sigma
+old.tau = param.tau
+
+param.theta = thin.theta
+param.mu = thin.mu
+param.sigma = thin.sigma
+param.tau = thin.tau
+nmcmc = nrow(param.theta)
 
 
 ### Some plots of the posteriors
@@ -235,6 +246,10 @@ cols2[truth == 1] = "green"
 cols2[truth == 0] = "red"
 m.theta = matrix(apply(param.theta, 2, mean), n, nparam, byrow = TRUE)
 pairs(rbind(param.mu, m.theta), pch = 20, col = c(rep("black", nmcmc), cols2), cex = 1.0)
+
+library(coda)
+acf(param.theta[,7])
+effectiveSize(param.theta)
 
 
 
@@ -272,13 +287,16 @@ pred.y_0 = t(apply(pred.theta_0, 1,
 for (i in 1:nmcmc)
     pred.y_0[i,] = pred.y_0[i,] + rnorm(1, 0, sqrt(param.tau[i]))
 #qlines = apply(pred.y_0, 2, quantile, c(0.025, 0.975))
-qhpd = apply(pred.y_0, 2, function(x) hpd.mult(x, density(x), 0.90, 1000))
-for (i in 1:length(pred.x))
-    if (length(qhpd[[i]]) == 2)
-        qhpd[[i]] = c(qhpd[[i]][1], NA, NA, qhpd[[i]][2])
+qhpd = apply(pred.y_0, 2, function(x) hpd.mult(x, density(x), 0.95, 1000))
+#for (i in 1:length(pred.x))
+#    if (length(qhpd[[i]]) == 2)
+#        qhpd[[i]] = c(qhpd[[i]][1], NA, NA, qhpd[[i]][2])
+
+save(pred.theta_0, pred.y_0, qhpd, pred.x, file = "./workspaces/toy_para_preds.RData")
 
 #matplot(pred.x, t(pred.y_0), type='l', lty = 1, lwd = 0.5, col = 'steelblue')
-plot(0, type='n', xlim = range(x), ylim = range(qhpd, na.rm = TRUE))
+plot(0, type='n', xlim = range(x), ylim = c(.5, 7.5), cex.lab = 1.5,
+    main = "Parametric model posterior predictions", cex.main = 2, xlab = "x", ylab = "y")
 matplot(x, t(y), type='l', lty = 1, lwd = 0.5, add = TRUE, col = 'gray20')
 #for (i in 1:length(pred.x))
 #    points(rep(pred.x[i], length(qhpd[[i]])), qhpd[[i]], col = 'blue', pch = 20)
@@ -288,6 +306,19 @@ matplot(x, t(y), type='l', lty = 1, lwd = 0.5, add = TRUE, col = 'gray20')
 
 lines(pred.x, qhpd[1,], col = 'darkblue', lwd = 3)
 lines(pred.x, qhpd[2,], col = 'darkblue', lwd = 3)
+legend("topleft", box.lty = 0, legend = c("Simulated data", "95% Prediction bounds"),
+    col = c("gray20", "darkblue"), lwd = c(0.5, 3), cex = 2)
+
+
+cpo = matrix(0, nmcmc, n)
+for (i in 1:n){
+    for (j in 1:nmcmc){
+        cpo[j,i] = -dmvnorm(y[i,], jc(x, param.theta[j, seq((i-1)*nparam+1, i*nparam)]), param.tau[j])
+        }
+    }
+
+cpo.parametric = 1/apply(exp(cpo), 2, mean)
+save(cpo.parametric, file = "./workspaces/toy_cpo_para.RData")
 
 
 #h = t(apply(pred.theta_0, 1, function(y) y[1]*x^0 + y[2]*x^1 + y[3]*x^2))
