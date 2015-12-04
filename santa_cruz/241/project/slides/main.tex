@@ -1,0 +1,194 @@
+\documentclass[mathserif, 12pt, t]{beamer}
+
+\let\Tiny=\tiny
+%\usepackage{xcolor}
+%\usepackage{pdfpages}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{natbib}
+\usepackage{amsmath}
+\usepackage{bm}
+\geometry{vmargin=0.5in}
+
+\usepackage[longnamesfirst]{natbib} % make it so the first citation
+\bibpunct{(}{)}{;}{a}{}{,}
+
+%colors
+\definecolor{col1}{rgb}{1.00, 0.40, 0.00}
+%\definecolor{col2}{rgb}{0.80, 0.35, 0.00}
+\definecolor{col2}{rgb}{0.00, 0.35, 0.80}
+
+%commands
+%\newcommand{\lra}{\longrightarrow}
+%\newcommand{\ra}{\rightarrow}
+
+\newcommand{\citei}[1]{\phantom{\cite{#1}}\vspace{-14pt}}
+
+%\newcommand{\m}[1]{\mathbf{\bm{#1}}}
+\newcommand{\m}[1]{#1}
+
+%\renewcommand{\frametitle}[1]{\vspace{0.15cm}\hspace{-0.70cm}\textcolor{col1}{%
+%    \Large{#1}}\vspace{0.15cm}\newline}
+\renewcommand{\frametitle}[1]{\vspace{0.14cm}\hspace{-0.70cm}\textcolor{col2}{%
+    \Large{#1}}\vspace{0.15cm}\newline}
+
+%\renewcommand{\subtitle}[1]{\vspace{0.45cm}\textcolor{col2}{
+%    {\textbf{#1}}}\vspace{0.15cm}\newline}
+
+%\newcommand{\tlb}[1]{\large{\textbf{#1}}}
+
+%slide colors
+\pagecolor{col1!70}
+
+\begin{document}
+
+%%% begin title frame
+%\begin{center}
+\ \\ [-0.5in]
+\vfill
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+
+%\end{center}
+\begin{Large}
+Dirichlet process mixture models applied to Hopkinson-bar experiments
+\end{Large}
+%\begin{center}
+\vfill
+
+Mickey Warner
+\vfill
+
+7 December 2015
+\smallskip
+
+AMS 241
+
+\bigskip
+\bigskip
+\vfill
+\ \\ [-0.5in]
+%\end{center}
+%\end{frame}
+%%% end title frame
+
+
+
+\begin{frame}
+\frametitle{Markov chain Monte Carlo (MCMC)}
+
+A general set of methods that allows us to obtain random samples from a target distribution
+\bigskip
+
+In the Bayesian setting, the target distribution is the posterior distribution $p(\m{\theta}|\m{y})$
+\bigskip
+
+MCMC is useful when directly sampling from $p(\m{\theta}|\m{y})$ is difficult
+\bigskip
+
+Standard MCMC methods require the parameters $\m{\theta}$ to have fixed dimension
+
+%\begin{itemize}[label=$\cdot$]
+%\item A general set of methods that allows us to obtain random samples from a target distribution
+%\item In the Bayesian setting, the target distribution is the posterior distribution $p(\m{\theta}|\m{y})$
+%\item MCMC is useful when directly sampling from $p(\m{\theta}|\m{y})$ is difficulty
+%\item Standard MCMC methods require the parameters $\m{\theta}$ to have fixed dimension
+%\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Reversible jump MCMC}
+
+What about when $\m{\theta}$ does not have fixed dimensions?
+\bigskip
+
+For example, consider the normal mixture model
+\begin{align*}
+y_i &\overset{iid}\sim \sum_{j=1}^\nu \pi_j N(\phi_j, 1),~~~~~i=1,\ldots,n \\
+\nu,\m{\pi},\m{\phi} &\sim p(\nu)p(\m{\pi})p(\m{\phi}) 
+\end{align*}
+
+Here, $\m{\theta}=(\nu,\m{\pi}, \m{\phi})$ has dimension $2\nu+1$, with random $\nu\geq 1$, and $\pi=(\pi_1,\ldots,\pi_\nu)$, $\phi=(\phi_1,\ldots,\phi_\nu)$
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Reversible jump MCMC}
+
+Generally, we are considering a collection of $K$ models
+\begin{align*}
+\mathcal{M}_k=\{f(\cdot|\theta_k);~\theta_k\in\Theta_k\} 
+\end{align*}
+
+We need a method that allows us to \emph{jump} from one dimension, or model, to another (i.e. moving from $\mathcal{M}_i$ to $\mathcal{M}_j$)
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Green's (1995) algorithm}
+
+%Green's idea is to augment $\Theta_i$ and $\Theta_j$ with artificial spaces to create a bijection between them
+%\bigskip
+
+Let $\pi(k, \theta_k)$ denote the posterior density for model $\mathcal{M}_k$
+\bigskip
+
+Define a $K\times K$ matrix $\{P\}_{ij} = p_{ij}\geq 0$ with row sums of 1
+\bigskip
+
+Define a deterministic transformation function $T$ such that
+\[(\theta_j,u_j) = T_{ij}(\theta_i,u_i)\]
+where $\theta_k\in\Theta_k, u_k\sim g_k(u_k)$, for $k=\{i,j\}$ so $(\theta_i,u_i)$ has the same \emph{number} of components as $(\theta_j,u_j)$
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Green's (1995) algorithm}
+
+At iteration $t$, if $x^{(t)}=(i,\theta_i^{(t)})$,
+\begin{itemize}
+\item 1. Select model $\mathcal{M}_j$ with probability $p_{ij}$
+\item 2. Generate $u_{ij}\sim g_{ij}(u)$
+\item 3. Set $(\theta_j, v_{ji})=T_{ij}(\theta_i^{(t)},u_{ij})$
+\item 4. Take $\theta_j^{(t)}=\theta_j$ with probability
+\[ \min\left(\frac{\pi(j,\theta_j)}{\pi(i,\theta_i^{(t)})}\frac{p_{ji}g_{ji}(v_{ji})}{p_{ij}g_{ij}(u_{ij})}\left|\frac{\partial T_{ij}(\theta_i^{(t)},u_{ij})}{\partial(\theta_j^{(t)},u_{ij})}\right|,1\right) \]
+\item ~~~ and take $\theta_i^{(t+1)}=\theta_i^{(t)}$ otherwise
+\end{itemize}
+
+\end{frame}
+
+%\begin{frame}
+%\frametitle{Comments on implementation}
+%
+%Proposals are often made to another model that is similar in dimension (e.g. has only one additional or fewer parameters)
+%\bigskip
+%
+%Difficult to tune for efficient sampling: choices for $T$, $P$, $g$?
+%\bigskip
+%
+%Diagnostics for the Markov chain?
+%\bigskip
+%
+%\end{frame}
+
+\begin{frame}
+\frametitle{References}
+
+\citei{green1995reversible}
+\citei{richardson1997bayesian}
+\citei{robert2013monte}
+
+\bibliography{refs}
+\bibliographystyle{asa}
+
+\end{frame}
+
+
+\end{document}

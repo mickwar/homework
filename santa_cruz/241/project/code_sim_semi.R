@@ -5,20 +5,32 @@ library(MASS)
 #source("./read_data.R")
 #dat = read_data()
 
-set.seed(1)
-n = 100
-b0 = rnorm(n, 3, 0.1)
-b1 = rnorm(n, 1.5, 0.3)
-truth = 1*(runif(n) < 0.5)
-b2 = ifelse(truth, rnorm(n, 0, 0.0), rnorm(n, -1, 0.1))
-plot(density(b2))
+ set.seed(1)
+ n = 100
+ b0 = rnorm(n, 3, 0.3)
+ b1 = rnorm(n, 1.5, 0.1)
+ truth = 1*(runif(n) < 0.5)
+ b2 = ifelse(truth, rnorm(n, 0, 0.0), rnorm(n, -1, 0.1))
+ plot(density(b2))
+
+#set.seed(1)
+#n = 100
+#b0 = rnorm(n, 3, 0.1)
+#b1 = rnorm(n, 1.5, 0.3)
+#b0 = rep(3, n)
+#b1 = rep(1.5, n)
+#truth = 1*(runif(n) < 0.5)
+#b2 = ifelse(truth, rep(0, n), rep(-1, n))
 
 x = seq(-0.5, 2, length = 10)
 y = matrix(0, n, length(x))
 for (i in 1:n)
-    y[i,] = b0[i] + b1[i]*x + b2[i]*x^2 + rnorm(1, 0, 0.05)
+    y[i,] = b0[i] + b1[i]*x + b2[i]*x^2 + rnorm(length(x), 0, 0.05)
 
 cols = rainbow(n)
+darkcols = character(n)
+for (i in 1:n)
+    darkcols[i] = col.mult(cols[i], "gray50")
 matplot(x, t(y), type='l', lty = 1, lwd = 0.7, col = cols)
 
 dat = rep(list(NULL), n)
@@ -75,16 +87,16 @@ rwishart = function(V, df){
 
 ### Priors
 # Measurement variance
-prior.tau.a = 1
+prior.tau.a = 5
 prior.tau.b = 1
 
 # DP precision
-prior.alpha.a = 10
+prior.alpha.a = 5
 prior.alpha.b = 1
 
 # G0 (baselin) mean
-prior.mu.a = c(0,0,0)
-prior.mu.B = diag(3)
+prior.mu.a = c(0, 0, 0)
+prior.mu.B = diag(10, 3)
 
 # G0 (basline) covariance
 prior.sigma.df = 3
@@ -92,9 +104,10 @@ prior.sigma.V = diag(1, 3)
 
 
 
+
 ### MCMC
-nburn = 20000
-nmcmc = 15000
+nburn = 50000
+nmcmc = 1000000
 
 nparam = 3 # Parameters in the polynomial
 param.theta = matrix(0, nburn + nmcmc, nparam * n)                  # JC parameters
@@ -106,7 +119,7 @@ param.tau = double(nburn + nmcmc)                                   # Measuremen
 # cand.sig = rep(list(0.1*diag(nparam)), n)
 # accept = matrix(0, nburn + nmcmc, n)
 # window = 200
-cand.sig = 0.01 * diag(nparam)
+cand.sig = 0.001 * diag(nparam)
 
 
 param.alpha[1] = 1
@@ -168,8 +181,8 @@ for (iter in 2:(nburn + nmcmc)){
                 }
 
             # Re-arrange clus.w for empty clusters
-            a = which.min(1:n %in% clus.w)
-            b = n - which.max(n:1 %in% clus.w) + 1
+            a = which.min(1:(n+1) %in% clus.w)
+            b = (n+1) - which.max((n+1):1 %in% clus.w) + 1
             if (b > a)
                 clus.w[clus.w == b] = a
 
@@ -259,13 +272,27 @@ param.sigma = tail(param.sigma, nmcmc)
 param.tau = tail(param.tau, nmcmc)
 
 
+thin = seq(100, nmcmc, by = 100)
+thin.theta = param.theta[thin,]
+thin.alpha = param.alpha[thin]
+thin.mu = param.mu[thin,]
+thin.tau = param.tau[thin]
+
+old = thin.sigma
+thin.sigma = rep(list(matrix(0, nparam, nparam)), length(thin))
+for (i in 1:length(thin))
+    thin.sigma[[i]] = old[[thin[i]]]
+
+save(thin.theta, thin.alpha, thin.sigma, thin.mu, thin.tau, file = "./workspaces/toy_semi.RData")
+
+
 #accept = tail(accept, nmcmc)
 #apply(accept, 2, mean)
 
 ### Stack theta matrix
-new.theta = matrix(0, nmcmc*n, nparam)
-for (i in 1:n)
-    new.theta[((i-1)*nmcmc + 1):(i*nmcmc),] = param.theta[,((i-1)*nparam+1):(i*nparam)]
+#new.theta = matrix(0, nmcmc*n, nparam)
+#for (i in 1:n)
+#    new.theta[((i-1)*nmcmc + 1):(i*nmcmc),] = param.theta[,((i-1)*nparam+1):(i*nparam)]
 
 ### Some plots of the posteriors
 pairs(param.mu, pch = 20)
@@ -277,26 +304,34 @@ plot(param.alpha, type='l')
 #plot(param.theta[,3], type='l')
 
 ### May take a while (mean of theta overlain by individual thetas)
-#pairs(rbind(param.mu, new.theta), pch = 20, col = c(rep("black", nmcmc),rep(cols, each = nmcmc)))
+cols2 = character(n)
+cols2[truth == 1] = "green"
+cols2[truth == 0] = "red"
+m.theta = matrix(apply(param.theta, 2, mean), n, nparam, byrow = TRUE)
+pairs(rbind(param.mu, m.theta), pch = 20, col = c(rep("black", nmcmc), cols2), cex = 1.0)
 
 
 
-#plot(0, type='n', xlim = c(1, nmcmc), ylim = range(param.theta))
-#for (i in 1:n)
-#    matplot(param.theta[,seq((i-1)*nparam+1, i*nparam)], lty = i, type = 'l', add = TRUE)
+plot(0, type='n', xlim = c(1, nmcmc), ylim = range(param.theta))
+for (i in 1:n)
+    matplot(param.theta[,seq((i-1)*nparam+1, i*nparam)], lty = i, type = 'l', add = TRUE)
 
 
-#for (i in 1:n){
-#    pred = matrix(0, nmcmc, nrow(dat[[i]]$xy))
-#    for (j in 1:nmcmc)
-#        pred[j,] = jc(dat[[i]]$fixed,
-#            param.theta[j, seq((i-1)*nparam+1, i*nparam)]) + 
-#            rnorm(1, 0, sqrt(param.tau[j]))
-#
-#    matplot(dat[[i]]$xy[,1], t(pred), type='l', lty = 1, col = 'steelblue', lwd = 0.5)
-#    lines(dat[[i]]$xy, lwd = 3, col = cols[i])
-#    readline()
-#    }
+for (i in 1:n){
+    pred = matrix(0, nmcmc, nrow(dat[[i]]$xy))
+    for (j in 1:nmcmc)
+        pred[j,] = jc(dat[[i]]$fixed,
+            param.theta[j, seq((i-1)*nparam+1, i*nparam)]) + 
+            rnorm(1, 0, sqrt(param.tau[j]))
+    qlines = apply(pred, 2, quantile, c(0.025, 0.975))
+#   matplot(dat[[i]]$xy[,1], t(pred), type='l', lty = 1, col = 'steelblue', lwd = 0.5)
+#   lines(dat[[i]]$xy, lwd = 3, col = cols[i])
+    plot(dat[[i]]$xy, lwd = 3, col = cols[i], ylim = range(pred), type='l')
+    lines(dat[[i]]$xy[,1], qlines[1,], lwd = 3, col = darkcols[i])
+    lines(dat[[i]]$xy[,1], qlines[2,], lwd = 3, col = darkcols[i])
+    if (i != n)
+        readline()
+    }
 
 
 pred.theta_0 = matrix(0, nmcmc, nparam)
@@ -309,6 +344,8 @@ for (i in 1:nmcmc){
         pred.theta_0[i,] = param.theta[i, (((draw-1)-1)*nparam + 1):((draw-1)*nparam)]
         }
     }
+pairs(pred.theta_0, pch = 20)
+
 pred.x = seq(min(x), max(x), length = 50)
 #pred.x = x
 pred.y_0 = t(apply(pred.theta_0, 1,
@@ -322,6 +359,7 @@ for (i in 1:length(pred.x))
         qhpd[[i]] = c(qhpd[[i]][1], NA, NA, qhpd[[i]][2])
 
 matplot(pred.x, t(pred.y_0), type='l', lty = 1, lwd = 0.5, col = 'steelblue')
+#plot(0, type='n', xlim = range(x), ylim = range(qhpd, na.rm = TRUE))
 matplot(x, t(y), type='l', lty = 1, lwd = 1.0, add = TRUE, col = 'gray20')
 #for (i in 1:length(pred.x))
 #    points(rep(pred.x[i], length(qhpd[[i]])), qhpd[[i]], col = 'blue', pch = 20)
