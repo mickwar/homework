@@ -60,33 +60,30 @@ dev.off()
 #pairs(dpm.mu, pch = 20, cex = 0.5)
 #pairs(para.mu, pch = 20, cex = 0.5)
 pdf("./figs/toy_mu.pdf", width = 8, height = 8)
-pairs(rbind(dpm.mu, para.mu), pch = 20, cex = 0.5, col = c(rep(rgb(0,0,1,0.2), para.nmcmc),
-    rep(rgb(0,0,0,0.2), dpm.nmcmc)), labels = expression(mu[0], mu[1], mu[2]),
+pairs(rbind(dpm.mu[seq(10, 10000, by = 10),], para.mu[seq(10, 10000, by = 10),]),
+    pch = 20, cex = 0.5, col = c(rep(rgb(0,0,1,0.5), para.nmcmc/10),
+    rep(rgb(0,0,0,0.5), dpm.nmcmc/10)), labels = expression(mu[0], mu[1], mu[2]),
     cex.labels = 5, main = expression("Posterior for" ~ mu),
     cex.main = 2)
 dev.off()
 
 
-### Densities for log(det(Sigma))
-#par(mfrow = c(2,1), mar = c(4.1, 4.1, 3.1, 2.1))
-#plot(sapply(para.sigma, function(x) determinant(x)$modulus[1]), type='l', ylab = "log(det(Sigma)",
-#    main = expression("Parametric -- Posterior for" ~ Sigma), cex.main = 2)
-#plot(sapply(dpm.sigma, function(x) determinant(x)$modulus[1]), type='l', ylab = "log(det(Sigma)",
-#    main = expression("DPM -- Posterior for" ~ Sigma), col = 'blue', cex.main = 2)
-#par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
+### Pairs plot for means of thetas
+tmean = matrix(apply(para.theta, 2, mean), ncol = 3, byrow = TRUE)
+pairs(rbind(para.mu[seq(10, 10000, by = 10),], tmean), pch = 20, cex = 1,
+    col = c(rep("black", para.nmcmc/10), cols))
 
+tmean = matrix(apply(dpm.theta, 2, mean), ncol = 3, byrow = TRUE)
+pairs(rbind(dpm.mu[seq(10, 10000, by = 10),], tmean), pch = 20, cex = 1,
+    col = c(rep("blue", dpm.nmcmc/10), cols))
+
+
+### Densities for log(det(Sigma))
 pdf("./figs/toy_sigma.pdf", width = 8, height = 8)
 plot(density(sapply(para.sigma, function(x) determinant(x)$modulus[1])), xlim = c(-13, -4),
     main = expression("Posterior for" ~ Sigma), cex.main = 2, xlab = "log(det(Sigma)", lwd = 2)
 lines(density(sapply(dpm.sigma, function(x) determinant(x)$modulus[1])), col = 'blue', lwd = 2)
 dev.off()
-
-#par(mfrow = c(2,1), mar = c(4.1, 4.1, 3.1, 2.1))
-#plot(para.tau, type='l', ylab = "tau",
-#    main = expression("Parametric -- Posterior for" ~ tau), cex.main = 2)
-#plot(dpm.tau, type='l', ylab = "tau",
-#    main = expression("DPM -- Posterior for" ~ tau), col = 'blue', cex.main = 2)
-#par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
 
 
 ### densities for tau
@@ -121,33 +118,33 @@ dev.off()
 ### posterior predictions for a new observation y_0 based a new theta_0
 ### draws for theta_0
 pdf("./figs/toy_theta_0.pdf", width = 8, height = 8)
-pairs(rbind(dpm.t0, para.t0), pch = 20, cex = 0.5, col = c(rep(rgb(0,0,1,0.2), para.nmcmc),
-    rep(rgb(0,0,0,0.2), dpm.nmcmc)), labels = expression(beta[0], beta[1], beta[2]),
-    cex.labels = 5, main = expression("Predictions for a new" ~ theta ~ "= (" ~ beta[0] ~~
+pairs(rbind(dpm.t0[seq(10, 10000, by=10),], para.t0[seq(10, 10000, by=10),]),
+    pch = 20, cex = 0.5, col = c(rep(rgb(0,0,1,0.5), para.nmcmc/10),
+    rep(rgb(0,0,0,0.5), dpm.nmcmc/10)), labels = expression(beta[0], beta[1], beta[2]),
+    cex.labels = 5, main = expression("Predictions for a new" ~ beta ~ "= (" ~ beta[0] ~~
     beta[1] ~~ beta[2] ~ ")"), cex.main = 2)
 dev.off()
 
 
-### draws for a new y_0 (dpm)
+### y_0 (parametric)
 pdf("./figs/toy_y_0.pdf", width = 16, height = 8)
 par(mfrow = c(1,2), mar = c(4.1, 4.1, 3.1, 2.1))
+plot(0, type='n', xlim = range(x), ylim = c(.5, 7.5), cex.lab = 1.5,
+    main = "Parametric model posterior predictions", cex.main = 2, xlab = "x", ylab = "y")
+matplot(x, t(y), type='l', lty = 1, lwd = 0.5, add = TRUE, col = 'gray20')
+lines(pred.x, para.qhpd[1,], col = 'green', lwd = 5)
+lines(pred.x, para.qhpd[2,], col = 'green', lwd = 5)
+legend("topleft", box.lty = 0, legend = c("Simulated data", "95% Prediction bounds"),
+    col = c("gray20", "green"), lwd = c(0.5, 5), cex = 2)
+
+### draws for a new y_0 (dpm)
 plot(0, type='n', xlim = range(x), ylim = c(.5, 7.5), cex.lab = 1.5,
     main = "DP mixture model posterior predictions", cex.main = 2, xlab = "x", ylab = "y")
 matplot(x, t(y), type='l', lty = 1, lwd = 0.5, add = TRUE, col = 'gray20')
 for (i in 1:4)
-    lines(pred.x, sapply(dpm.qhpd, function(x) x[i]), col = 'darkblue', lwd = 3)
+    lines(pred.x, sapply(dpm.qhpd, function(x) x[i]), col = 'green', lwd = 5)
 legend("topleft", box.lty = 0, legend = c("Simulated data", "95% Prediction bounds"),
-    col = c("gray20", "darkblue"), lwd = c(0.5, 3), cex = 2)
-
-
-### y_0 (parametric)
-plot(0, type='n', xlim = range(x), ylim = c(.5, 7.5), cex.lab = 1.5,
-    main = "Parametric model posterior predictions", cex.main = 2, xlab = "x", ylab = "y")
-matplot(x, t(y), type='l', lty = 1, lwd = 0.5, add = TRUE, col = 'gray20')
-lines(pred.x, para.qhpd[1,], col = 'darkblue', lwd = 3)
-lines(pred.x, para.qhpd[2,], col = 'darkblue', lwd = 3)
-legend("topleft", box.lty = 0, legend = c("Simulated data", "95% Prediction bounds"),
-    col = c("gray20", "darkblue"), lwd = c(0.5, 3), cex = 2)
+    col = c("gray20", "green"), lwd = c(0.5, 5), cex = 2)
 par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
 dev.off()
 

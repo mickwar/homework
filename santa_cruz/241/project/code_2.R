@@ -109,7 +109,7 @@ prior.sigma.V = diag(1, 5)
 
 
 ### MCMC
-nburn = 20000
+nburn = 50000
 nmcmc = 10000
 
 nparam = 5 # Parameters in JC model
@@ -119,10 +119,10 @@ param.mu = matrix(0, nburn + nmcmc, nparam)                         # G0 mean
 param.sigma = rep(list(matrix(0, nparam, nparam)), nburn + nmcmc)   # G0 variance
 param.tau = double(nburn + nmcmc)                                   # Measurement variance
 
-# cand.sig = rep(list(0.1*diag(nparam)), n)
-# accept = matrix(0, nburn + nmcmc, n)
-# window = 200
-cand.sig = 0.005 * diag(nparam)
+cand.sig = rep(list(0.001*diag(nparam)), n)
+accept = matrix(0, nburn + nmcmc, n)
+window = 500
+#cand.sig = 0.005 * diag(nparam)
 
 
 param.alpha[1] = rgamma(1, prior.alpha.a, prior.alpha.b)
@@ -246,7 +246,11 @@ for (iter in 2:(nburn + nmcmc)){
     # Improve mixing on the unique thetas
     for (j in 1:n.star){
         temp.w = which(clus.w == j)
-        cand = mvrnorm(1, theta.star[j,], cand.sig)
+        temp.sig = diag(0, nparam)
+        for (i in temp.w)
+            temp.sig = temp.sig + cand.sig[[i]]
+        temp.sig = temp.sig / length(temp.w)
+        cand = mvrnorm(1, theta.star[j,], temp.sig)
 
         candsumsq = 0
         for (i in temp.w)
@@ -257,8 +261,18 @@ for (iter in 2:(nburn + nmcmc)){
 
         temp.cand = dmvnorm(cand, c.mu, c.sigma) - 1/(2*c.tau) * candsumsq
         temp.curr = dmvnorm(theta.star[j,], c.mu, c.sigma) - 1/(2*c.tau) * currsumsq
-        if (log(runif(1)) < temp.cand - temp.curr)
+        if (log(runif(1)) < temp.cand - temp.curr){
             c.theta[temp.w,] = matrix(cand, length(temp.w), nparam, byrow = TRUE)
+            accept[iter, temp.w] = 1
+            }
+        }
+
+    if ((floor(iter/window) == iter/window) && iter <= nburn){
+        for (i in 1:n){
+            cand.sig[[i]] = (cand.sig[[i]] +
+                autotune(mean(accept[(iter-window+1):iter,i]), k = max(window/50,1.5)) *
+                cov(param.theta[(iter-window+1):iter,((i-1)*nparam+1):(i*nparam)]))/2
+            }
         }
 
     # Reset the objects
@@ -284,8 +298,12 @@ param.mu = tail(param.mu, nmcmc)
 param.sigma = tail(param.sigma, nmcmc)
 param.tau = tail(param.tau, nmcmc)
 
-#accept = tail(accept, nmcmc)
-#apply(accept, 2, mean)
+accept = tail(accept, nmcmc)
+apply(accept, 2, mean)
+
+library(coda)
+acf(param.theta[,1])
+effectiveSize(param.theta)
 
 ### Stack theta matrix
 new.theta = matrix(0, nmcmc*n, nparam)
@@ -299,10 +317,20 @@ plot(sapply(param.sigma, function(x) determinant(x)$modulus[1]), type='l')
 plot(param.tau, type='l')
 plot(param.alpha, type='l')
 
+mean.theta = matrix(apply(param.theta, 2, mean), ncol = 5, byrow = TRUE)
+
+pdf("./figs/ms_clusters.pdf", width = 8, height = 8)
+pairs(rbind(param.mu[seq(10, nmcmc, by = 10),], mean.theta), pch = 20,
+    col = c(rep("black", nmcmc/10), cols), cex = c(rep(.5, nmcmc/10), rep(2, n)),
+    labels = c("A", "B", "n", "C", "m"), cex.labels = 4)
+dev.off()
+
+
 
 ### May take a while (mean of theta overlain by individual thetas)
-pairs(rbind(param.mu, new.theta), pch = 20, col = c(rep("black", nmcmc),
-    rep(cols, each = nmcmc)), cex = 0.5)
+pairs(rbind(param.mu[seq(10, nmcmc, by = 10),], new.theta[seq(10, n*nmcmc, by = 10),]),
+    pch = 20,
+    col = c(rep("black", nmcmc/10), rep(cols, each = nmcmc/10)), cex = 0.5)
 
 
 
@@ -312,6 +340,9 @@ for (i in 1:n)
 
 
 ### Predictions of the observations
+pdf("./figs/ms_predsA.pdf", width = 8, height = 8)
+plot(0, lwd = 3, col = cols[i], xlim = eps_range, ylim = y_range, type = 'n',
+    xlab = expression(epsilon), ylab = expression(sigma), cex.lab = 1.5)
 for (i in 1:n){
     pred = matrix(0, nmcmc, nrow(dat[[i]]$xy))
     for (j in 1:nmcmc)
@@ -320,12 +351,13 @@ for (i in 1:n){
             rnorm(ni[i], 0, sqrt(param.tau[j]))
     qlines = apply(pred, 2, quantile, c(0.025, 0.975))
 #   matplot(dat[[i]]$xy[,1], t(pred), type='l', lty = 1, col = 'steelblue', lwd = 0.5)
-    plot(dat[[i]]$xy, lwd = 3, col = cols[i], ylim = range(pred), type = 'l')
-    lines(dat[[i]]$xy[,1], qlines[1,], lwd = 3, col = col.mult("gray50", cols[i]))
-    lines(dat[[i]]$xy[,1], qlines[2,], lwd = 3, col = col.mult("gray50", cols[i]))
-    if (i != n)
-        readline()
+    lines(dat[[i]]$xy, col = cols[i], type = 'l', lwd = 3)
+    lines(dat[[i]]$xy[,1], qlines[1,], lwd = 1, col = col.mult("gray50", cols[i]))
+    lines(dat[[i]]$xy[,1], qlines[2,], lwd = 1, col = col.mult("gray50", cols[i]))
+#   if (i != n)
+#       readline()
     }
+dev.off()
 
 ### Predict a new observation
 pred.theta_0 = matrix(0, nmcmc, nparam)
@@ -356,8 +388,10 @@ mpred = lapply(pred.y_0, function(x) apply(x, 2, mean))
 qpred = lapply(pred.y_0, function(x) apply(x, 2, quantile, c(0.025, 0.975)))
 
 
+eps_range = range(lapply(sapply(dat, function(x) x$xy), function(x) x[,1]))
+y_range = range(lapply(sapply(dat, function(x) x$xy), function(x) x[,2]))
 
-plot(0, type='n', xlim = c(0, 0.27), ylim = c(-3, 3), xlab = "Plastic Strain",
+plot(0, type='n', xlim = eps_range, ylim = c(-3, 3), xlab = "Plastic Strain",
     ylab = "Stress")
 for (i in 1:n){
     lines(dat[[i]]$xy[,1], dat[[i]]$xy[,2], type='l', col = cols[i], lwd = 2)
@@ -368,4 +402,14 @@ for (i in 1:n){
         readline()
     }
 
+
+cpo = matrix(0, nmcmc, n)
+for (i in 1:n){
+    x = dat[[i]]$fixed
+    eps = dat[[i]]$xy[,1]
+    for (j in 1:nmcmc){
+        cpo[j,i] = -dmvnorm(dat[[i]]$xy[,2], jc(x, pred.theta_0[j,]), param.tau[j])
+        }
+    }
+cpo.dpm = 1/apply(exp(cpo), 2, mean)
 

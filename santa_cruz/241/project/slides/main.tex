@@ -1,93 +1,23 @@
-\documentclass[serif, 12pt, t]{beamer}
+\documentclass[mathserif, 12pt, t]{beamer}
 
-\let\Tiny=\tiny
-%\usepackage{xcolor}
-%\usepackage{pdfpages}
-\usepackage{graphicx}
-\usepackage{float}
-\usepackage{enumitem}
-%\usepackage{natbib}
-\usepackage{amsmath}
-\usepackage{bm}
-\geometry{vmargin=0.5in}
+\input{beamer_setup.tex}
 
-%\usepackage[longnamesfirst]{natbib} % make it so the first citation
-%\bibpunct{(}{)}{;}{a}{}{,}
-
-%colors
-\definecolor{col1}{rgb}{1.00, 0.40, 0.00}
-%\definecolor{col2}{rgb}{0.80, 0.35, 0.00}
-\definecolor{col2}{rgb}{0.00, 0.35, 0.80}
-
-%commands
-%\newcommand{\lra}{\longrightarrow}
-%\newcommand{\ra}{\rightarrow}
-
-%\newcommand{\citei}[1]{\phantom{\cite{#1}}\vspace{-14pt}}
-
-\newcommand{\m}[1]{\mathbf{\bm{#1}}}
-\newcommand{\R}{I\hspace{-4.4pt}R}
-%\newcommand{\m}[1]{#1}
-
-%\renewcommand{\frametitle}[1]{\vspace{0.15cm}\hspace{-0.70cm}\textcolor{col1}{%
-%    \Large{#1}}\vspace{0.15cm}\newline}
-\renewcommand{\frametitle}[1]{\vspace{0.14cm}\hspace{-0.70cm}\textcolor{col2}{%
-    \Large{#1}}\vspace{0.15cm}\newline}
-
-%\renewcommand{\subtitle}[1]{\vspace{0.45cm}\textcolor{col2}{
-%    {\textbf{#1}}}\vspace{0.15cm}\newline}
-
-%\newcommand{\tlb}[1]{\large{\textbf{#1}}}
-
-%slide colors
-\pagecolor{col1!70}
+\newcommand{\bc}[1]{\textcolor{blue}{\mathbf{#1}}}
 
 \begin{document}
 
-%%% begin title frame
-%\begin{center}
-\ \\ [-0.5in]
-\vfill
-\bigskip
-\bigskip
-\bigskip
-\bigskip
-\bigskip
+%\titlepage{Dirichlet process mixture model applied to Hopkinson-bar experiments}{Mickey Warner}{7 December 2015}{AMS 241}
+\titlepage{Dirichlet process mixture model on Hopkinson-bar experiments}{Mickey Warner}{7 December 2015}{AMS 241}
 
-%\end{center}
-\begin{Large}
-Dirichlet process mixture models applied to Hopkinson-bar experiments
-\end{Large}
-%\begin{center}
-\vfill
-
-Mickey Warner
-\vfill
-
-7 December 2015
-\smallskip
-
-AMS 241
-
-\bigskip
-\bigskip
-\vfill
-\ \\ [-0.5in]
-%\end{center}
+%\begin{frame}
+%\frametitle{Goal}
+%
+%Use a Dirichlet process mixture (DPM) model for multivariate data with a non-conjugate baseline distribution.
+%
 %\end{frame}
-%%% end title frame
 
 
-\begin{frame}
-\frametitle{Goal}
-
-Use the Dirichlet process mixture (DPM) model for multivariate data with a non-conjugate baseline distribution.
-
-\end{frame}
-
-
-\begin{frame}
-\frametitle{Data: simulated}
+\begin{frame}{Data: simulated}
 
 \begin{minipage}{0.60\textwidth}
 Generated $n=100$ curves, each of length $k_i$,
@@ -108,8 +38,8 @@ where
 
 \end{frame}
 
-\begin{frame}
-\frametitle{Data: simulated (continued)}
+
+\begin{frame}{Data: simulated (continued)}
 
 We use $\m{x}_1=\cdots=\m{x}_n=\m{x}$ that is a vector of $k_i=10$ equally spaced values from $-0.5$ to $2$
 \bigskip
@@ -117,9 +47,9 @@ We use $\m{x}_1=\cdots=\m{x}_n=\m{x}$ that is a vector of $k_i=10$ equally space
 Thus we have 100 curves with random intercepts, slopes, and quadratic terms, about half of which are lines and the others are parabolas
 \end{frame}
 
-\begin{frame}
-\frametitle{Parametric hierarchical model}
+\begin{frame}{Parametric hierarchical model}
 
+The curves $\m{y}_i$ are modeled as a multivariate normal with a quadratic polynomial as the mean:
 \begin{align*}
 f(\m{y}_i|\m{x}_i,\m{\beta}_i,\tau^2) &= N_{k_i}(\m{y}_i|p(\m{x}_i, \m{\beta}_i), \tau^2\m{I}_{k_i}),~~~~~&i=1,\ldots,n \\
 \m{\beta}_i &\overset{iid}\sim N(\m{\mu}, \m{\Sigma}),~~~~~&i=1,\ldots,n \\
@@ -132,111 +62,186 @@ where $\m{\beta}_i=(\beta_{i0}, \beta_{i1}, \beta_{i2})^\top$, $p(\m{x}_i,\m{\be
 \end{frame}
 
 
-\begin{frame}
-\frametitle{Dirichlet process mixture model for a curve}
 
-\[ F(\m{y}_i|G,\m{x}_i, \tau^2) = \int N_{k_i}(\m{y}_i|f(\m{x}_i, \m{\theta}), \tau^2\m{I}_{k_i})dG(\m{\theta}) \]
+\begin{frame}{Dirichlet process mixture (DPM) model}
 
-where $f(\m{x}_i, \m{\theta})$ is a (possibly non-linear) function that maps covariates $\m{x}_i$ and latent variables $\m{\theta}$ to $\R^{k_i}$
+We mix over the parameters in the mean function to obtain
+\begin{align*}
+f(\m{y}_i|G,\m{x}_i, \tau^2) &= \int N_{k_i}(\m{y}_i|p(\m{x}_i, \m{\beta}), \tau^2\m{I}_{k_i})dG(\m{\beta}) \\
+G|\alpha, G_0 &\sim DP(\alpha, G_0=N_p(\m{\beta}|\m{\mu}, \m{\Sigma}))
+\end{align*}
+and the priors are specified as in the parametric model. %The two models are equivalent, with the exception of the DPM model having a non-parametric prior on the distribution of $\m{\beta}$
 
+\end{frame}
 
-%\begin{itemize}[label=$\cdot$]
-%\item A general set of methods that allows us to obtain random samples from a target distribution
-%\item In the Bayesian setting, the target distribution is the posterior distribution $p(\m{\theta}|\m{y})$
-%\item MCMC is useful when directly sampling from $p(\m{\theta}|\m{y})$ is difficulty
-%\item Standard MCMC methods require the parameters $\m{\theta}$ to have fixed dimension
-%\end{itemize}
+\begin{frame}{Fitting the models}
+
+The priors all yield conjugate posterior conditionals, so sampling can be done easily with Gibbs
+\bigskip
+
+For the DPM, since $p(\cdot)$ is a polynomial and $G_0$ is normal, we can use the Gibbs sampler from Escobar and West.
+
+\end{frame}
+
+\begin{frame}{Simulated data: posterior predictive of a new $\m{\beta}_0$}
+Black -- parametric; Blue -- DPM)
+
+\begin{center}
+\includegraphics[scale=0.30]{../figs/toy_theta_0.pdf}
+\end{center}
+
+\end{frame}
+
+\begin{frame}{Simulated data: posterior predictive of a new $\m{y}_0$}
+Based on the posterior predictive for $\m{\beta}_0$
+
+\begin{center}
+\includegraphics[scale=0.25]{../figs/toy_y_0.pdf}
+\end{center}
+
+\end{frame}
+
+\begin{frame}{Hopkinson-bar experiments}
+
+\begin{minipage}{0.50\textwidth}
+A small piece of material is compressed or stretched, either slowly or rapidly
+\bigskip
+
+The deformation of the material is measured in two ways: stress and strain
+\bigskip
+
+Experiments are done at various temperatures and strain rates
+\end{minipage}
+\begin{minipage}{0.45\textwidth}
+\begin{flushright}
+\includegraphics[scale=0.50]{../figs/bar_pic.jpg}
+\end{flushright}
+\end{minipage}
+
+\end{frame}
+
+\begin{frame}{Hopkinson-bar experiments}
+
+\begin{minipage}{0.50\textwidth}
+We have curves from $n=10$ experiments
+\bigskip
+
+Materials models are typically used to model the data
+\bigskip
+
+\end{minipage}
+\begin{minipage}{0.45\textwidth}
+\begin{flushright}
+\includegraphics[scale=0.25]{../figs/ta_all_data.pdf}
+\end{flushright}
+\end{minipage}
+
+\end{frame}
+
+\begin{frame}{Material model}
+
+For $\m{x}=(\m{\epsilon}_p,\dot\epsilon^*,T^*)$ and $\m{\theta}=(A,B,n,C,m)$ the Johnson-Cook model is given by
+\[ h(\m{x}, \m{\theta}) = (\bc{A} + \bc{B}\m{\epsilon}_p^{\bc{n}})(1 + \bc{C} \log \dot\epsilon^*)(1 - T^{*\bc{m}}) \]
+where $\dot\epsilon^*$ is the experimental strain rate, $T^*$ is the experimental temperature, scaled by melting temperature (in Kelvin), and $\epsilon_p$ is the plastic strain ($x$-axis)
+\bigskip
+
+There are other, much better models, but the Johnson-Cook is very simple and is a useful starting point
+
+\end{frame}
+
+\begin{frame}{Statistical models}
+
+Replace $p(\m{x}_i, \m{\beta}_i)$ with the Johnson-Cook model $h(\m{x}_i, \m{\theta}_i)$ for the parametric and semi-parametric models:
+\bigskip
+
+Parametric
+\[ f(\m{y}_i|\m{x}_i,\m{\theta}_i,\tau^2) = N_{k_i}(\m{y}_i|h(\m{x}_i, \m{\theta}_i), \tau^2\m{I}_{k_i}) \]
+
+DPM
+\[ f(\m{y}_i|G,\m{x}_i, \tau^2) = \int N_{k_i}(\m{y}_i|h(\m{x}_i, \m{\theta}), \tau^2\m{I}_{k_i})dG(\m{\theta}) \]
+
+\end{frame}
+
+\begin{frame}{Fitting the models}
+
+Since we no longer have conjugacy with $\m{\theta}$ so we update the latent variables using a Metropolis step (Algorithm 6 from Neal (2000))
+\bigskip
+
+All other priors are the same as before and can be updated with Gibbs steps
+
+\end{frame}
+
+\begin{frame}{Posteriors for $\m{\theta}$}
+Black -- $\m{\mu}$; colored dots -- means of each $\m{\theta}_i$
+\begin{center}
+\includegraphics[scale=0.30]{../figs/ms_clusters.pdf}
+\end{center}
+
+\end{frame}
+
+\begin{frame}{Predictions (given the random effects)}
+\begin{center}
+\includegraphics[scale=0.30]{../figs/ms_predsA.pdf}
+\end{center}
 
 \end{frame}
 
 
-% \begin{frame}
-% \frametitle{Reversible jump MCMC}
-% 
-% What about when $\m{\theta}$ does not have fixed dimensions?
-% \bigskip
-% 
-% For example, consider the normal mixture model
-% \begin{align*}
-% y_i &\overset{iid}\sim \sum_{j=1}^\nu \pi_j N(\phi_j, 1),~~~~~i=1,\ldots,n \\
-% \nu,\m{\pi},\m{\phi} &\sim p(\nu)p(\m{\pi})p(\m{\phi}) 
-% \end{align*}
-% 
-% Here, $\m{\theta}=(\nu,\m{\pi}, \m{\phi})$ has dimension $2\nu+1$, with random $\nu\geq 1$, and $\pi=(\pi_1,\ldots,\pi_\nu)$, $\phi=(\phi_1,\ldots,\phi_\nu)$
-% 
-% \end{frame}
-% 
-% 
-% \begin{frame}
-% \frametitle{Reversible jump MCMC}
-% 
-% Generally, we are considering a collection of $K$ models
-% \begin{align*}
-% \mathcal{M}_k=\{f(\cdot|\theta_k);~\theta_k\in\Theta_k\} 
-% \end{align*}
-% 
-% We need a method that allows us to \emph{jump} from one dimension, or model, to another (i.e. moving from $\mathcal{M}_i$ to $\mathcal{M}_j$)
-% 
-% \end{frame}
-% 
-% \begin{frame}
-% \frametitle{Green's (1995) algorithm}
-% 
-% %Green's idea is to augment $\Theta_i$ and $\Theta_j$ with artificial spaces to create a bijection between them
-% %\bigskip
-% 
-% Let $\pi(k, \theta_k)$ denote the posterior density for model $\mathcal{M}_k$
-% \bigskip
-% 
-% Define a $K\times K$ matrix $\{P\}_{ij} = p_{ij}\geq 0$ with row sums of 1
-% \bigskip
-% 
-% Define a deterministic transformation function $T$ such that
-% \[(\theta_j,u_j) = T_{ij}(\theta_i,u_i)\]
-% where $\theta_k\in\Theta_k, u_k\sim g_k(u_k)$, for $k=\{i,j\}$ so $(\theta_i,u_i)$ has the same \emph{number} of components as $(\theta_j,u_j)$
-% 
-% \end{frame}
-% 
-% \begin{frame}
-% \frametitle{Green's (1995) algorithm}
-% 
-% At iteration $t$, if $x^{(t)}=(i,\theta_i^{(t)})$,
-% \begin{itemize}
-% \item 1. Select model $\mathcal{M}_j$ with probability $p_{ij}$
-% \item 2. Generate $u_{ij}\sim g_{ij}(u)$
-% \item 3. Set $(\theta_j, v_{ji})=T_{ij}(\theta_i^{(t)},u_{ij})$
-% \item 4. Take $\theta_j^{(t)}=\theta_j$ with probability
-% \[ \min\left(\frac{\pi(j,\theta_j)}{\pi(i,\theta_i^{(t)})}\frac{p_{ji}g_{ji}(v_{ji})}{p_{ij}g_{ij}(u_{ij})}\left|\frac{\partial T_{ij}(\theta_i^{(t)},u_{ij})}{\partial(\theta_j^{(t)},u_{ij})}\right|,1\right) \]
-% \item ~~~ and take $\theta_i^{(t+1)}=\theta_i^{(t)}$ otherwise
-% \end{itemize}
-% 
-% \end{frame}
-% 
-% %\begin{frame}
-% %\frametitle{Comments on implementation}
-% %
-% %Proposals are often made to another model that is similar in dimension (e.g. has only one additional or fewer parameters)
-% %\bigskip
-% %
-% %Difficult to tune for efficient sampling: choices for $T$, $P$, $g$?
-% %\bigskip
-% %
-% %Diagnostics for the Markov chain?
-% %\bigskip
-% %
-% %\end{frame}
-% 
-% \begin{frame}
-% \frametitle{References}
-% 
-% \citei{green1995reversible}
-% \citei{richardson1997bayesian}
-% \citei{robert2013monte}
-% 
-% \bibliography{refs}
-% \bibliographystyle{asa}
-% 
-% \end{frame}
+\begin{frame}{Conclusions and future work}
+
+Predictions based a new $\m{\theta}_0$ (not shown) were very poor
+\bigskip
+
+For covariates $\m{x}^*$ draw a new $\m{\theta}_0$ that are similar to one of the $\m{\theta}_i$'s
+\bigskip
+
+Hierarchical DPs? Nested DPs?
+\bigskip
+
+
+\end{frame}
+
+%where $f(\m{x}_i, \m{\theta})$ is a (possibly non-linear) function that maps covariates $\m{x}_i$ and latent variables $\m{\theta}$ to $\R^{k_i}$
+
+%\appendix
+%
+%\newcounter{finalframe}
+%\setcounter{finalframe}{\value{framenumber}}
+%
+%\begin{frame}{Simulated: posteriors}
+%Black -- parametric; Blue -- DPM)
+%\begin{center}
+%\includegraphics[scale=0.30]{../figs/toy_mu.pdf}
+%\end{center}
+%\end{frame}
+%
+%\begin{frame}{Simulated: posteriors}
+%Black -- parametric; Blue -- DPM)
+%\begin{center}
+%\includegraphics[scale=0.30]{../figs/toy_sigma.pdf}
+%\end{center}
+%\end{frame}
+%
+%\begin{frame}{Simulated: posteriors}
+%Black -- parametric; Blue -- DPM)
+%\begin{center}
+%\includegraphics[scale=0.30]{../figs/toy_tau.pdf}
+%\end{center}
+%\end{frame}
+%
+%\begin{frame}{Simulated: posteriors (DPM only)}
+%\begin{center}
+%\includegraphics[scale=0.30]{../figs/toy_alpha.pdf}
+%\end{center}
+%\end{frame}
+%
+%\begin{frame}{Simulated: log CPO}
+%\begin{center}
+%\includegraphics[scale=0.30]{../figs/toy_cpo.pdf}
+%\end{center}
+%\end{frame}
+%
+%\setcounter{framenumber}{\value{finalframe}}
 
 
 \end{document}
