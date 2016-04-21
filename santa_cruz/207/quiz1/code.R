@@ -19,27 +19,6 @@ riwishart = function(V, df){
     return (X %*% t(X))
     }
 
-set.seed(1)
-solve(rwishart(solve(S), 5))
-set.seed(1)
-riwishart(S, 5)
-
-S = D0 + 0.5
-Sinv = solve(S)
-t(chol(solve(S))) %*% chol(solve(S))
-solve(chol(S)) %*% t(solve(chol(S)))
-
-L = t(chol(S))
-U = backsolve(chol(S), diag(p))
-B = backsolve(t(A), diag(p))
-
-solve(L %*% A %*% t(A) %*% t(L))
-U %*% B %*% t(B) %*% t(U)
-
-
-t(backsolve(chol(S), diag(4))) %*% backsolve(chol(S), diag(4))
-t(chol(solve(S))) %*% chol(solve(S))
-
 
 dat = read.csv("~/files/data/CAtheft.csv")
 
@@ -52,6 +31,7 @@ n = nrow(z)
 p = ncol(z)
 
 pairs(z, pch = 20)
+plot(y[,2], z[,4], pch = 20)
 
 zbar = apply(z, 2, mean)
 #S1 = matrix(0, p, p)
@@ -59,44 +39,44 @@ zbar = apply(z, 2, mean)
 #    S1 = S1 + matrix(as.numeric(z[i,] - zbar), 4, 1) %*%
 #        matrix(as.numeric(z[i,] - zbar), 1, 4) 
 
-m = zbar
-C0 = diag(p)
-r = 5
-S0 = diag(p)
-
-nburn = 100
-nmcmc = 1000
-params.mu = matrix(0, nburn + nmcmc, p)
-params.sigma = rep(list(matrix(0, p, p)), nburn + nmcmc)
-
-params.mu[1,] = zbar
-
-for (i in 2:(nburn + nmcmc)){
-    if (floor(i/100) == i/100)
-        cat(i, "/", nburn+nmcmc, "\r")
-    S1 = matrix(0, p, p)
-    for (j in 1:n)
-        S1 = S1 + matrix(as.numeric(z[j,] - params.mu[i-1,]), 4, 1) %*%
-            matrix(as.numeric(z[j,] - params.mu[i-1,]), 1, 4) 
-    params.sigma[[i]] = riwishart(solve(S0 + S1), r + n)
-    Vinv = solve(params.sigma[[i]])
-    C1 = solve(solve(C0) + n*Vinv)
-    m1 = C1 %*% (solve(C0) %*% m + n * Vinv %*% zbar)
-    params.mu[i,] = mvrnorm(1, m1, C1)
-    if (i == nburn + nmcmc)
-        cat("\n")
-    }
-
-params.mu = tail(params.mu, nmcmc)
-params.sigma = tail(params.sigma, nmcmc)
-
-apply(params.mu, 2, mean)
-apply(params.mu, 2, quantile, c(0.025, 0.5, 0.975))
-
-pred.z = matrix(0, nmcmc, p)
-for (i in 1:nmcmc)
-    pred.z[i,] = mvrnorm(1, params.mu[i,], params.sigma[[i]])
-pairs(rbind(pred.z, as.matrix(z)), col = c(rep(2, nmcmc), rep(1, n)), pch = 20)
+## m = zbar
+## C0 = diag(p)
+## r = 5
+## S0 = diag(p)
+## 
+## nburn = 100
+## nmcmc = 1000
+## params.mu = matrix(0, nburn + nmcmc, p)
+## params.sigma = rep(list(matrix(0, p, p)), nburn + nmcmc)
+## 
+## params.mu[1,] = zbar
+## 
+## for (i in 2:(nburn + nmcmc)){
+##     if (floor(i/100) == i/100)
+##         cat(i, "/", nburn+nmcmc, "\r")
+##     S1 = matrix(0, p, p)
+##     for (j in 1:n)
+##         S1 = S1 + matrix(as.numeric(z[j,] - params.mu[i-1,]), 4, 1) %*%
+##             matrix(as.numeric(z[j,] - params.mu[i-1,]), 1, 4) 
+##     params.sigma[[i]] = riwishart(solve(S0 + S1), r + n)
+##     Vinv = solve(params.sigma[[i]])
+##     C1 = solve(solve(C0) + n*Vinv)
+##     m1 = C1 %*% (solve(C0) %*% m + n * Vinv %*% zbar)
+##     params.mu[i,] = mvrnorm(1, m1, C1)
+##     if (i == nburn + nmcmc)
+##         cat("\n")
+##     }
+## 
+## params.mu = tail(params.mu, nmcmc)
+## params.sigma = tail(params.sigma, nmcmc)
+## 
+## apply(params.mu, 2, mean)
+## apply(params.mu, 2, quantile, c(0.025, 0.5, 0.975))
+## 
+## pred.z = matrix(0, nmcmc, p)
+## for (i in 1:nmcmc)
+##     pred.z[i,] = mvrnorm(1, params.mu[i,], params.sigma[[i]])
+## pairs(rbind(pred.z, as.matrix(z)), col = c(rep(2, nmcmc), rep(1, n)), pch = 20)
 
 
 ### Model 2: each point comes from it's own distribution
@@ -106,10 +86,10 @@ C0inv = solve(C0)
 r = 6
 S0 = 0.25*diag(p)
 k = 5
-D0 = 5*diag(p)
+D0 = 3*diag(p)
 
 nburn = 1000
-nmcmc = 10000
+nmcmc = 2000
 params.mu.i = rep(list(matrix(0, nburn + nmcmc, p)), n)
 params.mu = matrix(0, nburn + nmcmc, p)
 params.sigma = rep(list(matrix(0, p, p)), nburn + nmcmc)
@@ -224,8 +204,8 @@ for (j in 1:n){
     pred.z = matrix(0, nmcmc, p)
     for (i in 1:nmcmc)
         pred.z[i,] = mvrnorm(1, params.mu.i[[j]][i,], params.sigma[[i]])
-    mean.preds[j,] = apply(exp(pred.z), 2, mean)
-    qq.preds[[j]] = apply(exp(pred.z), 2, quantile, c(0.025, 0.975))
+    mean.preds[j,] = apply(pred.z, 2, mean)
+    qq.preds[[j]] = apply(pred.z, 2, quantile, c(0.025, 0.975))
     }
 
 j = 23
@@ -238,11 +218,13 @@ pairs(y[,3:6], pch = 20, col = col.vec)
 #    0, 1-(y[,2] - min(y[,2])) / diff(range(y[,2])))
 col.vec = rgb((rank(y[,2]) - 1) / (n-1),
     0, 1-(rank(y[,2]) - 1) / (n-1))
-par(mfrow = c(2,2), mar = c(2.1, 2.1, 2.1, 1.1))
+par(mfrow = c(2,2), mar = c(5.1, 4.1, 2.1, 1.1))
 for (j in 1:p){
     temp = sapply(qq.preds, function(x) x[,j])
-    plot(y[,j+2], mean.preds[,j], pch = 20, ylim = range(temp)); abline(0, 1)
-    segments(x0 = y[,j+2], y0 = temp[1,], y1 = temp[2,], col = col.vec)
+    plot(z[,j], mean.preds[,j], pch = 20, ylim = range(temp), main = names(z)[j],
+        xlab = "Observed log(Theft)", ylab = "Predicted log(Theft)")
+    abline(0, 1)
+    segments(x0 = z[,j], y0 = temp[1,], y1 = temp[2,], col = col.vec)
     }
 par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
 
