@@ -1,5 +1,5 @@
-### Model 1: assume all points come from the same distribution
 library(MASS)
+library(xtable)
 rwishart = function(V, df){
     p = nrow(V)
     U = chol(V)
@@ -23,6 +23,8 @@ riwishart = function(V, df){
 dat = read.csv("~/files/data/CAtheft.csv")
 
 y = dat
+names(y)[5] = "Larceny"
+names(y)[6] = "Motor.vehicle"
 #for (i in 1:nrow(y))
 #    y[i,3:6] = y[i,3:6] / y[i,2]
 z = log(y[,3:6])
@@ -30,8 +32,15 @@ z = log(y[,3:6])
 n = nrow(z)
 p = ncol(z)
 
+plot(log(y[,2]), z[,4])
+
+pdf("figs/data.pdf", height = 6, width = 6)
+pairs(y[,3:6], pch = 20)
+dev.off()
+pdf("figs/data_log.pdf", height = 6, width = 6)
 pairs(z, pch = 20)
-plot(y[,2], z[,4], pch = 20)
+dev.off()
+#plot(y[,2], z[,4], pch = 20)
 
 zbar = apply(z, 2, mean)
 #S1 = matrix(0, p, p)
@@ -88,8 +97,8 @@ S0 = 0.25*diag(p)
 k = 5
 D0 = 3*diag(p)
 
-nburn = 1000
-nmcmc = 2000
+nburn = 2000
+nmcmc = 10000
 params.mu.i = rep(list(matrix(0, nburn + nmcmc, p)), n)
 params.mu = matrix(0, nburn + nmcmc, p)
 params.sigma = rep(list(matrix(0, p, p)), nburn + nmcmc)
@@ -198,37 +207,88 @@ for (i in 1:nmcmc)
 pairs(rbind(pred.z, as.matrix(z[j,])), col = c(rep(2, nmcmc), rep(1, 1)), pch = 20)
 mean(apply(exp(pred.z), 1, sum) >= 3000)
 
-mean.preds = matrix(0, n, p)
-qq.preds = rep(list(matrix(0, 2, 4)), n)
+preds.mean = matrix(0, n, p)
+preds.qq = rep(list(matrix(0, 2, 4)), n)
 for (j in 1:n){
     pred.z = matrix(0, nmcmc, p)
     for (i in 1:nmcmc)
         pred.z[i,] = mvrnorm(1, params.mu.i[[j]][i,], params.sigma[[i]])
-    mean.preds[j,] = apply(pred.z, 2, mean)
-    qq.preds[[j]] = apply(pred.z, 2, quantile, c(0.025, 0.975))
+    preds.mean[j,] = apply(pred.z, 2, mean)
+    preds.qq[[j]] = apply(pred.z, 2, quantile, c(0.025, 0.975))
     }
+
+
+
 
 j = 23
 x = 1+double(n)
 x[j] = 2
-pairs(mean.preds, pch = 20, col = x)
-pairs(y[,3:6], pch = 20, col = col.vec)
+pairs(preds.mean, pch = 20, col = x)
+pairs(y[,3:6], pch = 20, col = x)
 
 #col.vec = rgb((y[,2] - min(y[,2])) / diff(range(y[,2])),
 #    0, 1-(y[,2] - min(y[,2])) / diff(range(y[,2])))
 col.vec = rgb((rank(y[,2]) - 1) / (n-1),
     0, 1-(rank(y[,2]) - 1) / (n-1))
+pdf("./figs/fit.pdf", width = 6, height = 6)
+col.vec = rep(1, n)
 par(mfrow = c(2,2), mar = c(5.1, 4.1, 2.1, 1.1))
 for (j in 1:p){
-    temp = sapply(qq.preds, function(x) x[,j])
-    plot(z[,j], mean.preds[,j], pch = 20, ylim = range(temp), main = names(z)[j],
+    temp = sapply(preds.qq, function(x) x[,j])
+    plot(z[,j], preds.mean[,j], pch = 20, ylim = range(temp), main = names(z)[j],
         xlab = "Observed log(Theft)", ylab = "Predicted log(Theft)")
     abline(0, 1)
     segments(x0 = z[,j], y0 = temp[1,], y1 = temp[2,], col = col.vec)
     }
 par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
+dev.off()
 
 
-apply(exp(pred.z), 2, mean) - y[j,3:6]
-#exp(apply(pred.z, 2, mean)) - y[j,3:6]
+preds.exp.mean = matrix(0, n, p)
+preds.exp.qq = rep(list(matrix(0, 2, 4)), n)
+for (j in 1:n){
+    pred.z = matrix(0, nmcmc, p)
+    for (i in 1:nmcmc)
+        pred.z[i,] = mvrnorm(1, params.mu.i[[j]][i,], params.sigma[[i]])
+    preds.exp.mean[j,] = apply(exp(pred.z), 2, mean)
+    preds.exp.qq[[j]] = apply(exp(pred.z), 2, quantile, c(0.025, 0.5, 0.975))
+    if (j == 31)
+        SC = mean(apply(exp(pred.z), 1, sum) >= 3000)
+    }
+
+par(mfrow = c(2,2), mar = c(5.1, 4.1, 2.1, 1.1))
+for (j in 1:p){
+    temp = sapply(preds.exp.qq, function(x) x[,j])
+    plot(y[,j+2], preds.exp.mean[,j], pch = 20, ylim = range(temp), main = names(z)[j],
+        xlab = "Observed Theft", ylab = "Predicted Theft")
+    abline(0, 1)
+    segments(x0 = y[,j+2], y0 = temp[1,], y1 = temp[3,], col = col.vec)
+    }
+par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
+
+j = 3
+temp = sapply(preds.exp.qq, function(x) x[,j])
+
+temp[1,] <= y[,j+2] & temp[3,] >= y[,j+2]
+
+
+x = round(cbind("Obs"=y[,j+2],"Mean"=preds.exp.mean[,j], t(temp)))
+rownames(x) = y[,1]
+xtable(x, digits=0)
+
+names(z)[j]
+
+s.mean = matrix(0, 4, 4)
+v.mean = matrix(0, 4, 4)
+for (i in 1:nmcmc){
+    s.mean = s.mean + params.sigma[[i]]
+    v.mean = v.mean + params.V[[i]]
+    }
+
+s.mean = s.mean / nmcmc
+v.mean = v.mean / nmcmc
+
+round(apply(params.mu, 2, mean), 3)
+round(s.mean, 3)
+round(v.mean, 3)
 
