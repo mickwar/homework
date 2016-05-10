@@ -1,3 +1,4 @@
+library(MASS)
 source("~/files/R/mcmc/bayes_functions.R")
 x = c(14, 30, 49, 70, 33, 15)
 ints = c(-Inf, 66, 68, 70, 72, 74, Inf)
@@ -26,23 +27,23 @@ window = 200
 
 post = calc.post(params[1,])
 
-for (i in 2:(nburn + nmcmc)){
-    if (floor(i/window) == i/window)
-        cat("\r", i, "/", nburn+nmcmc)
-    params[i,] = params[i-1,]
-    cand = mvrnorm(1, params[i-1,], cand.sig)
-    if (all(cand > lower) && all(cand < upper)){
-        cand.post = calc.post(cand)
-        if (log(runif(1)) <= cand.post - post){
-            post = cand.post
-            params[i,] = cand
-            accept[i] = 1
-            }
-        }
-    if ((floor(i/window) == i/window) && (i <= nburn))
-        cand.sig = autotune(mean(accept[(i-window+1):i]), target = 0.234, k = window/50) *
-            (cand.sig + window * var(params[(i-window+1):i,]) / i)
-    }
+# for (i in 2:(nburn + nmcmc)){
+#     if (floor(i/window) == i/window)
+#         cat("\r", i, "/", nburn+nmcmc)
+#     params[i,] = params[i-1,]
+#     cand = mvrnorm(1, params[i-1,], cand.sig)
+#     if (all(cand > lower) && all(cand < upper)){
+#         cand.post = calc.post(cand)
+#         if (log(runif(1)) <= cand.post - post){
+#             post = cand.post
+#             params[i,] = cand
+#             accept[i] = 1
+#             }
+#         }
+#     if ((floor(i/window) == i/window) && (i <= nburn))
+#         cand.sig = autotune(mean(accept[(i-window+1):i]), target = 0.234, k = window/50) *
+#             (cand.sig + window * var(params[(i-window+1):i,]) / i)
+#     }
 
 params = tail(params, nmcmc)
 accept = tail(accept, nmcmc)
@@ -64,11 +65,13 @@ library(truncnorm)
 calc.post = function(param, Z){
     mu = param[1]
     sig = sqrt(param[2])
-    sum(dnorm(Z, mu, sig, log = TRUE))
+    sum(dnorm(Z, mu, sig, log = TRUE)) + 
+    sum(x*log(pnorm(tail(ints, length(x)), mu, sig) -
+        pnorm(head(ints, length(x)), mu, sig)))
     }
 
 nburn = 10000
-nmcmc = 10000
+nmcmc = 100000
 
 nparam = 2
 params = matrix(0, nburn + nmcmc, nparam)
@@ -95,6 +98,7 @@ for (i in 1:length(x))
         mean = params[1,1], sd = sqrt(params[1,2]))
 
 post = calc.post(params[1,], latent.Z[1,])
+set.seed(1)
 
 for (i in 2:(nburn + nmcmc)){
     if (floor(i/window) == i/window)
@@ -127,6 +131,7 @@ accept = tail(accept, nmcmc)
 mean(accept)
 
 apply(params, 2, mean)
+apply(params, 2, var)
 
 par(mfrow=c(2,2), mar = c(4.1,2.1,2.1,1.1))
 plot(density(params[,1]))
