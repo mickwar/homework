@@ -12,7 +12,7 @@ calc.post = function(param){
     }
 
 nburn = 10000
-nmcmc = 15000
+nmcmc = 100000
 
 nparam = 2
 params = matrix(0, nburn + nmcmc, nparam)
@@ -27,29 +27,34 @@ window = 200
 
 post = calc.post(params[1,])
 
-# for (i in 2:(nburn + nmcmc)){
-#     if (floor(i/window) == i/window)
-#         cat("\r", i, "/", nburn+nmcmc)
-#     params[i,] = params[i-1,]
-#     cand = mvrnorm(1, params[i-1,], cand.sig)
-#     if (all(cand > lower) && all(cand < upper)){
-#         cand.post = calc.post(cand)
-#         if (log(runif(1)) <= cand.post - post){
-#             post = cand.post
-#             params[i,] = cand
-#             accept[i] = 1
-#             }
-#         }
-#     if ((floor(i/window) == i/window) && (i <= nburn))
-#         cand.sig = autotune(mean(accept[(i-window+1):i]), target = 0.234, k = window/50) *
-#             (cand.sig + window * var(params[(i-window+1):i,]) / i)
-#     }
+for (i in 2:(nburn + nmcmc)){
+    if (floor(i/window) == i/window)
+        cat("\r", i, "/", nburn+nmcmc)
+    params[i,] = params[i-1,]
+    cand = mvrnorm(1, params[i-1,], cand.sig)
+    if (all(cand > lower) && all(cand < upper)){
+        cand.post = calc.post(cand)
+        if (log(runif(1)) <= cand.post - post){
+            post = cand.post
+            params[i,] = cand
+            accept[i] = 1
+            }
+        }
+    if ((floor(i/window) == i/window) && (i <= nburn))
+        cand.sig = autotune(mean(accept[(i-window+1):i]), target = 0.234, k = window/50) *
+            (cand.sig + window * var(params[(i-window+1):i,]) / i)
+    }
 
 params = tail(params, nmcmc)
 accept = tail(accept, nmcmc)
 mean(accept)
 
+
+params.1 = params
+
 apply(params, 2, mean)
+apply(params, 2, var)
+
 
 par(mfrow=c(2,2), mar = c(4.1,2.1,2.1,1.1))
 plot(density(params[,1]))
@@ -65,9 +70,9 @@ library(truncnorm)
 calc.post = function(param, Z){
     mu = param[1]
     sig = sqrt(param[2])
-    sum(dnorm(Z, mu, sig, log = TRUE)) + 
-    sum(x*log(pnorm(tail(ints, length(x)), mu, sig) -
-        pnorm(head(ints, length(x)), mu, sig)))
+    sum(dnorm(Z, mu, sig, log = TRUE)) + 0
+#   sum(x*log(pnorm(tail(ints, length(x)), mu, sig) -
+#       pnorm(head(ints, length(x)), mu, sig)))
     }
 
 nburn = 10000
@@ -130,6 +135,8 @@ params = tail(params, nmcmc)
 accept = tail(accept, nmcmc)
 mean(accept)
 
+params.2 = params
+
 apply(params, 2, mean)
 apply(params, 2, var)
 
@@ -146,4 +153,14 @@ apply(latent.Z, 2, mean)
 apply(latent.Z, 2, var)
 
 
+apply(params.1, 2, mean)
+apply(params.2, 2, mean)
+apply(params.1, 2, var)
+apply(params.2, 2, var)
+par(mfrow=c(2,1), mar = c(4.1,2.1,2.1,1.1))
+plot(density(params.1[,1]))
+lines(density(params.2[,1]), col = 'red')
+plot(density(params.1[,2]))
+lines(density(params.2[,2]), col = 'red')
+par(mfrow=c(1,1), mar = c(5.1,4.1,4.1,2.1))
 
