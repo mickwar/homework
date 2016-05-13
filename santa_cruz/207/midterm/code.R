@@ -1,9 +1,14 @@
-dat = read.table("~/volcano.txt", header=TRUE)
+source("~/files/R/mcmc/bayes_functions.R")
+dat = read.table("~/files/data/volcano.txt", header=TRUE)
 y = log(dat[1:62,3])
 n = length(y)
 
-plot(density(y))
+pdf("./figs/data.pdf", width = 6, height = 6)
+plot(density(y), lwd = 3, xlab = "Log Interevent Time", main = "Etna volcano data", cex.lab = 1.3)
+dev.off()
 
+set.seed(1)
+### Model 1
 # Hyperpriors
 m = 0   # mu mean
 s2 = 10 # mu variance
@@ -14,7 +19,7 @@ d = 3   # tau2 beta
 df = 5  # df for the t, fixed
 
 nburn = 10000
-nmcmc = 50000
+nmcmc = 20000
 window = 500
 
 params.lambda.i = matrix(0, nburn + nmcmc, n)
@@ -64,9 +69,9 @@ params.mu = tail(params.mu, nmcmc)
 params.tau2 = tail(params.tau2, nmcmc)
 params.sig2 = tail(params.sig2, nmcmc)
 
-plot(params.sig2, type='l')
-plot(params.tau2, type='l')
-plot(params.mu, type='l')
+#plot(params.sig2, type='l')
+#plot(params.tau2, type='l')
+#plot(params.mu, type='l')
 #matplot(tail(params.mu.i, 1000), type='l')
 #matplot(tail(params.lambda.i, 1000), type='l')
 
@@ -76,36 +81,109 @@ for (j in 1:n)
     pred.y[,j] = rnorm(nmcmc, params.mu.i[,j], sqrt(params.sig2 / params.lambda.i[,j]))
 qq = apply(pred.y, 2, quantile, c(0.025, 0.975))
 
-plot(y, apply(pred.y, 2, mean), pch = 20, ylim = range(qq))
-segments(x0 = y, x1 = y, y0 = qq[1,], y1 = qq[2,])
+pdf("./figs/m1_obs_fit.pdf", height = 6, width = 6)
+plot(y, apply(pred.y, 2, mean), pch = 20, ylim = range(qq), xlab = "Observed", ylab = "Fitted",
+    cex.lab = 1.3, main = "M1: Predictions based on random effects", col = 'darkred')
+segments(x0 = y, x1 = y, y0 = qq[1,], y1 = qq[2,], col = 'firebrick')
 abline(0, 1)
-
-#f = function(x)
-#    dt(x-7, 5)
-#curve(f(x), col = 'blue', add=  TRUE)
-
-#plot(density(params.sig2))
-#plot(density(params.tau2))
-
+dev.off()
 
 ### Posterior predictive for a new observation
 pred.mu.0 = rnorm(nmcmc, params.mu, sqrt(params.tau2))
 pred.lambda.0 = rgamma(nmcmc, df/2, df/2)
 pred.y.0 = rnorm(nmcmc, pred.mu.0, sqrt(params.sig2 / pred.lambda.0))
-plot(density(y))
-lines(density(pred.y.0), col = 'darkgreen', lwd = 3)
-for (j in 1:n){
-    dens = density(pred.y[,j])
-    lines(dens$x, 0.1*dens$y, col = rgb(0, 1, 0, 0.25))
+#plot(density(y))
+#lines(density(pred.y.0), col = 'darkgreen', lwd = 3)
+#for (j in 1:n){
+#    dens = density(pred.y[,j])
+#    lines(dens$x, 0.1*dens$y, col = rgb(0, 1, 0, 0.25))
+#    }
+#points(y, rep(0, n), pch = 20)
+
+# Bayesian goodness-of-fit
+m1.all = cbind(params.lambda.i, params.mu.i, params.mu, params.sig2, params.tau2)
+m1.pvals = bayes.gof(y, m1.all, function(y, x) pnorm(y, x[(n+1):(2*n)], sqrt(x[2*n+2] / x[1:n])))
+mean(m1.pvals > 0.05)
+
+
+
+
+
+### Model 2
+m2.mu = double(nburn + nmcmc)
+m2.sig2 = double(nburn + nmcmc)
+m2.sig2[1] = 1
+
+for (i in 2:(nburn + nmcmc)){
+    # Update mu
+    m2.mu[i] = rnorm(1, (n*s2*mean(y) + m2.sig2[i-1]*m) / (n*s2 + m2.sig2[i-1]),
+        sqrt((s2*m2.sig2[i-1])/(n*s2+m2.sig2[i-1])))
+
+    # Update sig2
+    m2.sig2[i] = 1/rgamma(1, a + n/2, b + 0.5*sum((y - m2.mu[i])^2))
     }
-points(y, rep(0, n), pch = 20)
 
-#lines(density(pred.mu.0), col = 'blue',lwd = 3)
+m2.mu = tail(m2.mu, nmcmc)
+m2.sig2 = tail(m2.sig2, nmcmc)
 
-#apply(params.lambda.i, 2, range)
+m2.pred.y = rnorm(nmcmc, m2.mu, sqrt(m2.sig2))
 
-#plot(density(pred.lambda.0), lwd = 2)
-#for (j in 1:n)
-#    lines(density(params.lambda.i[,j]), col = rgb(0, 1, 0, 0.25))
-#lines(density(c(params.lambda.i)), col = 'darkgreen', lwd = 2)
-#
+pdf("./figs/post_pred.pdf", width = 6, height = 6)
+plot(density(y), lwd = 3, main = "Posterior predictive distributions",
+    xlab = "Log Interevent Time", cex.lab = 1.3)
+lines(density(pred.y.0), col = 'firebrick', lwd = 2)
+lines(density(m2.pred.y), col = 'dodgerblue', lwd = 2)
+legend("topleft", box.lty = 0, col = c("firebrick", "dodgerblue", 1),
+    legend = c("M1", "M2", "Data"), lty=1, lwd = c(2,2,3), cex = 1.5)
+dev.off()
+
+# Bayesian goodness-of-fit
+m1.all = cbind(params.lambda.i, params.mu.i, params.mu, params.sig2, params.tau2)
+m2.pvals = bayes.gof(y, cbind(m2.mu, m2.sig2), function(y, x) pnorm(y, x[1], sqrt(x[2])))
+mean(m2.pvals)
+mean(m2.pvals > 0.05)
+
+
+
+
+
+### Model Comparison
+#c(sum((y - apply(pred.y, 2, mean))^2), sum(apply(pred.y, 2, var)))
+c(sum((y - mean(pred.y.0))^2), n*var(pred.y.0))     # Model 1
+c(sum((y - mean(m2.pred.y))^2), n*var(m2.pred.y))   # Model 2
+
+### DIC
+m1.dtheta = matrix(0, nmcmc, length(y))
+for (i in 1:length(y))
+    m1.dtheta[,i] = dnorm(y[i], params.mu.i[,i], sqrt(params.sig2 / params.lambda.i[,i]), log = TRUE)
+m1.dtheta = -2*apply(m1.dtheta, 1, sum)
+m1.DIC = mean(m1.dtheta) + var(m1.dtheta)/2
+
+m2.dtheta = matrix(0, nmcmc, length(y))
+for (i in 1:length(y))
+    m2.dtheta[,i] = dnorm(y[i], m2.mu, sqrt(m2.sig2), log = TRUE)
+m2.dtheta = -2*apply(m2.dtheta, 1, sum)
+m2.DIC = mean(m2.dtheta) + var(m2.dtheta)/2
+
+m1.DIC
+m2.DIC
+
+
+### Bayes factor (from Monte Carlo estimates)
+B = 1000 # Increase B!!!!
+prior.means = rnorm(B, rnorm(B, m, sqrt(s2)), sqrt(1/rgamma(B, c, d)))
+prior.sds = sqrt(1/rgamma(B, a, b) / rgamma(B, df/2, df/2))
+bf1 = matrix(0, B, length(y))
+for (i in 1:length(y))
+    bf1[,i] = dnorm(y[i], prior.means, prior.sds, log = TRUE)
+bf1 = apply(bf1, 1, sum)
+
+prior.means = rnorm(B, m, sqrt(s2))
+prior.sds = sqrt(1/rgamma(B, a, b))
+bf2 = matrix(0, B, length(y))
+for (i in 1:length(y))
+    bf2[,i] = dnorm(y[i], prior.means, prior.sds, log = TRUE)
+bf2 = apply(bf2, 1, sum)
+
+BF12 = mean(exp(bf1)) / mean(exp(bf2))
+BF12

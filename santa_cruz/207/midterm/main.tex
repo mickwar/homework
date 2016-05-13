@@ -1,0 +1,151 @@
+\documentclass{asaproc}
+
+\usepackage{graphicx}
+\usepackage{bm}
+\newcommand{\m}[1]{\mathbf{\bm{#1}}}
+\newcommand{\R}{I\hspace{-4.4pt}R}
+
+%\usepackage{times}
+%If you have times installed on your system, please
+%uncomment the line above
+
+%For figures and tables to stretch across two columns
+%use \begin{figure*} \end{figure*} and
+%\begin{table*}\end{table*}
+% please place figures & tables as close as possible
+% to text references
+
+
+\newcommand{\be}{\begin{equation}}
+\newcommand{\ee}{\end{equation}}
+
+\title{Models for Mount Etna interevent times}
+
+%input all authors' names
+
+\author{Mickey Warner \\ AMS 207 Midterm Exam}
+
+%input affiliations
+
+%{USDA Forest Service Forest Products Laboratory}
+
+\begin{document}
+
+\maketitle
+
+
+\begin{abstract}
+Located on the east coast of Sicily, Italy, Mount Etna is an active volcano and as such there is an interest in estimating the time until the next eruption. For just over four centuries, the dates of eruptions have been recorded allowing us the easy calculation for number of days between eruptions, termed interevent time. We present and compare two models for the log interevent times.
+\end{abstract}
+
+\section{Introduction}
+Interevent times measure the number of days between eruptions for Mount Etna. Across four hundred years, 62 events took place. Some events occurred as little as 40 days apart, while several happened over 10 (and in one case 53) years after the previous eruption. This right-skewness leads us to take the logarithm of the interevent times (Figure \ref{data}). The kernel density estimate for the data seems to suggest normality. However, we still expect long tails, leading us to consider two models: (1) a student-$t$ with random effects for the location, and (2) a normal distribution.
+\begin{figure}[ht]
+\centering
+\includegraphics[scale=0.55]{figs/data.pdf}
+\caption{Kernel density estimate for the $n=62$ log interevent times.}
+\label{data}
+\end{figure}
+
+We present the details of the two models in section 2 as well as the sampling scheme to obtain posterior draws. In section 3 we report an analysis of the models. We concluded with a discussion in section 4.
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[scale=0.55]{figs/data_log.pdf}
+\caption{Scatter plots for the number of thefts by county. The left set of plots is the original data while the right set is of the log-transformed data.}
+\label{data}
+\end{figure*}
+
+\section{Methods}
+
+\subsection{Model 1: Student-$t$}
+\subsection{Model 2: Normal}
+
+Denote $\m{z}_i$ as the vector of length $p=4$ containing the log theft counts for county $i=1,\ldots,n=39$. We assume a normal likelihood for each $\m{z}_i$
+\begin{eqnarray}
+\m{z}_i|\m{\mu}_i,\Sigma &\sim& N(\m{\mu}_i, \Sigma)
+\end{eqnarray}
+and the following priors
+\begin{eqnarray}
+\m{\mu}_i|\m{\mu},V &\sim& N(\m{\mu}, V) \\
+\m{\mu} &\sim& N(\m{m}, C_0) \\
+\Sigma &\sim& IW(S_0, r) \\
+V &\sim& IW(D_0, k).
+\end{eqnarray}
+The likelihood assumes that the observation from each county comes from its own normal population. The prior on $\m{\mu}_i$ (2) constrains the county means so we do not risk overfitting, which seems plausible given each observation has its own mean. We assume independence among $\m{\mu}$, $\Sigma$, and $V$ and that $\m{\mu}_i$ are all independent.
+
+Other prior specifications may model the data better, but these choices (2)-(5) result in convenient full posterior conditionals which we discuss later. The constants $\m{m}$, $C_0$, $S_0$, $r$, $D_0$, and $k$ are chosen to be rather non-informative. With only $n=39$ data points, we can not be as non-informative as we would like. We chose $\m{m}=\bar{\m{z}}$, $C_0=I_p$, $S_0=0.25 I_p$, $r=6$, $D_0=3 I_p$, and $k=5$, where $I_p$ is the $p\times p$ identity matrix. This reflects our expectation that the variance associated with each observation, $\Sigma$, should be ``smaller'' than the variance for the county means, $V$. Though not ideal, these priors were chosen after trial and error: they resulted in decent predictions while remaining somewhat non-informative.
+
+\subsection{Parameter estimation}
+
+As mentioned earlier, the prior specification results in convenient full conditionals. These are given by
+\begin{eqnarray}
+\m{\mu}_i|\cdot &\sim& N((\Sigma^{-1}+V^{-1})^{-1}(\Sigma^{-1}\m{z}_i+V^{-1}\m{\mu}), \nonumber \\
+&& ~~~~~ ~~~~~ (\Sigma^{-1}+V^{-1})^{-1}) \\
+\m{\mu}|\cdot &\sim& N((nV^{-1}+C_0^{-1})^{-1}(nV^{-1}\bar{\m{\mu}}+C_0^{-1}\m{m}), \nonumber \\
+&& ~~~~~ ~~~~~ (nV^{-1}+C_0^{-1})^{-1}) \\
+\Sigma|\cdot &\sim& IW(S_0+\sum_{i=1}^n(\m{z}_i-\m{\mu}_i)(\m{z}_i-\m{\mu}_i)^\top, r+n) \\
+V|\cdot &\sim& IW(D_0+\sum_{i=1}^n(\m{\mu}_i-\m{\mu})(\m{\mu}_i-\m{\mu})^\top, k+n)
+\end{eqnarray}
+where the dot $(\cdot)$ represents the data and all other variables and $\bar{\m{\mu}}=1/n\sum_{i=1}^n\m{\mu}_i$. We are thus able to explore the posterior using direct sampling. We iteratively draw samples from each full conditional based on the most recent samples of the other parameters.
+
+\section{Results}
+
+We obtain $10000$ posterior draws after burning in $2000$ draws. There did not appear to be any convergence or ``stickiness'' issues with the sampler as often happens when estimating several variances. Posterior means for $\m{\mu}$, $\Sigma$, and $V$ are as follows
+\begin{eqnarray*}
+\m{\mu}&=&(3.761, 6.404, 6.863, 3.607)^\top \\
+\Sigma&=&\left(\begin{array}{rrrr}
+ 0.096 &  0.032 &  0.031 & -0.004 \\
+ 0.032 &  0.066 &  0.028 & -0.008 \\
+ 0.031 &  0.028 &  0.065 & -0.004 \\
+-0.004 & -0.008 & -0.004 &  0.127
+\end{array}\right)  \\
+V&=&\left(\begin{array}{rrrr}
+1.912 & 1.079 & 1.184 & 2.241 \\
+1.079 & 0.856 & 0.774 & 1.330 \\
+1.184 & 0.774 & 0.991 & 1.553 \\
+2.241 & 1.330 & 1.553 & 4.603
+\end{array}\right)
+\end{eqnarray*}
+The labels of each component in $\m{\mu}$ are Robbery, Burglary, Larceny, and Motor.Vehicle. The same order applies for the covariance matrices. Posterior means for each $\m{\mu}_i$ will not be presented, instead tables of predictions based on $\m{\mu}_i$ are given later. The overall mean $\m{\mu}$ corresponds very closely to the mean log thefts of the data (only off by a few thousandths in each component). As expected, the $\Sigma$ is ``smaller'' than $V$ as it has a smaller variance in each diagonal element.
+
+Since we have a hierarchical model, there are various ways to obtain posterior predictions. For a particular county, we could use its county mean, $\m{\mu}_i$, to make predictions by drawing $\m{z}_i^*$ from a $N(\m{\mu}_i,\Sigma)$. For a new county, we would need to draw $\m{\mu}_i^*$ from a $N(\m{\mu}, V)$ and then draw $\m{z}_i^*$ from $N(\m{\mu}_i^*,\Sigma)$. The predictions we will look at are based on the posterior samples for $\m{\mu}_i$, for $i=1,\ldots,39$.
+
+Predictive distributions are obtained for each of the 39 counties and for each type of theft. Figure \ref{fit} shows our predictions (on the log-scale) compared to the observations. Equal-tailed 95\% posterior predictive probability intervals are represented by the vertical lines and black dots represent the mean predictions. Each black dot and line pair is for a particular county. The plot suggests that our model provides a reasonable fit to the data: the mean predictions are all very close to the line $y=x$ and every interval crosses the line. There is a slight tendency to overestimate lower theft counts and underestimate higher theft counts, but not so much to be concerned with.
+
+After drawing a $\m{z}_i^*$ from $N(\m{\mu}_i, \Sigma)$ using the posterior samples for $\m{\mu}_i$ and $\Sigma$ we exponentiate the draw to get back to the original scale $\m{y}_i^*=\exp(\m{z}_i^*)$. We can use these back-transformed values to make inferences based on the theft counts for each county. Tables 1 through 4 contain summaries of all of these posterior predictive distributions. As expected, our model can predict a county's theft count fairly well. However, this has its drawbacks which we will discuss in the next section.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[scale=0.55]{figs/fit.pdf}
+\caption{Plots of the posterior predictions (on the log-scale) against the observed log counts. The vertical lines represent equal-tailed 95\% probability intervals and the solid dots are the mean predictions. The diagonal line is the line $y=x$.}
+\label{fit}
+\end{figure}
+
+Of particular interest is the probability of observing a total number of at least 3000 thefts in 2010 in Santa Cruz county. Santa Cruz county corresponds to observation $i=31$. Using the back-transformed posterior predictive draws $\m{y}_{31}^*$, of which we have 10000, we take each vector and add up its components $\sum_{j=1}^4 y_{31,j}^*$. The probability of observing more than 3000 total thefts in Santa Cruz is computed by counting how many of these vectors had a sum greater than 3000 and then dividing that number by 10000. Our model estimates this probability at $0.0605$.
+
+
+
+\begin{table}[p!]
+\caption{\enspace Summary of the predictive distributions for the number of larceny cases by county.}
+\centering
+\begin{tabular}{lrrrrr}
+\\ [-5pt]
+County & Obs & Mean & 2.5\% & 50\% & 97.5\% \\ 
+  \hline
+Alameda & 1041 & 1278 & 622 & 1184 & 2478 \\ 
+Yuba & 634 & 665 & 318 & 630 & 1220 \\ 
+   \hline
+\end{tabular}
+\end{table}
+
+\section{Discussion}
+
+In this paper we fit a hierarchical model to multivariate normal data. The interest was mainly in obtaining posterior predictions for four theft types (robbery, burglary, larceny, and motor vehicle) in each of 39 counties in California. Despite Figure \ref{fit} indicating a good fit to the data, our model is rather limited. The model is really only useful in the year 2010. We would not expect to predict well for future years or for counties not included in the data set. Our predictions were good because we gave each county its own mean which is likely to change from year to year and certainly changes from county to county.
+
+Note the predictive intervals from Tables 1-4. Every interval contains the observed value. This is more a sign of overfitting than it is of good model choice. More realistic predictions could be made by first drawing the mean $\m{\mu}_i$ and then drawing an observation $\m{z}_i$ as discussed in section 3. Doing so would increase the predictive variance, but the result is a more realistic prediction, especially for unobserved counties and years.
+
+If future prediction was our primary concern, we would lean towards a regression model using population as a covariate. With some extra work, we could also add a spatial component to the model. Such a framework is likely to improve the predictive power over that of the hierarchical model. The hierarchical model does excel when we know a county's mean theft count, but this is a narrow situation.
+
+
+\end{document}
