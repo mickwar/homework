@@ -4,18 +4,20 @@ y = log(dat[1:62,3])
 n = length(y)
 
 pdf("./figs/data.pdf", width = 6, height = 6)
-plot(density(y), lwd = 3, xlab = "Log Interevent Time", main = "Etna volcano data", cex.lab = 1.3)
+#plot(density(y), lwd = 3, xlab = "Log Interevent Time", main = "Etna volcano data", cex.lab = 1.3)
+hist(y, xlab = "Log Interevent Time", main = "Etna volcano data", cex.lab = 1.3,
+    col = 'gray50', border = 'white', freq = FALSE, breaks = 20)
 dev.off()
 
 set.seed(1)
 ### Model 1
 # Hyperpriors
-m = 0   # mu mean
+m = 6   # mu mean
 s2 = 10 # mu variance
 a = 3   # sig2 alpha
-b = 3   # sig2 beta
+b = 4   # sig2 beta
 c = 3   # tau2 alpha
-d = 3   # tau2 beta
+d = 4   # tau2 beta
 df = 5  # df for the t, fixed
 
 nburn = 10000
@@ -69,6 +71,26 @@ params.mu = tail(params.mu, nmcmc)
 params.tau2 = tail(params.tau2, nmcmc)
 params.sig2 = tail(params.sig2, nmcmc)
 
+
+hpd.1.mu = hpd.uni(params.mu)
+hpd.1.sig2 = hpd.uni(params.sig2)
+hpd.1.tau2 = hpd.uni(params.tau2)
+
+pdf("./figs/m_post.pdf", width = 12, height = 8)
+par(mfrow = c(3,2), mar = c(4.1, 2.1, 2.1, 1.1))
+hpd.plot(density(params.mu), hpd.1.mu, main = expression("M1: Posterior for"~ mu),
+    xlab = expression(mu), cex.lab = 1.3, col1 = 'firebrick')
+hpd.plot(density(m2.mu), hpd.2.mu, main = expression("M2: Posterior for"~ mu),
+    xlab = expression(mu), cex.lab = 1.3)
+hpd.plot(density(params.sig2), hpd.1.sig2, main = expression("M1: Posterior for"~ sigma^2),
+    xlab = expression(sigma^2), cex.lab = 1.3, col1 = 'firebrick')
+hpd.plot(density(m2.sig2), hpd.2.sig2, main = expression("M2: Posterior for"~ sigma^2),
+    xlab = expression(sigma^2), cex.lab = 1.3)
+hpd.plot(density(params.tau2), hpd.1.tau2, main = expression("M1: Posterior for"~ tau^2),
+    xlab = expression(tau^2), cex.lab = 1.3, col1 = 'firebrick')
+par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
+dev.off()
+
 #plot(params.sig2, type='l')
 #plot(params.tau2, type='l')
 #plot(params.mu, type='l')
@@ -104,6 +126,7 @@ pred.y.0 = rnorm(nmcmc, pred.mu.0, sqrt(params.sig2 / pred.lambda.0))
 m1.all = cbind(params.lambda.i, params.mu.i, params.mu, params.sig2, params.tau2)
 m1.pvals = bayes.gof(y, m1.all, function(y, x) pnorm(y, x[(n+1):(2*n)], sqrt(x[2*n+2] / x[1:n])))
 mean(m1.pvals > 0.05)
+mean(m1.pvals > 0.5)
 
 
 
@@ -126,13 +149,22 @@ for (i in 2:(nburn + nmcmc)){
 m2.mu = tail(m2.mu, nmcmc)
 m2.sig2 = tail(m2.sig2, nmcmc)
 
+hpd.2.mu = hpd.uni(m2.mu)
+hpd.2.sig2 = hpd.uni(m2.sig2)
+
+pdf("./figs/m2_post.pdf", width = 6, height = 8.5)
+par(mfrow = c(2,1), mar = c(5.1, 4.1, 4.1, 2.1))
+par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
+dev.off()
+
 m2.pred.y = rnorm(nmcmc, m2.mu, sqrt(m2.sig2))
 
 pdf("./figs/post_pred.pdf", width = 6, height = 6)
-plot(density(y), lwd = 3, main = "Posterior predictive distributions",
-    xlab = "Log Interevent Time", cex.lab = 1.3)
-lines(density(pred.y.0), col = 'firebrick', lwd = 2)
-lines(density(m2.pred.y), col = 'dodgerblue', lwd = 2)
+hist(y, xlab = "Log Interevent Time", cex.lab = 1.3,
+    col = 'gray50', border = 'white', freq = FALSE, breaks = 20,
+    main = "Posterior predictive distributions")
+lines(density(pred.y.0), col = 'firebrick', lwd = 3)
+lines(density(m2.pred.y), col = 'dodgerblue', lwd = 3)
 legend("topleft", box.lty = 0, col = c("firebrick", "dodgerblue", 1),
     legend = c("M1", "M2", "Data"), lty=1, lwd = c(2,2,3), cex = 1.5)
 dev.off()
@@ -142,15 +174,26 @@ m1.all = cbind(params.lambda.i, params.mu.i, params.mu, params.sig2, params.tau2
 m2.pvals = bayes.gof(y, cbind(m2.mu, m2.sig2), function(y, x) pnorm(y, x[1], sqrt(x[2])))
 mean(m2.pvals)
 mean(m2.pvals > 0.05)
+mean(m2.pvals > 0.5)
+
+
+pdf("./figs/gof.pdf", width = 6, height = 6)
+plot(density(m2.pvals), col = 'dodgerblue', lwd = 2, xlab = "p-value",
+    main = "Bayesian goodness-of-fit p-values", cex.lab = 1.3)
+lines(density(m1.pvals), col = 'firebrick', lwd = 2)
+legend("topleft", box.lty = 0, col = c("firebrick", "dodgerblue"),
+    legend = c("M1", "M2"), lty=1, lwd = 2, cex = 1.5)
+dev.off()
 
 
 
 
 
-### Model Comparison
+##### Model Comparison
+### Posterior predictive loss
 #c(sum((y - apply(pred.y, 2, mean))^2), sum(apply(pred.y, 2, var)))
 c(sum((y - mean(pred.y.0))^2), n*var(pred.y.0))     # Model 1
-c(sum((y - mean(m2.pred.y))^2), n*var(m2.pred.y))   # Model 2
+sum(c(sum((y - mean(m2.pred.y))^2), n*var(m2.pred.y)))   # Model 2
 
 ### DIC
 m1.dtheta = matrix(0, nmcmc, length(y))
@@ -170,7 +213,7 @@ m2.DIC
 
 
 ### Bayes factor (from Monte Carlo estimates)
-B = 1000 # Increase B!!!!
+B = 1000000 # Increase B!!!!
 prior.means = rnorm(B, rnorm(B, m, sqrt(s2)), sqrt(1/rgamma(B, c, d)))
 prior.sds = sqrt(1/rgamma(B, a, b) / rgamma(B, df/2, df/2))
 bf1 = matrix(0, B, length(y))
@@ -187,3 +230,4 @@ bf2 = apply(bf2, 1, sum)
 
 BF12 = mean(exp(bf1)) / mean(exp(bf2))
 BF12
+

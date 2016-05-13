@@ -4,9 +4,6 @@ dat = read.table("~/files/data/volcano.txt", header=TRUE)
 z = log(dat[1:62,3])
 n = length(z)
 
-m1.prob = double(n)
-m2.prob = double(n)
-
 set.seed(1)
 funpar = function(k){
     y = z[-k]
@@ -14,12 +11,12 @@ funpar = function(k){
 
     ### Model 1
     # Hyperpriors
-    m = 0   # mu mean
+    m = 6   # mu mean
     s2 = 10 # mu variance
     a = 3   # sig2 alpha
-    b = 3   # sig2 beta
+    b = 4   # sig2 beta
     c = 3   # tau2 alpha
-    d = 3   # tau2 beta
+    d = 4   # tau2 beta
     df = 5  # df for the t, fixed
 
     nburn = 1000
