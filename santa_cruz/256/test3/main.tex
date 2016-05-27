@@ -1,0 +1,49 @@
+\documentclass[12pt]{article}
+
+\begin{document}
+
+\noindent Mickey Warner
+\bigskip
+
+\noindent \textbf{1a.} The six groups of students are made of the possible combinations of major and background. Major=1 and BG=1 are the baselines so the estimated effects are added to the intercept for each student group. The scores for each group are given in the following table:
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{l|lr}
+\hline \hline
+Major 1, BG 1 & $\hat{\mu}$                                             & 0.8893 \\
+Major 1, BG 2 & $\hat{\mu} + \hat{\eta}_{BG2}$                          & 2.1457 \\
+Major 2, BG 1 & $\hat{\mu} + \hat{\alpha}_{Major2}$                     & 2.8753 \\
+Major 2, BG 2 & $\hat{\mu} + \hat{\alpha}_{Major2} + \hat{\eta}_{BG2} + \hat{\gamma}_{Major2,BG2}$  & 2.4686 \\
+Major 3, BG 1 & $\hat{\mu} + \hat{\alpha}_{Major3}$                     & 2.0782 \\
+Major 3, BG 2 & $\hat{\mu} + \hat{\alpha}_{Major3} + \hat{\eta}_{BG2} + \hat{\gamma}_{Major3,BG2}$  & 1.7216 \\
+\hline \hline
+\end{tabular}
+\end{center}
+\end{table}
+\noindent Thus, the group with the lowest score is Major 1 and BG 1 (Economics and Rural) at 0.8893, and the group with the highest score is Major 2 and BG 1 (Anthropology and Rural) at 2.8753.
+\bigskip
+
+\noindent \textbf{1b.} \textbf{i.} The null hypothesis is that the reduced model (the intercept-only model) is sufficient. That is, $H_0: E(y_{ij})=\mu$ for some $\mu$. The alternative is that the correct model has main effects and interactions in addition to an intercept, $H_1: E(y_{ij})=\mu+\alpha_i+\eta_j+\gamma_{ij}$.
+\bigskip
+
+\noindent \textbf{ii.} The $F$-statistic yields a $p$-value of $0.04945$. At the $\alpha=0.05$ level, we would reject the null hypothesis. This is to say that an intercept-only model does not adequately explain the variation in mathematics ineptitude scores. The model that gives each major and high school background its own effect, together with an interaction between the two, is preferable. However, this is not to say this full model is ideal.
+\bigskip
+
+\noindent \textbf{1c.} The two $p$-values for $BG$ do not contradict each other because they are testing two different hypotheses. In the \texttt{lm} output, the test is whether $\eta_{BG2}=0$ in the full model and this is accomplished using a $t$-test. In the \texttt{anova} output, the test is whether the high school background provides enough of an improvement to be included in the model \emph{after} including major in the model.
+\bigskip
+
+\noindent Even though the \texttt{anova} output gives a large $p$-value for high school background, there appears to be some evidence that there is an interaction effect (at the $0.10$ level). If there is an interaction (between major and background), then we would keep background in the model, regardless of its main effect contribution. I would be fine with keeping the interaction effect in the model, and this is to say that student background is relevant in predicting the score. Others may think the $p$-values are too high (all are above $0.05$) for the effects to be considered real.
+\bigskip
+\bigskip
+\bigskip
+
+\noindent \textbf{2a.}
+
+\noindent \textbf{2b.}
+
+\noindent \textbf{2c.}
+
+\noindent \textbf{2d.}
+
+\end{document}
