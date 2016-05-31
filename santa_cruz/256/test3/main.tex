@@ -1,5 +1,17 @@
 \documentclass[12pt]{article}
 
+\usepackage{dsfont}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{enumitem}
+
+\usepackage{bm}
+\newcommand{\m}[1]{\mathbf{\bm{#1}}}
+\newcommand{\R}{I\hspace{-4.4pt}R}
+
+\addtolength{\jot}{1em}
+
 \begin{document}
 
 \noindent Mickey Warner
@@ -38,12 +50,50 @@ Major 3, BG 2 & $\hat{\mu} + \hat{\alpha}_{Major3} + \hat{\eta}_{BG2} + \hat{\ga
 \bigskip
 \bigskip
 
-\noindent \textbf{2a.}
+\noindent \textbf{2a.} 
+We estimate the parameters by $\hat{\beta}=(X^\top X)^{-1}X^\top y$ and $\hat{\sigma^2}=(y-X\hat{\beta})^\top(y-X\hat{\beta})/(n-r)$ where $n=8$ and $r=rank(X)=2$. We obtain $\hat{\beta}_1 = 2.64$, $\hat{\beta}_2 = 3.73$, $\hat{\sigma^2} = 4.70$.
+\bigskip
 
-\noindent \textbf{2b.}
+\noindent \textbf{2b.} For estimable $\lambda^\top\beta$, a 95\% confidence interval is given by
+\[ \lambda^\top\hat{\beta} \pm t_{0.975}(n-r)\sqrt{\hat{\sigma^2}\lambda^\top(X^\top X)^{-1}\lambda} \]
+$\beta_1$ and $\beta_1+\beta_2$ are both estimable and the corresponding $\lambda$ are $\lambda_1=(1, 0)^\top$ and $\lambda_2=(1, 1)^\top$. The two 95\% confidence intervals are $(1.12, 4.17)$ and $(5.93, 6.83)$ for $\beta_1$ and $\beta_1+\beta_2$, respectively.
+\bigskip
 
-\noindent \textbf{2c.}
+\noindent \textbf{2c.} To test $H_0:\beta_2=3$, we use $\lambda=(0, 1)^\top$ and compute the test statistic
+\[ t=\frac{\lambda^\top\hat{\beta} - 3}{\sqrt{\hat{\sigma^2}\lambda^\top(X^\top X)^{-1}\lambda}}=1.64 \]
+This statistic yields a $p$-value of $0.15$ based on the two tails of a $t$ distribution with $n-r=6$ degrees of freedom. At the $\alpha=0.01$ level, we fail to reject the hypothesis that $\beta_2=3$.
+\bigskip
 
-\noindent \textbf{2d.}
+\noindent \textbf{2d.} Testing $H_0:\beta_1-\beta_2=0$ is done similarly as in part \textbf{2c}, but now $\lambda=(1,-1)^\top$. We compute the following test statistic
+\[ t=\frac{\lambda^\top\hat{\beta} - 0}{\sqrt{\hat{\sigma^2}\lambda^\top(X^\top X)^{-1}\lambda}}=-1.01 \]
+which gives a $p$-value of $0.34$. This is again calculated as the probability of exceeding $|t|$ from a $t$ distribution with $n-r$ degrees of freedom.
+\bigskip
+\bigskip
+\bigskip
+
+\noindent \textbf{3.} We use $\m{1}$ to denote the $n\times 1$ vector of ones, $\m{y}=(y_1,\ldots,y_n)^\top$, $\hat{\m{y}}=(\hat{y_1},\ldots,\hat{y_2})^\top$, and $\bar{y}=1/n\sum_{i=1}^n y_i$. Note that the mean of the predicted values is equal to the mean of the data, i.e. $\bar{\hat{y}}=\bar{y}$. The correlation between $\m{y}$ and $\hat{\m{y}}$ is given by
+\begin{align*}
+r(\m{y}, \hat{\m{y}}) &= \frac{\sum_{i=1}^n(y_i-\bar{y})(\hat{y_i}-\bar{y})}{\sqrt{\sum_{i=1}^n(y_i-\bar{y})^2\sum_{i=1}^n(\hat{y_i}-\bar{y})^2}} \\
+&= \frac{(\m{y}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})}{\sqrt{\left[(\m{y}-\bar{y}\m{1})^\top(\m{y}-\bar{y}\m{1})\right]\left[(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})\right]}} \\
+&= \frac{(\m{y}-\hat{\m{y}}+\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})}{\sqrt{\left[(\m{y}-\bar{y}\m{1})^\top(\m{y}-\bar{y}\m{1})\right]\left[(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})\right]}} \\
+&= \frac{(\m{y}-\hat{\m{y}})^\top(\hat{\m{y}}-\bar{y}\m{1})+(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})}{\sqrt{\left[(\m{y}-\bar{y}\m{1})^\top(\m{y}-\bar{y}\m{1})\right]\left[(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})\right]}} \\
+&= \frac{\m{y}^\top\hat{\m{y}}-\bar{y}\m{y}^\top\m{1}-\hat{\m{y}}^\top\hat{\m{y}}+\bar{y}\hat{\m{y}}^\top\m{1}+(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})}{\sqrt{\left[(\m{y}-\bar{y}\m{1})^\top(\m{y}-\bar{y}\m{1})\right]\left[(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})\right]}} \\
+&= \frac{\m{y}^\top P_x\m{y}-n\bar{y}^2-\hat{\m{y}}^\top\hat{\m{y}}+n\bar{y}^2+(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})}{\sqrt{\left[(\m{y}-\bar{y}\m{1})^\top(\m{y}-\bar{y}\m{1})\right]\left[(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})\right]}} \\
+&= \frac{\m{y}^\top P_xP_x\m{y}-\hat{\m{y}}^\top\hat{\m{y}}+(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})}{\sqrt{\left[(\m{y}-\bar{y}\m{1})^\top(\m{y}-\bar{y}\m{1})\right]\left[(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})\right]}} \\
+&= \frac{\hat{\m{y}}^\top \hat{\m{y}}-\hat{\m{y}}^\top\hat{\m{y}}+(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})}{\sqrt{\left[(\m{y}-\bar{y}\m{1})^\top(\m{y}-\bar{y}\m{1})\right]\left[(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})\right]}} \\
+&= \frac{(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})}{\sqrt{\left[(\m{y}-\bar{y}\m{1})^\top(\m{y}-\bar{y}\m{1})\right]\left[(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})\right]}} \\
+&= \sqrt{\frac{(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})}{(\m{y}-\bar{y}\m{1})^\top(\m{y}-\bar{y}\m{1})}}
+\end{align*}
+Squaring both sides and expanding the terms yield
+\begin{align*}
+(r(\m{y},\hat{\m{y}}))^2 &= \frac{(\hat{\m{y}}-\bar{y}\m{1})^\top(\hat{\m{y}}-\bar{y}\m{1})}{(\m{y}-\bar{y}\m{1})^\top(\m{y}-\bar{y}\m{1})} \\
+&= \frac{\hat{\m{y}}^\top\hat{\m{y}} -\bar{y}\hat{\m{y}}^\top\m{1}-\bar{y}\m{1}^\top\hat{\m{y}}+\bar{y}^2\m{1}^\top\m{1}}{\m{y}^\top\m{y} -\bar{y}\m{y}^\top\m{1}-\bar{y}\m{1}^\top\m{y}+\bar{y}^2\m{1}^\top\m{1}} \\
+&= \frac{\hat{\m{y}}^\top\hat{\m{y}} -n\bar{y}^2}{\m{y}^\top\m{y} -n\bar{y}^2} \\
+&= \frac{\m{y}^\top P_xP_x\m{y} - n(\frac{1}{n}\m{y}^\top\m{1})(\frac{1}{n}\m{1}^\top\m{y})}{\m{y}^\top\m{y} - n(\frac{1}{n}\m{y}^\top\m{1})(\frac{1}{n}\m{1}^\top\m{y})} \\
+&= \frac{\m{y}^\top P_xP_x\m{y} - \m{y}^\top(\frac{1}{n}\m{1}\m{1}^\top)\m{y}}{\m{y}^\top\m{y} - \m{y}^\top(\frac{1}{n}\m{1}\m{1}^\top)\m{y}} \\
+&= \frac{\m{y}^\top P_x\m{y} - \m{y}^\top P_1\m{y}}{\m{y}^\top\m{y} - \m{y}^\top P_1\m{y}} \\
+&= \frac{\m{y}^\top (P_x - P_1)\m{y}}{\m{y}^\top(I-P_1)\m{y}} \\
+&= R^2
+\end{align*}
 
 \end{document}
