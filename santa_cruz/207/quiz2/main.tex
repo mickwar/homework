@@ -116,7 +116,7 @@ p(\sigma^2) &\propto& (\sigma^2)^{-1}
 where $\m{m}$ is chosen as the zero vector and $g$ is fixed at $n$. This specification produces the following posterior full conditionals
 \begin{eqnarray*}
 \m{\beta}|\sigma^2, \m{y}, \m{X} &\sim& N\left(\frac{1}{g+1}(g\hat{\m{\beta}}-\m{m}), \frac{g\sigma^2}{g+1}(\m{X}^\top\m{X})^{-1}\right) \\
-\sigma^2|\m{\beta}, \m{y}, \m{X} &\sim& IG\left(\frac{n}{2}+\frac{p}{n}, \frac{1}{2}(\m{y}-\m{X}\m{\beta})^\top(\m{y}-\m{X}\m{\beta})\right.+ \\
+\sigma^2|\m{\beta}, \m{y}, \m{X} &\sim& IG\left(\frac{n}{2}+\frac{p}{2}, \frac{1}{2}(\m{y}-\m{X}\m{\beta})^\top(\m{y}-\m{X}\m{\beta})\right.+ \\
 & & ~~~~ ~~~~ ~~~~ \left.\frac{1}{2g}(\m{\beta}-\m{m})^\top(\m{X}^\top\m{X})(\m{\beta}-\m{m})\right)
 \end{eqnarray*}
 where $\hat{\m{\beta}}=(\m{X}^\top\m{X})^{-1}\m{X}^\top\m{y}$ is the maximum likelihood estimate for $\m{\beta}$ and $p$ is the number of columns of $\m{X}$ (which changes from model to model). Thus we have closed-form full conditionals and we can explore the posterior using Gibbs sampling.
