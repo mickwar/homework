@@ -125,18 +125,19 @@ calc.post = function(x, p, likelihood = "ev"){
         return (-Inf)
 
     like.base = switch(likelihood,
-        "ev" =  function(x) sum(-x-exp(-x)),
-        "normal" =  function(x) sum(dnorm(x, 0, 1, log = TRUE)),
-        "logistic" =  function(x) sum(-x - 2*log(1 + exp(-x))))
+        "ev"        = function(x) sum(x - exp(x)),
+        "normal"    = function(x) sum(dnorm(x, 0, 1, log = TRUE)),
+        "logistic"  = function(x) sum(-x - 2*log(1 + exp(-x))))
     surv.base = switch(likelihood,
-        "ev" =  function(x) sum(log(1-exp(-exp(-x)))),
-        "normal" =  function(x) sum(pnorm(x, 0, 1, log = TRUE, lower.tail = FALSE)),
-        "logistic" =  function(x) sum(-x - log(1 + exp(-x))))
+        "ev"        = function(x) sum(-exp(x)),
+        "normal"    = function(x) sum(pnorm(x, 0, 1, log = TRUE, lower.tail = FALSE)),
+        "logistic"  = function(x) sum(-x - log(1 + exp(-x))))
+
 
     # Likelihood
-    out = like.base((log(t[obs])- beta0 - beta1*(x[obs,1] == 1)) / sig) -
-        sum(log(sig*t[obs])) +
-        surv.base((log(t[-obs])- beta0 - beta1*(x[-obs,1] == 1)) / sig)
+    z = (log(t) - beta0 - (x[,1] == 1)*beta1) / sig
+
+    out = like.base(z[obs]) - length(obs)*log(sig) + surv.base(z[-obs])
 
     # Priors
     out = out + dnorm(beta0, 0, 10, log = TRUE)
@@ -145,13 +146,24 @@ calc.post = function(x, p, likelihood = "ev"){
     return (out)
     }
 
-aft.weibull = mcmc_sampler(tongue, function(x, p) calc.post(x, p, "ev"),
+aft.weibull     = mcmc_sampler(tongue, function(x, p) calc.post(x, p, "ev"),
     nparam = 3, nburn = 5000, window = 500, nmcmc = 20000, chain_init = c(0, 0, 1))
-aft.lognormal = mcmc_sampler(tongue, function(x, p) calc.post(x, p, "normal"),
+aft.lognormal   = mcmc_sampler(tongue, function(x, p) calc.post(x, p, "normal"),
     nparam = 3, nburn = 5000, window = 500, nmcmc = 20000, chain_init = c(0, 0, 1))
 aft.loglogistic = mcmc_sampler(tongue, function(x, p) calc.post(x, p, "logistic"),
     nparam = 3, nburn = 5000, window = 500, nmcmc = 20000, chain_init = c(0, 0, 1))
 
+# Sanity check
+survreg(Surv(time, delta) ~ as.factor(ifelse(type == 1, 2, 1)), data = tongue, dist = "weibull")
+apply(aft.weibull$params, 2, mean)
+
+survreg(Surv(time, delta) ~ as.factor(ifelse(type == 1, 2, 1)), data = tongue, dist = "lognormal")
+apply(aft.lognormal$params, 2, mean)
+
+survreg(Surv(time, delta) ~ as.factor(ifelse(type == 1, 2, 1)), data = tongue, dist = "loglogistic")
+apply(aft.loglogistic$params, 2, mean)
+
+# some MCMC diagnostics
 plot(aft.weibull$params[,1], type='l')
 plot(aft.weibull$params[,2], type='l')
 plot(aft.weibull$params[,3], type='l')
@@ -192,27 +204,28 @@ make_phantom(c("Weibull", "Log-normal", "Log-logistic"), c(1,2,3),
 par(mfrow = c(1, 1), mar = c(5.1, 4.1, 4.1, 2.1), oma = c(0, 0, 0, 0))
 dev.off()
 
+
+
 weib.dtheta = apply(aft.weibull$params, 1, function(p) {
-    t = tongue[,2]
-    obs = which(tongue[,3] == 1)
-    x = (log(t[-obs])- p[1] - p[2]*(tongue[-obs,1] == 1)) / p[3]
-    -2*(sum(-x-exp(-x)) - sum(log(p[3]*t[obs])) + sum(log(1-exp(-exp(-x)))))
+    -2*(calc.post(tongue, p, "ev") - dnorm(p[1], 0, 10, log = TRUE) -
+        dnorm(p[2], 0, 10, log = TRUE) + log(p[3]))
     })
 logn.dtheta = apply(aft.lognormal$params, 1, function(p) {
-    t = tongue[,2]
-    obs = which(tongue[,3] == 1)
-    x = (log(t[-obs])- p[1] - p[2]*(tongue[-obs,1] == 1)) / p[3]
-    -2*(sum(dnorm(x, 0, 1, log = TRUE)) - sum(log(p[3]*t[obs])) +
-        sum(pnorm(x, 0, 1, log = TRUE, lower.tail = FALSE)))
+    -2*(calc.post(tongue, p, "normal") - dnorm(p[1], 0, 10, log = TRUE) -
+        dnorm(p[2], 0, 10, log = TRUE) + log(p[3]))
     })
 logl.dtheta = apply(aft.loglogistic$params, 1, function(p) {
-    t = tongue[,2]
-    obs = which(tongue[,3] == 1)
-    x = (log(t[-obs])- p[1] - p[2]*(tongue[-obs,1] == 1)) / p[3]
-    -2*(sum(-x - 2*log(1 + exp(-x))) - sum(log(p[3]*t[obs])) + sum(-x - log(1 + exp(-x))))
+    -2*(calc.post(tongue, p, "logistic") - dnorm(p[1], 0, 10, log = TRUE) -
+        dnorm(p[2], 0, 10, log = TRUE) + log(p[3]))
     })
 
 # DICs
 mean(weib.dtheta) + 0.5*var(weib.dtheta)
 mean(logn.dtheta) + 0.5*var(logn.dtheta)
 mean(logl.dtheta) + 0.5*var(logl.dtheta)
+
+t(rbind(apply(aft.weibull$params, 2, function(x) c(mean(x), var(x))), aft.weibull$hpds))
+t(rbind(apply(aft.lognormal$params, 2, function(x) c(mean(x), var(x))), aft.lognormal$hpds))
+t(rbind(apply(aft.loglogistic$params, 2, function(x) c(mean(x), var(x))), aft.loglogistic$hpds))
+
+mean(exp(aft.weibull$params[,2]))
