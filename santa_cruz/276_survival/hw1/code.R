@@ -75,16 +75,14 @@ par(mfrow = c(2, 2), mar = c(4.1, 2.1, 2.1, 1.1), oma = c(0, 0, 2, 0))
 for (i in 1:4){
     tmp.x = density(ane[[i]]$params[,1])
     tmp.y = density(dip[[i]]$params[,1])
-    plot_hpd(tmp.x, ane[[i]]$hpds[,1],
+    plot_hpd(dens = tmp.x, hpd = ane[[i]]$hpds[,1],
         xlim = range(tmp.x$x, tmp.y$x), ylim = range(tmp.x$y, tmp.y$y),
-        "dodgerblue", fade = 0.7, bty = 'n', main = paste0("Prior set ", i),
+        col1 = "dodgerblue", fade = 0.7, bty = 'n', main = paste0("Prior set ", i),
         xlab = expression(alpha), cex.lab = 1.5)
-    plot_hpd(tmp.y, dip[[i]]$hpds[,1],
-        "firebrick1", add = TRUE, fade = 0.7)
+    plot_hpd(dens = tmp.y, hpd = dip[[i]]$hpds[,1],
+        col1 = "firebrick1", add = TRUE, fade = 0.7)
     }
-make_phantom(c("Aneuplooid", "Diploid"), 1, c("dodgerblue", "firebrick1"),
-    outer = TRUE, line = 0.5, cex.main = 1.5, sep = "  ")
-make_phantom(c("Aneuplooid", "Diploid"), 2, c("dodgerblue", "firebrick1"),
+make_phantom(c("Aneuplooid", "Diploid"), c(1,2), c("dodgerblue", "firebrick1"),
     outer = TRUE, line = 0.5, cex.main = 1.5, sep = "  ")
 par(mfrow = c(1, 1), mar = c(5.1, 4.1, 4.1, 2.1), oma = c(0, 0, 0, 0))
 dev.off()
@@ -94,16 +92,14 @@ par(mfrow = c(2, 2), mar = c(4.1, 2.1, 2.1, 1.1), oma = c(0, 0, 2, 0))
 for (i in 1:4){
     tmp.x = density(ane[[i]]$params[,2])
     tmp.y = density(dip[[i]]$params[,2])
-    plot_hpd(tmp.x, ane[[i]]$hpds[,2],
+    plot_hpd(dens = tmp.x, hpd = ane[[i]]$hpds[,2],
         xlim = range(tmp.x$x, tmp.y$x), ylim = range(tmp.x$y, tmp.y$y),
-        "dodgerblue", fade = 0.7, bty = 'n', main = paste0("Prior set ", i),
+        col1 = "dodgerblue", fade = 0.7, bty = 'n', main = paste0("Prior set ", i),
         xlab = expression(lambda), cex.lab = 1.5)
-    plot_hpd(tmp.y, dip[[i]]$hpds[,2],
-        "firebrick1", add = TRUE, fade = 0.7)
+    plot_hpd(dens = tmp.y, hpd = dip[[i]]$hpds[,2],
+        col1 = "firebrick1", add = TRUE, fade = 0.7)
     }
-make_phantom(c("Aneuplooid", "Diploid"), 1, c("dodgerblue", "firebrick1"),
-    outer = TRUE, line = 0.5, cex.main = 1.5, sep = "  ")
-make_phantom(c("Aneuplooid", "Diploid"), 2, c("dodgerblue", "firebrick1"),
+make_phantom(c("Aneuplooid", "Diploid"), c(1,2), c("dodgerblue", "firebrick1"),
     outer = TRUE, line = 0.5, cex.main = 1.5, sep = "  ")
 par(mfrow = c(1, 1), mar = c(5.1, 4.1, 4.1, 2.1), oma = c(0, 0, 0, 0))
 dev.off()
@@ -190,13 +186,13 @@ for (i in 1:3){
     tmp.x = density(aft.weibull$params[,i])
     tmp.y = density(aft.lognormal$params[,i])
     tmp.z = density(aft.loglogistic$params[,i])
-    plot_hpd(tmp.x, aft.weibull$hpds[,i],
+    plot_hpd(dens = tmp.x, hpd = aft.weibull$hpds[,i],
         xlim = range(tmp.x$x, tmp.y$x, tmp.z$x), ylim = range(tmp.x$y, tmp.y$y, tmp.z$y),
-        "dodgerblue", fade = 0.7, bty = 'n', xlab = lab[i], main = "", cex.lab = 1.5)
-    plot_hpd(tmp.y, aft.lognormal$hpds[,i],
-        "firebrick1", fade = 0.7, add = TRUE)
-    plot_hpd(tmp.z, aft.loglogistic$hpds[,i],
-        "forestgreen", fade = 0.7, add = TRUE)
+        col1 = "dodgerblue", fade = 0.7, bty = 'n', xlab = lab[i], main = "", cex.lab = 1.5)
+    plot_hpd(dens = tmp.y, hpd = aft.lognormal$hpds[,i],
+        col1 ="firebrick1", fade = 0.7, add = TRUE)
+    plot_hpd(dens = tmp.z, hpd = aft.loglogistic$hpds[,i],
+        col1 ="forestgreen", fade = 0.7, add = TRUE)
     }
 make_phantom(c("Weibull", "Log-normal", "Log-logistic"), c(1,2,3),
     c("dodgerblue", "firebrick1", "forestgreen"), outer = TRUE, line = 0.5,
@@ -228,4 +224,3 @@ t(rbind(apply(aft.weibull$params, 2, function(x) c(mean(x), var(x))), aft.weibul
 t(rbind(apply(aft.lognormal$params, 2, function(x) c(mean(x), var(x))), aft.lognormal$hpds))
 t(rbind(apply(aft.loglogistic$params, 2, function(x) c(mean(x), var(x))), aft.loglogistic$hpds))
 
-mean(exp(aft.weibull$params[,2]))
