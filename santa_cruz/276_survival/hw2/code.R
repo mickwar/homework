@@ -31,12 +31,11 @@ calc.post = function(y, p){
     return (out)
     }
 
-mod1 = mcmc_sampler(tongue, calc.post, 3, nburn = 20000, nmcmc = 30000)
+mod1 = mcmc_sampler(tongue, calc.post, 3, nburn = 50000, nmcmc = 30000)
 mean(mod1$accept)
 
-plot(mod1$params[,c(1,2)])
-plot(mod1$params[,c(1,3)])
-plot(mod1$params[,c(2,3)])
+pairs(mod1$params, pch = 16, col = rgb(seq(0, 1, length = NROW(mod1$params)),0,0),
+    labels = c("alpha", "gamma", "beta"))
 colMeans(mod1$params)
 
 #beta0 = -log(mod1$params[,2])/mod1$params[,1]
@@ -54,8 +53,13 @@ dip.vv = apply(dip.survival, 2, quantile, c(0.025, 0.975))
 ane.mm = apply(ane.survival, 2, mean)
 ane.vv = apply(ane.survival, 2, quantile, c(0.025, 0.975))
 
+
+pdf("./figs/m1_surv.pdf", width = 8, height = 8)
 plot(0, type='n', xlim = c(0, max(tongue[,2])), ylim = c(0, 1), bty = 'n',
-    main = "Weibull baseline model", xlab = "Time (t)", ylab = "Survival S(t)")
+    main = "Weibull baseline model (M1)", xlab = "Time (t)", ylab = "Survival S(t)",
+    cex.main = 2, cex.lab = 1.5)
+make_phantom(c("Aneuplooid", "Diploid"), c(1,2), c("dodgerblue", "firebrick1"),
+    outer = FALSE, line = 0.5, cex.main = 1.5, sep = "  ")
 lines(survfit(Surv(time[type == 1], delta[type == 1]) ~ 1, data = tongue),
     col = col_fade('dodgerblue', 0.5), lty = 2, lwd = c(2, 1, 1))
 lines(survfit(Surv(time[type == 2], delta[type == 2]) ~ 1, data = tongue),
@@ -66,7 +70,9 @@ lines(tt, dip.vv[2,], col = 'firebrick1',)
 lines(tt, ane.mm, col = 'dodgerblue', lwd = 3)
 lines(tt, ane.vv[1,], col = 'dodgerblue',)
 lines(tt, ane.vv[2,], col = 'dodgerblue',)
+dev.off()
 
+pdf("./figs/m1_post.pdf", width = 8, height = 8)
 par(mfrow = c(2,2))
 plot_hpd(mod1$params[,1], col1 = 'orange', bty = 'n', xlab = expression(alpha),
     main = expression("Posterior for"~ alpha), cex.main = 2, cex.lab = 1.5, sub = "M1")
@@ -75,6 +81,7 @@ plot_hpd(mod1$params[,2], col1 = 'orange', bty = 'n', xlab = expression(gamma),
 plot_hpd(mod1$params[,3], col1 = 'orange', bty = 'n', xlab = expression(beta),
     main = expression("Posterior for"~ beta), cex.main = 2, cex.lab = 1.5, sub = "M1")
 par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
+dev.off()
 
 # dip.hazard = t(apply(mod1$params, 1, function(p) p[1]*p[2]*ss^(p[1]-1)))
 # ane.hazard = t(apply(mod1$params, 1, function(p) p[1]*p[2]*ss^(p[1]-1)*exp(p[3])))
@@ -108,6 +115,20 @@ calc.post = function(y, p){
     H = c(0, cumsum(lambda*(ss[-1] - ss[-(J+1)])))    # cumulative hazard
 
     # Likelihood
+#   out1 = 0
+#   for (i in 1:NROW(y)){
+#       for (j in 1:J){
+#           delta = (t[i] > ss[j])*(t[i] <= ss[j+1])
+#           out1 = out1 + (log(lambda[j]) + beta0 + beta1*x[i])*(y[i,3] == 1)*delta
+#           if (j == 1){
+#               out1 = out1 - delta*(lambda[j]*(t[i]-ss[j]))*exp(beta0 + x[i]*beta1)
+#           } else {
+#               out1 = out1 - delta*(lambda[j]*(t[i]-ss[j]) +
+#                   sum(lambda[1:(j-1)]*(ss[2:j]-ss[1:(j-1)]))) *
+#                   exp(beta0 + x[i]*beta1)
+#               }
+#           }
+#       }
     out = sum(log(lambda[ints[A]]) + beta0 + x[A]*beta1) -
         sum((lambda[ints]*(t - ss[ints]) + H[ints])*exp(beta0 + x * beta1))
 
@@ -158,16 +179,17 @@ calc.post = function(y, p){
 # calc2(tongue, c(0, rr))
 
 
-mod2 = mcmc_sampler(tongue, calc.post, nparam = (2 + J), nburn = 50000, nmcmc = 20000)
+mod2 = mcmc_sampler(tongue, calc.post, nparam = (2 + J), nburn = 100000, nmcmc = 50000)
+
+plot(mod2$params[,2], type='l')
 
 mean(mod2$accept)
 colMeans(mod2$params)
 
-#colMeans(mod2$params[,-c(1,2)]*exp(mod2$params[,1]))
-
-
-dip.survival = t(apply(mod2$params,1,function(p) exp(-exp(p[1])*cumsum(p[-c(1,2)]*(ss[-1]-ss[-(J+1)])))))
-ane.survival = t(apply(mod2$params,1,function(p) exp(-exp(p[1]+p[2])*cumsum(p[-c(1,2)]*(ss[-1]-ss[-(J+1)])))))
+dip.survival = t(apply(mod2$params, 1,
+    function(p) exp(-exp(p[1])*cumsum(p[-c(1,2)]*(ss[-1]-ss[-(J+1)])))))
+ane.survival = t(apply(mod2$params, 1,
+    function(p) exp(-exp(p[1]+p[2])*cumsum(p[-c(1,2)]*(ss[-1]-ss[-(J+1)])))))
 
 dip.mm = apply(dip.survival, 2, mean)
 dip.vv = apply(dip.survival, 2, quantile, c(0.025, 0.975))
@@ -175,8 +197,12 @@ ane.mm = apply(ane.survival, 2, mean)
 ane.vv = apply(ane.survival, 2, quantile, c(0.025, 0.975))
 
 # Kaplan-Meier curves with posterior estimates of survival function
+pdf("./figs/m2_surv.pdf", width = 8, height = 8)
 plot(0, type='n', xlim = c(0, max(tongue[,2])), ylim = c(0, 1), bty = 'n',
-    main = "Piece-wise consant hazard model", xlab = "Time (t)", ylab = "Survival S(t)")
+    main = "Piece-wise consant hazard model (M2)", xlab = "Time (t)", ylab = "Survival S(t)",
+    cex.main = 2, cex.lab = 1.5)
+make_phantom(c("Aneuplooid", "Diploid"), c(1,2), c("dodgerblue", "firebrick1"),
+    outer = FALSE, line = 0.5, cex.main = 1.5, sep = "  ")
 lines(survfit(Surv(time[type == 1], delta[type == 1]) ~ 1, data = tongue),
     col = col_fade('dodgerblue', 0.5), lty = 2, lwd = c(2, 1, 1))
 lines(survfit(Surv(time[type == 2], delta[type == 2]) ~ 1, data = tongue),
@@ -187,17 +213,21 @@ lines(ss, c(1, dip.vv[2,]), col = 'firebrick1')
 lines(ss, c(1, ane.mm), col = 'dodgerblue', lwd = 3)
 lines(ss, c(1, ane.vv[1,]), col = 'dodgerblue')
 lines(ss, c(1, ane.vv[2,]), col = 'dodgerblue')
+dev.off()
 
 
 
-plot_hpd(mod2$params[,1], col1 = 'forestgreen', bty = 'n', xlab = expression(beta),
-    main = expression("Posterior for"~ beta), cex.main = 2, cex.lab = 1.5, sub = "M2")
-
+pdf("./figs/m2_post.pdf", width = 12, height = 8)
+par(mfrow = c(1,2))
+plot_hpd(mod2$params[,2], col1 = 'forestgreen', bty = 'n', xlab = expression(beta[1]),
+    main = expression("Posterior for"~ beta[1]), cex.main = 2, cex.lab = 1.5, sub = "M2")
 boxplot(mod2$params[,-c(1,2)]*exp(mod2$params[,1]), axes = FALSE, horizontal = TRUE,
     main = "Boxplots for posterior hazards", xlab = "Hazard", at = J:1,
-    ylab = "Index", col = 'forestgreen')
+    ylab = "Index", col = 'forestgreen', sub = "M2", cex.main = 2, cex.lab = 1.5)
 axis(1);
 axis(2, at = c(1, 6, 11, 16, 20), labels = c("20", "15", "10", "5", "1"))
+par(mfrow = c(1,1))
+dev.off()
 
 
 
@@ -221,39 +251,106 @@ for (j in 1:J){
     }
 
 calc.post = function(y, p){
-    beta0 = p[1]
-    beta1 = p[2]
-    hj = p[-c(1,2)]
+    alpha = p[1]
+    gamma = p[2]
+    beta0 = p[3]
+    beta1 = p[4]
+    c0 = p[5]
+    hj = p[-(1:5)]
 
-    if (any(hj <= 0))
+    if (any(hj <= 0) || alpha <= 0 || gamma <= 0 || c0 <= 0)
         return (-Inf)
 
     x = 2 - y[,1]
     t = y[,2]
 
+    # Hstar is standard weibull
+    a0 = function(j)
+        c0*gamma*ss[j+1]^alpha
+
     out = 0
     for (j in 1:J){
         z1 = x[risk_not_fail[[j]]]
         z2 = x[fail[[j]]]
-        if (length(z1) == 0)
-            z1 = 0
-        if (length(z2) == 0)
-            z2 = 0
-        out = out -hj[j] * sum(exp(beta0 + z1 * beta1)) + 
-            sum(log(1 - exp(-hj[j]*exp(beta0 + z2 * beta1)))) +
-            dgamma(hj[j], 1, 1/10, log = TRUE)
+        if (length(z1) > 0)
+            out = out - hj[j] * sum(exp(beta0 + z1 * beta1))
+        if (length(z2) > 0)
+            out = out + sum(log(1 - exp(-hj[j]*exp(beta0 + z2 * beta1))))
+        out = out + dgamma(hj[j], a0(j) - a0(j-1), c0, log = TRUE)
         }
 
+    out = out + dgamma(alpha, 1, 1/10, log = TRUE)
+    out = out + dgamma(gamma, 1, 1/10, log = TRUE)
+    out = out - log(c0)
     out = out + dnorm(beta0, 0, 10, log = TRUE)
     out = out + dnorm(beta1, 0, 10, log = TRUE)
     return (out)
     }
 
-mod3 = mcmc_sampler(tongue, calc.post, nparam = (J + 2), nburn = 50000, nmcmc = 20000)
+tmp = mod3
+
+mod3 = mod4
+
+mod3 = mcmc_sampler(tongue, calc.post, nparam = (J + 5), nburn = 800000, nmcmc = 100000)
+mod4 = mcmc_sampler(tongue, calc.post, nparam = (J + 5), nburn = 800000, nmcmc = 100000,
+    group = list(1:5, 6:(J+5)))
 
 mean(mod3$accept)
-plot(mod3$params[,c(1,2)], pch = 16)
-pairs(mod3$params[,1:6], pch = 16)
+
+pairs(mod3$params[,1:5], pch = 16, col = rgb(seq(0, 1, length=NROW(mod3$params)), 0, 0))
+pairs(mod3$params[,6:10], pch = 16, col = rgb(seq(0, 1, length=NROW(mod3$params)), 0, 0))
 
 colMeans(mod3$params)
-colMeans(mod3$params[,-(1:2)]*exp(mod3$params[,1]))
+apply(mod3$params, 2, var)
+colMeans(mod3$params[,-(1:5)]*exp(mod3$params[,3]))
+
+
+
+
+pdf("./figs/m3_post.pdf", width = 12, height = 8)
+par(mfrow = c(1,2))
+plot_hpd(mod3$params[,4], col1 = 'purple', bty = 'n', xlab = expression(beta[1]),
+    main = expression("Posterior for"~ beta[1]), cex.main = 2, cex.lab = 1.5, sub = "M3")
+boxplot(mod3$params[,-(1:5)]*exp(mod3$params[,3]), axes = FALSE, horizontal = TRUE,
+    main = "Boxplots for posterior hazards", xlab = "Hazard", at = J:1,
+    ylab = "Index", col = 'purple', sub = "M3", cex.main = 2, cex.lab = 1.5)
+axis(1);
+axis(2, at = unique(c(seq(1, J, by = 5), J)), labels = unique(c(seq(J, 1, by = -5), 1)))
+par(mfrow = c(1,1))
+dev.off()
+
+
+dip.survival = t(apply(mod3$params, 1,
+    function(p) exp(-exp(p[3])*cumsum(p[-(1:5)]*(ss[-1]-ss[-(J+1)])))))
+ane.survival = t(apply(mod3$params, 1,
+    function(p) exp(-exp(p[3]+p[4])*cumsum(p[-(1:5)]*(ss[-1]-ss[-(J+1)])))))
+
+dip.mm = apply(dip.survival, 2, mean)
+dip.vv = apply(dip.survival, 2, quantile, c(0.025, 0.975))
+ane.mm = apply(ane.survival, 2, mean)
+ane.vv = apply(ane.survival, 2, quantile, c(0.025, 0.975))
+
+# Kaplan-Meier curves with posterior estimates of survival function
+pdf("./figs/m3_surv.pdf", width = 8, height = 8)
+plot(0, type='n', xlim = c(0, max(tongue[,2])), ylim = c(0, 1), bty = 'n',
+    main = "Gamma process (M3)", xlab = "Time (t)", ylab = "Survival S(t)",
+    cex.main = 2, cex.lab = 1.5)
+make_phantom(c("Aneuplooid", "Diploid"), c(1,2), c("dodgerblue", "firebrick1"),
+    outer = FALSE, line = 0.5, cex.main = 1.5, sep = "  ")
+lines(survfit(Surv(time[type == 1], delta[type == 1]) ~ 1, data = tongue),
+    col = col_fade('dodgerblue', 0.5), lty = 2, lwd = c(2, 1, 1))
+lines(survfit(Surv(time[type == 2], delta[type == 2]) ~ 1, data = tongue),
+    col = col_fade('firebrick1', 0.5), lty = 2, lwd = c(2, 1, 1))
+lines(ss, c(1, dip.mm), col = 'firebrick1', lwd = 3)
+lines(ss, c(1, dip.vv[1,]), col = 'firebrick1')
+lines(ss, c(1, dip.vv[2,]), col = 'firebrick1')
+lines(ss, c(1, ane.mm), col = 'dodgerblue', lwd = 3)
+lines(ss, c(1, ane.vv[1,]), col = 'dodgerblue')
+lines(ss, c(1, ane.vv[2,]), col = 'dodgerblue')
+dev.off()
+
+plot(density(mod3$params[,1]))
+lines(density(mod1$params[,1]))
+
+plot(density(mod3$params[,2]))
+lines(density(mod1$params[,2]))
