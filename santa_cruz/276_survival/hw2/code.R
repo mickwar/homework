@@ -38,12 +38,6 @@ pairs(mod1$params, pch = 16, col = rgb(seq(0, 1, length = NROW(mod1$params)),0,0
     labels = c("alpha", "gamma", "beta"))
 colMeans(mod1$params)
 
-#beta0 = -log(mod1$params[,2])/mod1$params[,1]
-#beta1 = -mod1$params[,3]/mod1$params[,1]
-#sigma = 1/mod1$params[,1]
-
-boxplot(mod1$params)
-
 tt = seq(0, max(tongue[,2]), length = 100)
 dip.survival = t(apply(mod1$params, 1, function(p) exp(-p[2]*(tt^p[1]))))
 ane.survival = t(apply(mod1$params, 1, function(p) exp(-p[2]*(tt^p[1])*exp(p[3]))))
@@ -83,12 +77,6 @@ plot_hpd(mod1$params[,3], col1 = 'orange', bty = 'n', xlab = expression(beta),
 par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
 dev.off()
 
-# dip.hazard = t(apply(mod1$params, 1, function(p) p[1]*p[2]*ss^(p[1]-1)))
-# ane.hazard = t(apply(mod1$params, 1, function(p) p[1]*p[2]*ss^(p[1]-1)*exp(p[3])))
-# 
-# plot(ss, colMeans(dip.hazard))
-# plot(ss, colMeans(ane.hazard))
-
 
 
 ### Piece-wise constant hazards
@@ -115,20 +103,6 @@ calc.post = function(y, p){
     H = c(0, cumsum(lambda*(ss[-1] - ss[-(J+1)])))    # cumulative hazard
 
     # Likelihood
-#   out1 = 0
-#   for (i in 1:NROW(y)){
-#       for (j in 1:J){
-#           delta = (t[i] > ss[j])*(t[i] <= ss[j+1])
-#           out1 = out1 + (log(lambda[j]) + beta0 + beta1*x[i])*(y[i,3] == 1)*delta
-#           if (j == 1){
-#               out1 = out1 - delta*(lambda[j]*(t[i]-ss[j]))*exp(beta0 + x[i]*beta1)
-#           } else {
-#               out1 = out1 - delta*(lambda[j]*(t[i]-ss[j]) +
-#                   sum(lambda[1:(j-1)]*(ss[2:j]-ss[1:(j-1)]))) *
-#                   exp(beta0 + x[i]*beta1)
-#               }
-#           }
-#       }
     out = sum(log(lambda[ints[A]]) + beta0 + x[A]*beta1) -
         sum((lambda[ints]*(t - ss[ints]) + H[ints])*exp(beta0 + x * beta1))
 
@@ -139,45 +113,6 @@ calc.post = function(y, p){
 
     return (out)
     }
-# calc2 = function(y, p){
-#     beta0 = p[1]
-#     beta1 = p[2]
-#     lambda = p[-c(1,2)]
-# 
-#     if (any(lambda <= 0))
-#         return (-Inf)
-# 
-#     x = 2 - y[,1]
-#     t = y[,2]
-#     nu = y[,3]
-# 
-#     out = 0
-#     for (i in 1:length(t)){
-#         tmp = 1
-#         for (j in 1:J){
-#             tmp = tmp * (lambda[j]^(ints[i]==j)*exp(beta0 + beta1*(x[i] == 1)))^(nu[i] == 1)
-#             if (j == 1){
-#                 tmp = tmp * exp(-(ints[i] == j)*(lambda[j]*(t[i] - ss[j]))*
-#                     exp(beta0 + beta1*(x[i] == 1)))
-#             } else {
-#                 tmp = tmp * exp(-(ints[i] == j)*(lambda[j]*(t[i] - ss[j]) +
-#                     sum(lambda[1:(j-1)]*(ss[2:j] - ss[1:(j-1)])))*
-#                     exp(beta0 + beta1*(x[i] == 1)))
-#                 }
-#             }
-#         out = out + log(tmp)
-#         }
-# 
-#     out = out + dnorm(beta0, 0, 10, log = TRUE)
-#     out = out + dnorm(beta1, 0, 10, log = TRUE)
-#     out = out + sum(dgamma(lambda, 1, 1/10, log = TRUE))
-#     return (out)
-#     }
-# 
-# rr = runif(J+1)
-# calc.post(tongue, c(0, rr))
-# calc2(tongue, c(0, rr))
-
 
 mod2 = mcmc_sampler(tongue, calc.post, nparam = (2 + J), nburn = 100000, nmcmc = 50000)
 
@@ -235,10 +170,16 @@ dev.off()
 # Same intervals as used in the piece-wise model
 ss = c("0%"=0, quantile(tongue[,2], seq(0.05, 1.00, by = 0.05)))
 J = length(ss) - 1
+ss[J+1] = max(ss) + 10
 
 # Unique death times interval
 ss = c(0, unique(sort(tongue[tongue[,3] == 1,2])), max(tongue[,2]) + 0.01)
 J = length(ss) - 1
+
+# Unique times interval
+ss = c(0, unique(sort(tongue[,2])))
+J = length(ss) - 1
+ss[J+1] = max(ss) + 0.01
 
 risk = rep(list(NULL), J)
 fail = rep(list(NULL), J)
@@ -246,27 +187,34 @@ risk_not_fail = rep(list(NULL), J)
 
 for (j in 1:J){
     risk[[j]] = which(tongue[,2] > ss[j])
+#   risk[[j]] = which((tongue[,2] > ss[j]) & !((tongue[,3] == 0) & (tongue[,2] <= ss[j+1])))
     fail[[j]] = which((tongue[,3] == 1) & (tongue[,2] > ss[j]) & (tongue[,2] <= ss[j+1]))
-    risk_not_fail[[j]] = risk[[j]][which(!(risk[[j]] %in% fail[[j]]))]
+    risk_not_fail[[j]] = setdiff(risk[[j]], fail[[j]])
+#   risk_not_fail[[j]] = risk[[j]][which(!(risk[[j]] %in% fail[[j]]))]
     }
 
+
 calc.post = function(y, p){
-    alpha = p[1]
-    gamma = p[2]
-    beta0 = p[3]
-    beta1 = p[4]
-    c0 = p[5]
-    hj = p[-(1:5)]
+#   alpha = p[1]
+#   gamma = p[2]
+#   beta0 = p[3]
+#   beta1 = p[4]
+#   c0 = p[5]
+#   hj = p[-(1:5)]
+
+    beta0 = p[1]
+    beta1 = p[2]
+    hj = p[-(1:2)]
+
+    alpha = 1
+    gamma = 1
+    c0 = 1
 
     if (any(hj <= 0) || alpha <= 0 || gamma <= 0 || c0 <= 0)
         return (-Inf)
 
     x = 2 - y[,1]
     t = y[,2]
-
-    # Hstar is standard weibull
-    a0 = function(j)
-        c0*gamma*ss[j+1]^alpha
 
     out = 0
     for (j in 1:J){
@@ -276,29 +224,27 @@ calc.post = function(y, p){
             out = out - hj[j] * sum(exp(beta0 + z1 * beta1))
         if (length(z2) > 0)
             out = out + sum(log(1 - exp(-hj[j]*exp(beta0 + z2 * beta1))))
-        out = out + dgamma(hj[j], a0(j) - a0(j-1), c0, log = TRUE)
+        out = out + dgamma(hj[j], c0*gamma*(ss[j+1]^alpha - ss[j]^alpha), c0, log = TRUE)
         }
 
-    out = out + dgamma(alpha, 1, 1/10, log = TRUE)
-    out = out + dgamma(gamma, 1, 1/10, log = TRUE)
-    out = out - log(c0)
+#   out = out + dgamma(alpha, 1, 1, log = TRUE)
+#   out = out + dgamma(gamma, 1, 1, log = TRUE)
+#   out = out + dgamma(c0, 1, 1, log = TRUE)
     out = out + dnorm(beta0, 0, 10, log = TRUE)
     out = out + dnorm(beta1, 0, 10, log = TRUE)
     return (out)
     }
 
-tmp = mod3
+# mod3 = mcmc_sampler(tongue, calc.post, nparam = (J + 5), nburn = 800000, nmcmc = 50000,
+#     group = list(1:5, 6:(J+5)))
+mod3 = mcmc_sampler(tongue, calc.post, nparam = (J + 2), nburn = 10000, nmcmc = 10000,
+    group = 0)
 
-mod3 = mod4
-
-mod3 = mcmc_sampler(tongue, calc.post, nparam = (J + 5), nburn = 800000, nmcmc = 100000)
-mod4 = mcmc_sampler(tongue, calc.post, nparam = (J + 5), nburn = 800000, nmcmc = 100000,
-    group = list(1:5, 6:(J+5)))
-
-mean(mod3$accept)
+range(colMeans(mod3$accept))
 
 pairs(mod3$params[,1:5], pch = 16, col = rgb(seq(0, 1, length=NROW(mod3$params)), 0, 0))
 pairs(mod3$params[,6:10], pch = 16, col = rgb(seq(0, 1, length=NROW(mod3$params)), 0, 0))
+pairs(mod3$params[,(J+1):(J+5)], pch = 16, col = rgb(seq(0, 1, length=NROW(mod3$params)), 0, 0))
 
 colMeans(mod3$params)
 apply(mod3$params, 2, var)
@@ -320,10 +266,14 @@ par(mfrow = c(1,1))
 dev.off()
 
 
+ss
+ss[-1]
+ss[-(J+1)]
+
 dip.survival = t(apply(mod3$params, 1,
-    function(p) exp(-exp(p[3])*cumsum(p[-(1:5)]*(ss[-1]-ss[-(J+1)])))))
+    function(p) exp(-exp(p[1])*cumsum(p[-(1:2)]*(ss[-1]-ss[-(J+1)])))))
 ane.survival = t(apply(mod3$params, 1,
-    function(p) exp(-exp(p[3]+p[4])*cumsum(p[-(1:5)]*(ss[-1]-ss[-(J+1)])))))
+    function(p) exp(-exp(p[1]+p[2])*cumsum(p[-(1:2)]*(ss[-1]-ss[-(J+1)])))))
 
 dip.mm = apply(dip.survival, 2, mean)
 dip.vv = apply(dip.survival, 2, quantile, c(0.025, 0.975))
