@@ -2,7 +2,6 @@
 library(KMsurv)
 library(survival)
 library(mwBASE)
-library(xtable)
 
 data(tongue)
 tongue$time = tongue$time / 10
@@ -31,7 +30,7 @@ calc.post = function(y, p){
     return (out)
     }
 
-mod1 = mcmc_sampler(tongue, calc.post, 3, nburn = 50000, nmcmc = 30000)
+mod1 = mcmc_sampler(tongue, calc.post, 3, nburn = 50000, nmcmc = 100000)
 mean(mod1$accept)
 
 pairs(mod1$params, pch = 16, col = rgb(seq(0, 1, length = NROW(mod1$params)),0,0),
@@ -114,7 +113,7 @@ calc.post = function(y, p){
     return (out)
     }
 
-mod2 = mcmc_sampler(tongue, calc.post, nparam = (2 + J), nburn = 100000, nmcmc = 50000)
+mod2 = mcmc_sampler(tongue, calc.post, nparam = (2 + J), nburn = 100000, nmcmc = 100000)
 
 plot(mod2$params[,2], type='l')
 
@@ -201,13 +200,6 @@ calc.post = function(y, p){
     c0 = p[5]
     hj = tail(p, J)
 
-#   beta0 = p[1]
-#   beta1 = p[2]
-#   hj = p[-(1:2)]
-#   alpha = 1
-#   gamma = 1
-#   c0 = 1
-
     if (any(hj <= 0) || alpha <= 0 || gamma <= 0 || c0 <= 0)
         return (-Inf)
 
@@ -233,17 +225,11 @@ calc.post = function(y, p){
     return (out)
     }
 
-mod3 = mcmc_sampler(tongue, calc.post, nparam = (J + 5), nburn = 5000, nmcmc = 3000,
-    group = 0, display = 100)
-mod4 = mcmc_sampler(tongue, calc.post, nparam = (J + 5), nburn = 100000, nmcmc = 50000,
+mod3 = mcmc_sampler(tongue, calc.post, nparam = (J + 5), nburn = 100000, nmcmc = 100000,
     groups = list(c(1:5), 6:(J+5)))
+mod3 = mcmc_sampler(tongue, calc.post, nparam = (J + 5), nburn = 500000, nmcmc = 200000,
+    groups = list(c(1:5), 6:(J+5)), window = 800, k = 2)
 
-J+5
-
-#tmp = mod3
-mod3 = mod4
-
-system.time(calc.post(tongue, mod3$params[1,]))
 
 range(colMeans(mod3$accept))
 
@@ -309,8 +295,3 @@ lines(ss, c(1, ane.vv[1,]), col = 'dodgerblue')
 lines(ss, c(1, ane.vv[2,]), col = 'dodgerblue')
 dev.off()
 
-plot(density(mod3$params[,1]))
-lines(density(mod1$params[,1]))
-
-plot(density(mod3$params[,2]))
-lines(density(mod1$params[,2]))
