@@ -1,5 +1,5 @@
 get_samples = function(nmcmc = 10000, nburn = 10000, window = 200, k,
-    chain_init, sig_eta, sig_beta, sig_alpha, display = 1000){
+    chain_init, sig_kappa, sig_beta, sig_alpha, display = 1000){
 
     require(MASS)
 
@@ -26,8 +26,9 @@ get_samples = function(nmcmc = 10000, nburn = 10000, window = 200, k,
         return (out)
         }
 
-    calc_post_eta = function(eta, w)
-        return (sum(dgamma(w, eta, eta, log = TRUE)) + dgamma(eta, 0.001, 0.001, log = TRUE))
+    calc_post_kappa = function(kappa, w)
+        return (sum(dgamma(w, 1/kappa, 1/kappa, log = TRUE)) + 0.001*log(0.001) -
+            lgamma(0.001) - (0.001 + 1)*log(kappa) - 0.001/kappa)
 
     calc_post_beta = function(beta, time, cluster, x, nu, gamma, alpha, w)
         return (sum(x[nu == 1,] %*% beta) - 
@@ -49,8 +50,8 @@ get_samples = function(nmcmc = 10000, nburn = 10000, window = 200, k,
     if (missing(chain_init))
         chain_init = runif(nparam)
 
-    if (missing(sig_eta))
-        sig_eta = 0.1
+    if (missing(sig_kappa))
+        sig_kappa = 0.1
 
     if (missing(sig_beta))
         sig_beta = 0.1*diag(2)
@@ -59,7 +60,7 @@ get_samples = function(nmcmc = 10000, nburn = 10000, window = 200, k,
         sig_alpha = 0.1
 
     params = matrix(0, nburn + nmcmc, nparam)
-    accept_eta = double(nburn + nmcmc)
+    accept_kappa = double(nburn + nmcmc)
     accept_beta = double(nburn + nmcmc)
     accept_alpha = double(nburn + nmcmc)
     params[1,] = chain_init
@@ -83,7 +84,7 @@ get_samples = function(nmcmc = 10000, nburn = 10000, window = 200, k,
         # Current state is previous state
         params[i,] = params[i-1,]
 
-        eta = params[i, 1]
+        kappa = params[i, 1]
         beta = params[i, 2:3]
         gamma = params[i, 4]
         alpha = params[i, 5]
@@ -95,35 +96,33 @@ get_samples = function(nmcmc = 10000, nburn = 10000, window = 200, k,
             0.001 + sum(w[cluster] * (time^alpha) * exb))
 
         # Update w
-        w = rgamma(38, eta + snu,
-            eta + gamma * apply(matrix(time^alpha * exb, ncol = 2), 1, sum))
+        w = rgamma(38, 1/kappa + snu,
+            1/kappa + gamma * apply(matrix(time^alpha * exb, ncol = 2), 1, sum))
 
 
         # Update eta
-        cand_eta = rnorm(1, eta, sig_eta)
-        if (cand_eta > 0){
-            curr_post = calc_post_eta(eta, w)
-            cand_post = calc_post_eta(cand_eta, w)
+        cand_kappa = rnorm(1, kappa, sig_kappa)
+        if (cand_kappa > 0){
+            curr_post = calc_post_kappa(kappa, w)
+            cand_post = calc_post_kappa(cand_kappa, w)
             if (log(runif(1)) <= cand_post - curr_post){
-                eta = cand_eta
-                accept_eta[i] = 1               
+                kappa = cand_kappa
+                accept_kappa[i] = 1               
                 }
             }
 
         # Update beta
         cand_beta = mvrnorm(1, beta, sig_beta)
-        if (cand_eta > 0){
-            curr_post = calc_post_beta(beta, time, cluster, x, nu, gamma, alpha, w)
-            cand_post = calc_post_beta(cand_beta, time, cluster, x, nu, gamma, alpha, w)
-            if (log(runif(1)) <= cand_post - curr_post){
-                beta = cand_beta
-                accept_beta[i] = 1               
-                }
+        curr_post = calc_post_beta(beta, time, cluster, x, nu, gamma, alpha, w)
+        cand_post = calc_post_beta(cand_beta, time, cluster, x, nu, gamma, alpha, w)
+        if (log(runif(1)) <= cand_post - curr_post){
+            beta = cand_beta
+            accept_beta[i] = 1               
             }
 
         # Update alpha
         cand_alpha = rnorm(1, alpha, sig_alpha)
-        if (cand_eta > 0){
+        if (cand_alpha > 0){
             curr_post = calc_post_alpha(alpha, time, cluster, x, nu, beta, gamma, w)
             cand_post = calc_post_alpha(cand_alpha, time, cluster, x, nu, beta, gamma, w)
             if (log(runif(1)) <= cand_post - curr_post){
@@ -133,7 +132,7 @@ get_samples = function(nmcmc = 10000, nburn = 10000, window = 200, k,
             }
 
         # Replace new state in params matrix
-        params[i, 1] = eta
+        params[i, 1] = kappa
         params[i, 2:3] = beta
         params[i, 4] = gamma
         params[i, 5] = alpha
@@ -141,7 +140,7 @@ get_samples = function(nmcmc = 10000, nburn = 10000, window = 200, k,
         
         # Tune candidate sigmas
         if ((floor(i/window) == i/window) && (i <= nburn)){
-            sig_eta = sig_eta * autotune(mean(accept_eta[(i-window+1):i]),
+            sig_kappa = sig_kappa * autotune(mean(accept_kappa[(i-window+1):i]),
                 target = 0.234, k = k)
             sig_beta = autotune(mean(accept_beta[(i-window+1):i]),
                 target = 0.234, k = k) * (sig_beta + window *
@@ -162,13 +161,13 @@ get_samples = function(nmcmc = 10000, nburn = 10000, window = 200, k,
 
     # Discard the burn-in
     params = tail(params, nmcmc)
-    accept = cbind(accept_eta, accept_beta, accept_alpha)
+    accept = cbind(accept_kappa, accept_beta, accept_alpha)
     accept = tail(accept, nmcmc)
 
     return (list(
         "params" = params,
         "accept" = accept,
-        "sig_eta" = sig_eta,
+        "sig_eta" = sig_kappa,
         "sig_beta" = sig_beta,
         "sig_alpha" = sig_alpha))
     }

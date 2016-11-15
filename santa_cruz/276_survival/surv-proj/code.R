@@ -20,22 +20,27 @@ pairs(out$params[,6:10], pch = 16, col = rgb(seq(0, 1, length = 5000), 0, 0))
 pairs(out$params[,11:15], pch = 16, col = rgb(seq(0, 1, length = 5000), 0, 0))
 
 par(mfrow = c(2,3))
-plot_hpd(1/out$params[,1], col1 = 'dodgerblue', bty='n')
+plot_hpd(out$params[,1], col1 = 'dodgerblue', bty='n')
 for (i in 2:5)
     plot_hpd(out$params[,i], col1 = 'dodgerblue', bty='n')
 par(mfrow = c(1,1), mar = c(5.1,4.1,4.1,2.1))
 
 # eta, beta0, beta1, gamma, alpha
-mean(1/out$params[,1])  # kappa
+mean(out$params[,1])  # kappa
 mean(out$params[,2])  # beta1
 mean(out$params[,3])  # beta2
 mean(out$params[,4])  # gamma
 mean(out$params[,5])  # alpha
 
 plot(density(apply(out$params[,6:43], 2, mean)))
-median(out$params[,4])
 
-plot_hpd(1/out$params[,1], col1 = 'dodgerblue', bty='n')
-plot_hpd(out$params[out$params[,4]<2,4], col1 = 'dodgerblue', bty='n')
+# Survival for person 1, cluster 1
+tt = seq(0, max(dat[,2]), length = 50)
+vv = apply(out$params, 1, function(p)
+    exp(-p[4]*tt^p[5]*p[6]*exp(dat[1,4:5] %*% p[2:3])))
+mm = apply(vv, 1, mean)
+qq = apply(vv, 1, quantile, c(0.025, 0.975))
 
-mean(out$params[out$params[,4]<2,4])
+plot(tt,  mm, type='l', lwd = 3)
+lines(tt, qq[1,])
+lines(tt, qq[2,])
