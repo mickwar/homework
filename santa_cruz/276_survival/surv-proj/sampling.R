@@ -97,10 +97,10 @@ get_samples = function(nmcmc = 10000, nburn = 10000, window = 200, k,
 
         # Update w
         w = rgamma(38, 1/kappa + snu,
-            1/kappa + gamma * apply(matrix(time^alpha * exb, ncol = 2), 1, sum))
+            1/kappa + gamma * apply(matrix((time^alpha) * exb, ncol = 2), 1, sum))
 
 
-        # Update eta
+        # Update kappa
         cand_kappa = rnorm(1, kappa, sig_kappa)
         if (cand_kappa > 0){
             curr_post = calc_post_kappa(kappa, w)
