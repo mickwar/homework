@@ -15,12 +15,18 @@
 \bigskip
 \bigskip
 
+\noindent Table 1 is CRM with cohort size 1, and Table 2 is with cohort size 3. The bolded text indicates the true dose level for the particular scenario. The patient-dose values are averages (across the 100 simulations) of the proportion of patients who received that dose. DLT is the average (again across simulations) of the proportion of patients who experienced toxicity. MTD is the porportion of times that dose level was selected by the model.
+\bigskip
+
+\noindent In both cohort sizes, the dose that was selected most often was the true dose level. DLTs were also comparable in the two cases. The only major distinction between the two simulations is in how many patients received each dose level. This isn't much of a concern, perhaps unless we suspect any ethical issues with giving some patients to high of a dose level.
+\bigskip
+
 
 \begin{table}[ht]
 \begin{center}
 \begin{tabular}{llrrrrrr}
 \hline\hline
-& & \multicolumn{5}{c}{Dose} & \\
+& & \multicolumn{5}{c}{Dose Level} & \\
 & & 1 & 2 & 3 & 4 & 5 & DLT \\  \hline
 \multirow{2}{*}{Scenario 1} & Patients    & 0.10 & 0.22 & \textbf{0.25} & 0.39 & 0.04 & 0.33 \\
                             & MTD         & 0.00 & 0.21 & \textbf{0.55} & 0.23 & 0.01 &      \\
@@ -38,7 +44,7 @@
 \begin{center}
 \begin{tabular}{llrrrrrr}
 \hline\hline
-& & \multicolumn{5}{c}{Dose} & \\
+& & \multicolumn{5}{c}{Dose Level} & \\
 & & 1 & 2 & 3 & 4 & 5 & DLT \\  \hline
 \multirow{2}{*}{Scenario 1} & Patients    & 0.05 & 0.22 & \textbf{0.34} & 0.19 & 0.09 & 0.32 \\
                             & MTD         & 0.01 & 0.17 & \textbf{0.57} & 0.24 & 0.01 &      \\
