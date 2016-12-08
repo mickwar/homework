@@ -1,5 +1,5 @@
 ### Settings
-set.seed(26)
+set.seed(35)
 Nmax = 75*1
 k = 4
 niter = ceiling(Nmax / k)
@@ -16,8 +16,8 @@ pi.e.cr = matrix(0, niter, nsims)
 pi.e.tox = matrix(0, niter, nsims)
 
 
-# probs = c(0.2, 0.4) # scenario 1
-probs = c(0.4, 0.2) # scenario 2
+ probs = c(0.2, 0.4) # scenario 1
+#probs = c(0.4, 0.2) # scenario 2
 pvec = double(4)
 
 pvec[1] = probs[1] * (1 - probs[2])        # CR, ~TOX,     A1
@@ -62,12 +62,13 @@ for (l in 1:nsims){
         }
     }
 
+pdf("./figs/scen1.pdf", width = 8, height = 9)
 par(mfrow = c(3,2), mar = c(4.1, 2.1, 2.1, 1.1))
 for (l in 1:nsims){
     plot(pi.e.cr[,l], ylim = c(0, 1), col = 'green', type='b', axes = FALSE,
-        ylab = "", xlab = "Cohort #")
+        ylab = "", xlab = "n")
     axis(2)
-    axis(1, at = 1:niter)
+    axis(1, at = (1:niter), labels = (1:niter)*k)
     points(pi.e.tox[,l], col = 'red', type='b')
     abline(h = u.tox, lty = 2)
     abline(h = l.cr, lty = 2)
@@ -81,5 +82,9 @@ for (l in 1:nsims){
         abline(v = which.max(stopped[,l]), lty = 2, col =col)
         }
     }
+plot(0, type='n', axes = FALSE, xlim = c(0,1), ylim = c(0,1), xlab = "", ylab ="")
+text(0.1, 0.8, expression(pi[n](TOX)), cex = 3, adj = 0, col = 'red')
+text(0.1, 0.5, expression(pi[n](CR)), cex = 3, adj = 0, col = 'green')
 par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
+dev.off()
 
