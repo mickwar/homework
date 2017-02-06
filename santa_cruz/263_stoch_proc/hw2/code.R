@@ -24,7 +24,7 @@ y = 0.3 + 0.4*x + 0.5*sin(2.7*x) + 1.1/(1+x^2) + rnorm(n, 0, sig)
 plot(x, y)
 
 # GP with exponential correlation function
-B = 1000
+B = 10000
 post.sig2 = double(B)+1
 post.tau2 = double(B)+1
 post.phi = double(B)+1
@@ -76,6 +76,8 @@ for (b in 5:B){
     }
 
 
+mean(accept.phi)
+
 pp = apply(post.f, 2, mean)
 qq = apply(post.f, 2, quantile, c(0.025, 0.5, 0.975))
 
@@ -84,6 +86,12 @@ lines(sort(x), pp[order(x)], col = 'blue', lwd = 3)
 lines(sort(x), qq[1, order(x)], col = 'blue', lwd = 1)
 lines(sort(x), qq[3, order(x)], col = 'blue', lwd = 1)
 
+dim(t(post.f))
+length(post.sig2)
+
+params = cbind(post.sig2, post.tau2, post.phi, post.mu, t(post.f))
+out = list("params"=params, "accept.phi" = accept.phi, "x" = x, "y" = y)
+save(out, file = "./numb2.RData")
 
 
 
