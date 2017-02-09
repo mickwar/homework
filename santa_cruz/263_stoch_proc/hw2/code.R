@@ -38,10 +38,10 @@ U.inv = backsolve(U.phi, diag(n))
 f.phi.post = function(phi, f, mu, U.inv)
     sum(log(diag(U.inv)))-1/2*sum((t(f - mu) %*% U.inv)^2)
 
-for (b in 5:B){
+for (b in 2:B){
 
     ll = f.phi.post(post.phi[b-1], post.f[b-1,], post.mu[b-1], U.inv)
-    cand.phi = rnorm(1, post.phi[b-1], 0.5)
+    cand.phi = rnorm(1, post.phi[b-1], 0.1)
     if (cand.phi > 0 && cand.phi <= 50){
         cand.H.phi = exp(-cand.phi*Dmat)
         cand.U.phi = chol(cand.H.phi)
@@ -76,9 +76,10 @@ for (b in 5:B){
     }
 
 
+
 mean(accept.phi)
 
-pp = apply(post.f, 2, mean)
+pp = apply(tail(post.f, 2, mean)
 qq = apply(post.f, 2, quantile, c(0.025, 0.5, 0.975))
 
 plot(x, y, pch = 16, ylim = range(qq))
@@ -89,10 +90,16 @@ lines(sort(x), qq[3, order(x)], col = 'blue', lwd = 1)
 dim(t(post.f))
 length(post.sig2)
 
-params = cbind(post.sig2, post.tau2, post.phi, post.mu, t(post.f))
+params = cbind(post.sig2, post.tau2, post.phi, post.mu, post.f)
 out = list("params"=params, "accept.phi" = accept.phi, "x" = x, "y" = y)
 save(out, file = "./numb2.RData")
 
+
+load("./numb2.RData")
+accept.phi = out$accept.phi
+params = out$params
+x = out$x
+y = out$y
 
 
 m = 100
