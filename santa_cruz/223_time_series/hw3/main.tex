@@ -36,9 +36,12 @@ v|\m{\beta},\omega,\m{y} &\sim& IG\left(T/2, (\m{y}-\m{F}^\top\m{\beta})^\top(\m
 
 \noindent where $\hat{\m{\beta}}=(\m{F}\m{F}^\top)^{-1}\m{F}\m{y}$ is the maximum likelihood estimate for a fixed $\omega$. For this analysis, interest is primarily in the angular frequency $\omega$ (and the corresponding period $\lambda=2\pi/\omega$). The marginal posterior for $\omega$ has the form
 
-\[ p(\omega|\m{y}) \propto p(\omega)|\m{F}\m{F}^\top|^{-1/2}\left[1-\hat{\m{\beta}}^\top\m{F}\m{F}^\top\hat{\m{\beta}}/(\m{y}^\top\m{y})\right]^{(2-T)/2}. \]
+\[ p(\omega|\m{y}) \propto p(\omega)\left|\m{F}\m{F}^\top\right|^{-1/2}\left[1-\hat{\m{\beta}}^\top\m{F}\m{F}^\top\hat{\m{\beta}}/(\m{y}^\top\m{y})\right]^{(2-T)/2}. \]
 
-\noindent Since $\m{F}$ is a nonlinear function of $\omega$, obtaining posterior samples (and hence sample-based estimates) for $\omega$ is difficult. We could still plot $\omega$ vs. $p(\omega|\m{y})$ to make inferences. 
+\noindent Direct sampling from the marginal posterior of $\omega$ is not avaiable. However, since we're only working with one dimension, we can simply discretize the space for $\omega$, compute $p(\omega|\m{y})$ and sample with replacement based on these probabilities.
+\bigskip
+
+\noindent We show plots of the frequency and period calculated from the marginal posterior as well as based off samples.
 
 \subsection*{P\&W 3.3 -- Southern Oscillation Index}
 
@@ -54,6 +57,14 @@ v|\m{\beta},\omega,\m{y} &\sim& IG\left(T/2, (\m{y}-\m{F}^\top\m{\beta})^\top(\m
 \end{center}
 \end{figure}
 
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.40]{sp_soi.pdf}
+\end{center}
+\end{figure}
+
+\newpage
+
 \subsection*{P\&W 3.4 -- Luteinizing hormone in blood samples}
 
 \begin{figure}[H]
@@ -65,6 +76,12 @@ v|\m{\beta},\omega,\m{y} &\sim& IG\left(T/2, (\m{y}-\m{F}^\top\m{\beta})^\top(\m
 \begin{figure}[H]
 \begin{center}
 \includegraphics[scale=0.40]{fp_lh.pdf}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.40]{sp_lh.pdf}
 \end{center}
 \end{figure}
 

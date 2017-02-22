@@ -1,5 +1,5 @@
-tmp = read.table("~/files/repos/data/soi.txt")[,1]
-#tmp = lh
+#tmp = read.table("~/files/repos/data/soi.txt")[,1]
+tmp = lh
 #tmp = diff(c(co2))
 
 #tmp = rnorm(4000)
@@ -30,13 +30,19 @@ omega = 2*pi*k/n
 
 a.hat = (2/n)*sapply(omega, function(w) sum(y * cos(w * tt)))
 b.hat = (2/n)*sapply(omega, function(w) sum(y * sin(w * tt)))
-
 Iw = (n/2)*(a.hat^2 + b.hat^2)
 pw = (1 - Iw/sum(y^2))^(1 - n/2)
 
 
+# lambda = seq(2, n, length = length(k))
+# a.hat = (2/n)*sapply(lambda, function(l) sum(y * cos((2*pi)/l * tt)))
+# b.hat = (2/n)*sapply(lambda, function(l) sum(y * sin((2*pi)/l * tt)))
+# Iw = (n/2)*(a.hat^2 + b.hat^2)
+# pl = (1 - Iw/sum(y^2))^(1 - n/2) * (2*pi/(lambda^2))^2
+
+
 lambda = 2*pi/omega
-pl = pw * 2*pi/(lambda^2)
+pl = pw * (2*pi/(lambda^2))^0
 
 
 omega[which.max(pw)]
@@ -46,10 +52,10 @@ lambda[which.max(pl)]
 par(mfrow = c(1,2), mar = c(4.1, 4.1, 2.1, 1.1))
 plot(omega, log(pw), type='l', bty='n', main = "Frequency", ylab = "log posterior",
     cex.main = 2.0, cex.lab = 1.5)
-plot(lambda, log(pl), type='l', bty='n', main = "Period", ylab = "log posterior",
-    cex.main = 2.0, cex.lab = 1.5)
+plot(lambda, log(pl), type='l', bty='n', main = "Period (in 10 minutes)", ylab = "log posterior",
+    cex.main = 2.0, cex.lab = 1.5, xlab = "lambda")
 #plot(lambda/12, log(pl), type='l', bty='n', main = "Period (in years)", ylab = "log posterior",
-#    cex.main = 2.0, cex.lab = 1.5)
+#    cex.main = 2.0, cex.lab = 1.5, xlab = "lambda")
 #dev.off()
 
 # par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
@@ -64,15 +70,21 @@ bb = sample(omega, 100000, replace = TRUE, prob = pp)
 ll = 2*pi/bb
 
 
-plot(table(bb) / length(bb), xlim = c(0, 0.2), bty='n')
+#pdf("./sp_lh.pdf", height = 8, width = 13)
+par(mfrow = c(1,2), mar = c(4.1, 4.1, 2.1, 1.1))
+yy = table(bb) / length(bb)
+xx = as.numeric(names(yy))
+plot(xx, as.numeric(yy), xlim = c(0, pi), type='h', bty='n',
+    xlab = "omega", ylab = "posterior", main = "Frequency",
+    cex.main = 2, cex.lab = 1.5)
 lines(omega, pp, col='red')
 
-plot(table(ll) / length(ll), bty='n')
+yy = table(ll) / length(ll)
+xx = as.numeric(names(yy))
+plot(xx, as.numeric(yy), type='h', bty='n',
+    xlab = "lambda", ylab = "posterior", main = "Period (in 10 minutes)",
+    cex.main = 2, cex.lab = 1.5, bty='n')
 lines(lambda, cc, col='red')
-
-mean(bb)
-range(bb)
-var(bb)
+#dev.off()
 
 as.numeric(names(which.max(table(bb))))
-table(bb)
