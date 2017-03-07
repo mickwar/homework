@@ -9,7 +9,7 @@ n = length(y)
 tt = 1:n
 
 # Plot of data
-pdf("./figs/data.pdf", width = 12, height = 8)
+pdf("./figs/data.pdf", width = 14, height = 8)
 par(mfrow = c(1,2), mar = c(5.1, 4.1, 4.1, 2.1))
 plot(dat, type='o', bty = 'n', axes = FALSE, ylab = "Search Interest",
     xlab = "Time", cex.lab = 1.4, cex.main = 2, main = "Original Data",
@@ -18,7 +18,7 @@ axis(2)
 axis(1, at = x.ind, times[x.ind])
 plot(y, type='o', bty = 'n', axes = FALSE, ylab = "Differences",
     xlab = "Time", cex.lab = 1.4, cex.main = 2, col = 'gray60',
-    main = "First-order difference of search interest",
+    main = "First-order differences",
     )
 axis(2)
 axis(1, at = x.ind, times[x.ind])
@@ -41,7 +41,7 @@ pl = pw * (2*pi/(lambda^2))^0
 omega[which.max(pw)]
 lambda[which.max(pl)]
 
-pdf("./figs/spectral.pdf", width = 12, height = 8)
+pdf("./figs/spectral.pdf", width = 14, height = 8)
 par(mfrow = c(1,2), mar = c(4.1, 4.1, 2.1, 1.1))
 plot(omega, log(pw), type='l', bty='n', main = "Frequency", ylab = "log posterior",
     cex.main = 2.0, cex.lab = 1.5)
@@ -114,9 +114,9 @@ forecast = function(dat, params, h = 12){
 
 # Optimal discount factor
 n = length(dat)
-del = seq(0.501, 1, by = 0.001)
-m0 = dat[1]
-C0 = var(dat)
+del = seq(0.500, 1, by = 0.001)
+m0 = 60
+C0 = 200
 n0 = 1
 d0 = 100
 opd = double(length(del))
@@ -137,7 +137,7 @@ dev.off()
 
 
 out = get.vals(dat, delta = d.max, m0 = m0, C0 = C0, n0 = n0, d0 = d0)
-pdf("./figs/current.pdf", width = 12, height = 8)
+pdf("./figs/current.pdf", width = 14, height = 8)
 par(mfrow = c(1,2), mar = c(5.1, 4.1, 4.1, 2.1))
 plot(dat, bty='n', type='o', ylim = c(0, 120), col = 'gray60',
     xlab = "Time", ylab = "Search interest", cex.lab = 1.4, cex.main = 2,
@@ -174,7 +174,7 @@ dev.off()
 
 h = 12
 ppar = forecast(dat, out, h)
-pdf("./figs/forecast.pdf", width = 12, height = 8)
+pdf("./figs/forecast.pdf", width = 14, height = 8)
 par(mfrow = c(1,2), mar = c(5.1, 4.1, 4.1, 2.1))
 plot(1:(n+h), c(dat, rep(NA, h)), bty='n', type='o', ylim = c(0, 120), col = 'gray60',
     cex.lab = 1.4, cex.main = 2, ylab = "Search Interest", axes = FALSE,
