@@ -8,18 +8,27 @@ y = diff(dat)
 n = length(y)
 tt = 1:n
 
-plot(y, type='l', bty = 'n', axes = FALSE, ylab = "Differences",
-    xlab = "Time", cex.lab = 1.4, cex.main = 2, main = "First-order difference of search interest")
+# Plot of data
+pdf("./figs/data.pdf", width = 12, height = 8)
+par(mfrow = c(1,2), mar = c(5.1, 4.1, 4.1, 2.1))
+plot(dat, type='o', bty = 'n', axes = FALSE, ylab = "Search Interest",
+    xlab = "Time", cex.lab = 1.4, cex.main = 2, main = "Original Data",
+    col = 'gray60')
 axis(2)
 axis(1, at = x.ind, times[x.ind])
-# axis(2)
-# ind = round(seq(1, length(y), length = 6))
-# axis(1, at = ind, labels = times[ind])
+plot(y, type='o', bty = 'n', axes = FALSE, ylab = "Differences",
+    xlab = "Time", cex.lab = 1.4, cex.main = 2, col = 'gray60',
+    main = "First-order difference of search interest",
+    )
+axis(2)
+axis(1, at = x.ind, times[x.ind])
+dev.off()
 
+
+
+# Spectrum
 k = 1:floor(n/2-1/2)
 omega = 2*pi*k/n
-
-# omega = seq(0.001, pi-0.001, length = 1000)
 
 a.hat = (2/n)*sapply(omega, function(w) sum(y * cos(w * tt)))
 b.hat = (2/n)*sapply(omega, function(w) sum(y * sin(w * tt)))
@@ -32,7 +41,7 @@ pl = pw * (2*pi/(lambda^2))^0
 omega[which.max(pw)]
 lambda[which.max(pl)]
 
-pdf("./figs/spectral.pdf", height = 8, width = 12)
+pdf("./figs/spectral.pdf", width = 12, height = 8)
 par(mfrow = c(1,2), mar = c(4.1, 4.1, 2.1, 1.1))
 plot(omega, log(pw), type='l', bty='n', main = "Frequency", ylab = "log posterior",
     cex.main = 2.0, cex.lab = 1.5)
@@ -96,18 +105,11 @@ forecast = function(dat, params, h = 12){
     n = length(dat)
     delta = params$delta
     at.p = rep(params$mt[n], h)
-    Rt.p = double(h+1)
-    Rt.p[1] = params$Ct[n]
-    for (i in 2:(h-1))
-        Rt.p[i] = Rt.p[i-1] + 
-    Rt.p
-
+    Rt.p = (1/delta^(1:h))*params$Ct[n]
     ft.p = rep(params$mt[n], h)
-
-    C_T + (1 - d)/d * C_T = 1/d C_T
-    1/d C_T + 1/d C_T - d/d C_T
-    (2- d)/d C_T + 1/d C_T - C_T
-    
+    Qt.p = Rt.p + params$St[n]
+    return (list("at.p"=at.p, "Rt.p"=Rt.p,
+        "ft.p"=ft.p, "Qt.p"=Qt.p))
     }
 
 # Optimal discount factor
@@ -127,7 +129,7 @@ pdf("./figs/discount.pdf", height = 8, width = 8)
 par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
 plot(del, opd, type='l', ylab = "log observed predictive density", bty = 'n',
     xlab = "Discount Factor" ~ delta, cex.lab = 1.4, cex.main = 2)
-abline(v = del[which.max(opd)], lty = 3, col = 'gray', lwd = 3)
+abline(v = del[which.max(opd)], lty = 2, col = 'gray', lwd = 3)
 dev.off()
 (d.max = del[which.max(opd)])
 
@@ -135,17 +137,8 @@ dev.off()
 
 
 out = get.vals(dat, delta = d.max, m0 = m0, C0 = C0, n0 = n0, d0 = d0)
-par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
-
-plot(dat, bty='n', type='o', ylim = c(0, 120), col = 'gray60',
-    xlab = "Time", ylab = "Search interest", cex.lab = 1.4, cex.main = 2,
-    axes = FALSE, main = ~ y[t] ~ "|" ~ D[t-1] )
-axis(2)
-axis(1, at = x.ind, labels = times[x.ind])
-lines(out$mt, col = 'blue', lwd = 4)
-lines(out$mt + sqrt(out$Qt)*qt(0.975, out$nt-1), col = 'lightblue', lwd = 2)
-lines(out$mt - sqrt(out$Qt)*qt(0.975, out$nt-1), col = 'lightblue', lwd = 2)
-
+pdf("./figs/current.pdf", width = 12, height = 8)
+par(mfrow = c(1,2), mar = c(5.1, 4.1, 4.1, 2.1))
 plot(dat, bty='n', type='o', ylim = c(0, 120), col = 'gray60',
     xlab = "Time", ylab = "Search interest", cex.lab = 1.4, cex.main = 2,
     axes = FALSE, main = ~ theta[t] ~ "|" ~ D[t])
@@ -155,7 +148,19 @@ lines(out$mt, col = 'green', lwd = 3)
 lines(out$mt + sqrt(out$Ct)*qt(0.975, out$nt), col = 'lightgreen', lwd = 2)
 lines(out$mt - sqrt(out$Ct)*qt(0.975, out$nt), col = 'lightgreen', lwd = 2)
 
+plot(dat, bty='n', type='o', ylim = c(0, 120), col = 'gray60',
+    xlab = "Time", ylab = "Search interest", cex.lab = 1.4, cex.main = 2,
+    axes = FALSE, main = ~ y[t] ~ "|" ~ D[t-1] )
+axis(2)
+axis(1, at = x.ind, labels = times[x.ind])
+lines(out$mt, col = 'blue', lwd = 4)
+lines(out$mt + sqrt(out$Qt)*qt(0.975, out$nt-1), col = 'lightblue', lwd = 2)
+lines(out$mt - sqrt(out$Qt)*qt(0.975, out$nt-1), col = 'lightblue', lwd = 2)
+dev.off()
+
 spar = smooth(dat, out)
+pdf("./figs/smooth.pdf", width = 8, height = 8)
+par(mfrow = c(1,1), mar = c(5.1, 4.1, 4.1, 2.1))
 plot(dat, bty='n', type='o', ylim = c(0, 120), col = 'gray60',
     cex.lab = 1.4, cex.main = 2, ylab = "Search Interest", axes = FALSE,
     xlab = "Time", main = ~ theta[t] ~ "|" ~ D[T])
@@ -164,4 +169,39 @@ axis(1, at = x.ind, labels = times[x.ind])
 lines(spar$at.s, col = 'red', lwd = 3)
 lines(spar$at.s + sqrt(spar$Rt.s*out$St[n]/out$St)*qt(0.975, out$nt[n]), col = 'pink', lwd = 2)
 lines(spar$at.s - sqrt(spar$Rt.s*out$St[n]/out$St)*qt(0.975, out$nt[n]), col = 'pink', lwd = 2)
+dev.off()
+
+
+h = 12
+ppar = forecast(dat, out, h)
+pdf("./figs/forecast.pdf", width = 12, height = 8)
+par(mfrow = c(1,2), mar = c(5.1, 4.1, 4.1, 2.1))
+plot(1:(n+h), c(dat, rep(NA, h)), bty='n', type='o', ylim = c(0, 120), col = 'gray60',
+    cex.lab = 1.4, cex.main = 2, ylab = "Search Interest", axes = FALSE,
+    xlab = "Time", main = ~ theta[T+h] ~ "|" ~ D[T])
+axis(2)
+axis(1, at = x.ind, labels = times[x.ind])
+lines(out$mt, col = 'green', lwd = 3)
+lines(out$mt + sqrt(out$Ct)*qt(0.975, out$nt), col = 'lightgreen', lwd = 2)
+lines(out$mt - sqrt(out$Ct)*qt(0.975, out$nt), col = 'lightgreen', lwd = 2)
+lines((n+1):(n+h), ppar$at.p, col = 'darkgreen', lwd = 3)
+lines((n+1):(n+h), ppar$at.p + sqrt(ppar$Rt.p)*qt(0.975, out$nt[n]),
+    col = 'darkgreen', lwd = 2)
+lines((n+1):(n+h), ppar$at.p - sqrt(ppar$Rt.p)*qt(0.975, out$nt[n]),
+    col = 'darkgreen', lwd = 2)
+
+plot(1:(n+h), c(dat, rep(NA, h)), bty='n', type='o', ylim = c(0, 120), col = 'gray60',
+    xlab = "Time", ylab = "Search interest", cex.lab = 1.4, cex.main = 2,
+    axes = FALSE, main = ~ y[T+h] ~ "|" ~ D[T] )
+axis(2)
+axis(1, at = x.ind, labels = times[x.ind])
+lines(out$mt, col = 'blue', lwd = 4)
+lines(out$mt + sqrt(out$Qt)*qt(0.975, out$nt-1), col = 'lightblue', lwd = 2)
+lines(out$mt - sqrt(out$Qt)*qt(0.975, out$nt-1), col = 'lightblue', lwd = 2)
+lines((n+1):(n+h), ppar$ft.p, col = 'darkblue', lwd = 3)
+lines((n+1):(n+h), ppar$ft.p + sqrt(ppar$Qt.p)*qt(0.975, out$nt[n]),
+    col = 'darkblue', lwd = 2)
+lines((n+1):(n+h), ppar$at.p - sqrt(ppar$Qt.p)*qt(0.975, out$nt[n]),
+    col = 'darkblue', lwd = 2)
+dev.off()
 
