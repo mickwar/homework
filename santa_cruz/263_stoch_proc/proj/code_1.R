@@ -4,15 +4,46 @@ dat = read.table("./california_pr_obs19501999.txt", header = TRUE)
 # Get December, January, and February (but not leap day)
 dat.ind = grep("(-12-)|(-01-)|(-02-(?!29))", dat[,1], perl = TRUE)
 
+n = length(dat[,2])
 ndays = 90  # Number of winter days
 nyears = length(dat.ind) / ndays
 
 plot(dat.ind, dat[dat.ind, 2], type='l', xlim = c(0, 800))
 
+plot(dat[,2], type='l', xlim = c(0, 1400))
+
+win = 30
+qq = sapply(1:(n - win), function(i) quantile(dat[i:(i+win), 2], 0.95))
+xx = (1:(n-win)) + floor(win/2)
+
+plot(dat[,2], type='l', xlim = c(0, 1800))
+lines(xx, qq, col = 'red')
+
+
+
+X = cbind(1, cos(2*pi/365*xx), sin(2*pi/365*xx))
+bhat = solve(t(X) %*% X) %*% t(X) %*% log(qq)
+pred.x = 1:n
+pred.y = exp(cbind(1, cos(2*pi/365*pred.x), sin(2*pi/365*pred.x)) %*% bhat)
+plot(dat[,2], type='l', xlim = c(1500, 3000))
+plot(dat[,2], type='l', xlim = c(0, 1500))
+lines(xx, qq, col = 'red')
+lines(pred.x, pred.y, col = 'darkgreen', lwd = 3)
+
+plot(dat[,2] - pred.y, xlim = c(0, 1500))
+new.ind = which(dat[,2] - pred.y > 0)
+plot(density(dat[new.ind, 2]))
+
+length(new.ind)
+
+plot(xx, log(qq), xlim = c(0, 1500), type='l')
+lines(pred.x, log(pred.y), col = 'darkgreen', lwd = 3)
+
+
 winter = dat[dat.ind, 2]
 
-winter = exp(rnorm(4500))
-winter = runif(4500)
+#winter = exp(rnorm(4500))
+#winter = runif(4500)
 
 threshold = as.vector(quantile(winter, 0.95))
 ind = which(winter > threshold)
@@ -79,7 +110,7 @@ ZZ = apply(param.star, 1,
 Zm = apply(ZZ, 1, mean)
 Zq = apply(ZZ, 1, quantile, c(0.025, 0.975))
 
-color = "black"
+color = "dodgerblue"
 
 par(mfrow = c(1, 1), mar = c(5.1, 4.1, 4.1, 2.1))
 xaxis = NULL
@@ -106,11 +137,12 @@ lines(log(return.period), Zq[2,],
 
 points(log(tail(1/((y$n:1)/(y$n+1)) / ndays, y$n_u)),
     y$threshold + sort(y$exceed), pch = 16,
-    col = col_fade("green", 0.5), type='o')
+    col = col_fade("black", 0.7), type='o')
 
 
 
 
 pred = (runif(length(squig))^(-ksi) - 1) * squig / ksi
 hist(y$exceed, col = 'gray', breaks = 20, freq = FALSE)
-lines(density(pred), col = 'green', lwd = 3)
+lines(density(pred, n = 10000), col = 'green', lwd = 3)
+
