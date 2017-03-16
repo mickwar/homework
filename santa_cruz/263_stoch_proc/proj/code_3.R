@@ -31,6 +31,15 @@ dat = list("y" = y, "threshold" = pred.y, "ind" = ind, "nyears" = nyears,
     "exceed" = (y - pred.y)[ind])
 
 
+length(ind) / n
+
+# number of exceedances by month
+plot(table(substr(tt[ind], 5, 8)))
+
+# number of exceedances by year
+plot(table(substr(tt[ind], 1, 4)))
+
+
 
 calc.post = function(dat, params){
     y = dat$y[dat$ind]
@@ -86,22 +95,99 @@ calc.post = function(dat, params){
     return (out)
     }
 
+
 out = mcmc_sampler(dat, calc.post, 9, nburn = 50000, nmcmc = 50000,
     chain_init = double(9))
 
 mean(out$accept)
-plot(out$params[,6], type='l')
+par(mfrow = c(3,3), mar = c(4.1, 2.1, 2.1,1.1))
+for (i in 1:9)
+    plot(out$params[,i], type='l', bty = 'n')
+par(mfrow = c(1, 1), mar = c(5.1, 4.1, 4.1, 2.1))
 
+
+### Plots of the time-vary parameters
 mu_vec = apply(out$params[,1:3], 1,
-    function(p) p[1] + p[2]*cos(2*pi/365*1:365) + p[3]*sin(2*pi/365*1:365))
+    function(p) p[1] + p[2]*cos(2*pi/365.25*1:365) + p[3]*sin(2*pi/365.25*1:365))
 sig_vec = apply(out$params[,4:6], 1,
-    function(p) exp(p[1] + p[2]*cos(2*pi/365*1:365) + p[3]*sin(2*pi/365*1:365)))
+    function(p) exp(p[1] + p[2]*cos(2*pi/365.25*1:365) + p[3]*sin(2*pi/365.25*1:365)))
 ksi_vec = apply(out$params[,7:9], 1,
-    function(p) p[1] + p[2]*cos(2*pi/365*1:365) + p[3]*sin(2*pi/365*1:365))
+    function(p) p[1] + p[2]*cos(2*pi/365.25*1:365) + p[3]*sin(2*pi/365.25*1:365))
 
-plot(1:365, apply(mu_vec, 1, mean))
-plot(1:365, apply(sig_vec, 1, mean))
-plot(1:365, apply(ksi_vec, 1, mean))
+tvar_mu = rbind(apply(mu_vec, 1, mean), apply(mu_vec, 1, quantile, c(0.025, 0.975)))
+tvar_sig = rbind(apply(sig_vec, 1, mean), apply(sig_vec, 1, quantile, c(0.025, 0.975)))
+tvar_ksi = rbind(apply(ksi_vec, 1, mean), apply(ksi_vec, 1, quantile, c(0.025, 0.975)))
+
+plot(1:365, tvar_mu[1,], lwd = 3, ylim = range(tvar_mu), cex.main = 2,
+    main = expression(mu), axes = FALSE, xlab = "", ylab = "")
+lines(1:365, tvar_mu[2,])
+lines(1:365, tvar_mu[3,])
+abline(v = seq(1, 365, length = 13), lty = 2, col = 'gray')
+axis(2)
+axis(1, 15 + seq(1, 335, length = 12), month.abb, lwd = 0)
+
+plot(1:365, tvar_sig[1,], lwd = 3, ylim = range(tvar_sig), cex.main = 2,
+    main = expression(sigma), axes = FALSE, xlab = "", ylab = "")
+lines(1:365, tvar_sig[2,])
+lines(1:365, tvar_sig[3,])
+abline(v = seq(1, 365, length = 13), lty = 2, col = 'gray')
+axis(2)
+axis(1, 15 + seq(1, 335, length = 12), month.abb, lwd = 0)
+
+plot(1:365, tvar_ksi[1,], lwd = 3, ylim = range(tvar_ksi), cex.main = 2,
+    main = expression(xi), axes = FALSE, xlab = "", ylab = "")
+lines(1:365, tvar_ksi[2,])
+lines(1:365, tvar_ksi[3,])
+abline(v = seq(1, 365, length = 13), lty = 2, col = 'gray')
+axis(2)
+axis(1, 15 + seq(1, 335, length = 12), month.abb, lwd = 0)
+
+
+### Diagnostic plots
+k = length(ind)
+stand_y = matrix(0, k, nrow(out$params))
+for (i in 1:k){
+    tmp_mu = out$params[,1] + out$params[,2]*cos(2*pi/365.25*ind[i]) +
+        out$params[,3]*sin(2*pi/365.25*ind[i])
+    tmp_sig = exp(out$params[,4] + out$params[,5]*cos(2*pi/365.25*ind[i]) +
+        out$params[,6]*sin(2*pi/365.25*ind[i]))
+    tmp_ksi = out$params[,7] + out$params[,8]*cos(2*pi/365.25*ind[i]) +
+        out$params[,9]*sin(2*pi/365.25*ind[i])
+    tmp_squig = tmp_sig + tmp_ksi*(pred.y[ind[i]] - tmp_mu)
+
+    stand_y[i,] = 1/tmp_ksi*log(1 + tmp_ksi*(y[ind[i]] - pred.y[ind[i]])/tmp_squig)
+    }
+
+# Probability plot
+y_mm1 = apply(1-exp(-stand_y), 1, mean)
+y_qq1 = apply(1-exp(-stand_y), 1, quantile, c(0.025, 0.975))
+ord = order(y_mm)
+
+plot((1:k)/(k+1), y_mm1[ord])
+lines((1:k)/(k+1), y_qq1[1, ord])
+lines((1:k)/(k+1), y_qq1[2, ord])
+abline(0, 1)
+
+# Quantile plot
+y_mm2 = apply(stand_y, 1, mean)
+y_qq2 = apply(stand_y, 1, quantile, c(0.025, 0.975))
+ord = order(y_mm)
+
+plot(-log(1-(1:k)/(k+1)), y_mm2[ord], ylim = range(y_qq2))
+lines(-log(1-(1:k)/(k+1)), y_qq2[1, ord])
+lines(-log(1-(1:k)/(k+1)), y_qq2[2, ord])
+abline(0, 1)
+
+
+### Return levels
+# 5-, 10-, 20-, 50-year at the 15th of every month.
+mid = round(seq(15, 350, length = 12))
+
+
+
+
+
+
 
 plot(pred.y[1:365])
 
