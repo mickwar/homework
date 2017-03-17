@@ -6,6 +6,18 @@ y = tmp[,2]
 n = length(y)
 nyears = 50
 
+
+# tmp = substr(tt, 5, 10)
+# tmp = unique(tmp)[-366]
+# qq = double(365)
+# for (i in 1:365)
+#     qq[i] = quantile(y[grep(tmp[i], tt)], 0.95)
+# xx = 1:365
+# plot(xx, qq)
+    
+
+
+
 plot(y, type='l', xlim = c(0, 1400))
 
 win = 30
@@ -15,15 +27,26 @@ xx = (1:(n-win)) + floor(win/2)
 plot(y, type='l', xlim = c(0, 1800))
 lines(xx, qq, col = 'red')
 
-X = cbind(1, cos(2*pi/365.25*xx), sin(2*pi/365.25*xx))
+make.X = function(x, p = 1){
+    out = matrix(1, length(x), 1)
+    for (i in 1:p){
+        out = cbind(out, cos(2*pi/(365.25/i)*x), sin(2*pi/(365.25/i)*x))
+        }
+    return (out)
+    }
+
+p = 1
+X = make.X(xx, p)
 bhat = solve(t(X) %*% X) %*% t(X) %*% log(qq)
 pred.x = 1:n
-pred.y = exp(cbind(1, cos(2*pi/365.25*pred.x), sin(2*pi/365.25*pred.x)) %*% bhat)
-plot(y, type='l', xlim = c(1500, 3000))
+pred.y = exp(make.X(pred.x, p) %*% bhat)
+plot(y, type='l', xlim = c(1, 1000))
 lines(xx, qq, col = 'red')
 lines(pred.x, pred.y, col = 'darkgreen', lwd = 3)
+abline(v = seq(1, 365, length = 13), lty = 2, col = 'gray')
 
 plot(y - pred.y, xlim = c(0, 1500))
+abline(h = 0)
 ind = which(y - pred.y > 0)
 plot(density(y[ind]))
 
@@ -31,13 +54,21 @@ dat = list("y" = y, "threshold" = pred.y, "ind" = ind, "nyears" = nyears,
     "exceed" = (y - pred.y)[ind])
 
 
+# should be approximately uniform
+hist(ind / n)
+
+
+
 length(ind) / n
 
+# number of exceedances by day/month
+plot(table(substr(tt[ind], 5, 10)) / length(ind))
+
 # number of exceedances by month
-plot(table(substr(tt[ind], 5, 8)))
+plot(table(substr(tt[ind], 5, 8)) / length(ind))
 
 # number of exceedances by year
-plot(table(substr(tt[ind], 1, 4)))
+plot(table(substr(tt[ind], 1, 4)) / length(ind))
 
 
 
@@ -161,8 +192,8 @@ for (i in 1:k){
 # Probability plot
 y_mm1 = apply(1-exp(-stand_y), 1, mean)
 y_qq1 = apply(1-exp(-stand_y), 1, quantile, c(0.025, 0.975))
-ord = order(y_mm)
 
+ord = order(y_mm1)
 plot((1:k)/(k+1), y_mm1[ord])
 lines((1:k)/(k+1), y_qq1[1, ord])
 lines((1:k)/(k+1), y_qq1[2, ord])
@@ -171,8 +202,8 @@ abline(0, 1)
 # Quantile plot
 y_mm2 = apply(stand_y, 1, mean)
 y_qq2 = apply(stand_y, 1, quantile, c(0.025, 0.975))
-ord = order(y_mm)
 
+ord = order(y_mm2)
 plot(-log(1-(1:k)/(k+1)), y_mm2[ord], ylim = range(y_qq2))
 lines(-log(1-(1:k)/(k+1)), y_qq2[1, ord])
 lines(-log(1-(1:k)/(k+1)), y_qq2[2, ord])
@@ -182,9 +213,13 @@ abline(0, 1)
 ### Return levels
 # 5-, 10-, 20-, 50-year at the 15th of every month.
 mid = round(seq(15, 350, length = 12))
+zeta = matrix(0, nrow(out$params), 365)
 
+for (i in 1:365)
+    zeta[,i] = (1 + ksi_vec[i,] * 
+        (pred.y[i] - mu_vec[i,]) / sig_vec[i,]) ^ (-1/ksi_vec[i,])
 
-
+range(colMeans(zeta))
 
 
 
