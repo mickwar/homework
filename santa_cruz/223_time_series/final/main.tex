@@ -1,0 +1,135 @@
+\documentclass[12pt]{article}
+
+\usepackage{float}
+\usepackage{dsfont}
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\usepackage[font=footnotesize,labelfont=bf]{caption}
+
+\usepackage{bm}
+\newcommand{\m}[1]{\mathbf{\bm{#1}}}
+\newcommand{\R}{I\hspace{-4.4pt}R}
+
+\begin{document}
+
+\noindent AMS 223
+
+\noindent Final --- UCSC Google Trend Data
+
+\noindent Mickey Warner
+
+\subsection*{Polynomial trend model}
+
+\noindent The midterm considered the model $\mathcal{M}_0=\{1,1,v,vW_t\}$. This model failed to capture any linear trend or seasonal components in the forecast function. We now consider $\mathcal{M}_1=\{\m{F}, \m{G}, v, v\m{W}_t\}$, where
+\begin{eqnarray*}
+\m{F} &=& (\m{E}_2^\top, \m{E}_2^\top, \m{E}_2^\top, \m{E}_2^\top, \m{E}_2^\top, \m{E}_2^\top, 1)^\top \\
+\m{G} &=& \mathrm{blockdiag}\left(\left(\begin{array}{cc} 1 & 1 \\ 0 & 1 \end{array} \right), \m{G}_1, \m{G}_2, \m{G}_3, \m{G}_4, \m{G}_5, -1 \right)
+\end{eqnarray*}
+\noindent with
+\begin{eqnarray*}
+\m{E}_2 &=& (1, 0)^\top \\
+\m{G}_j &=& \left(\begin{array}{cc} cos(2\pi j/p) & sin(2\pi j/p) \\ -sin(2\pi j/p) & cos(2\pi j/p) \end{array}\right)
+\end{eqnarray*}
+\noindent where $p=12$ is the fundamental period. The first two elements of $\m{F}$ correspond to the second-order polynomial trend (which results in the first-order trend in the forecast), and the remaining 11 elements are for the seasonal components. The $\m{G}$ matrix is similar. We also let $\m{W}_t$ be specified using a discount factor $\delta$, $\m{W}_t=(1-\delta)/\delta\m{G}\m{C}_{t-1}\m{G}^\top$. $\m{C}_{t-1}$ is the prior scaling matrix for $\m{\theta}_{t-1}|\mathcal{D}_{t-1}$.
+\bigskip
+
+\noindent We use the following priors
+\begin{eqnarray*}
+\m{\theta}_0|\mathcal{D}_0 &\sim& T_{n_0}(\m{m}_0, \m{C}_0) \\
+v|\mathcal{D}_0 &\sim& IG(n_0/2,d_0/2)
+\end{eqnarray*}
+\noindent with $\m{m}_0=(60, \m{0}_{12}^\top)^\top$, $\m{C}_0=200\m{I}_{13}$, $n_0=1$, and $d_0=100$.These are comparable to the priors I used for $\mathcal{M}_0$ and should be fairly noninformative. Posteriors are obtainined using FFBS.
+
+\subsection*{Analysis}
+
+\noindent The discount factor $\delta$ is selected by maximizing the observed predictive density
+\[ p_1(\m{y}|\mathcal{D}_0) = \prod_{t=1}^T p_1(y_t|\mathcal{D}_{t-1}) \]
+\noindent The subscript $1$ denotes we are working under $\mathcal{M}_1$. We evaluate $\log p_1(\m{y}|\mathcal{D}_0)$ on the grid $\delta=\{0.800, 0.801,\ldots,1.000\}$. The plot of $\delta$ vs. $\log p_1(\m{y}|\mathcal{D}_0)$ is given in Figure 1. The vertical line marks where the maximum occurs, at $\hat{\delta}_1=0.945$, our selected discount factor. Note, $\log p_1(\m{y}|\mathcal{D}_0)=-478.9$, at $\hat{\delta}_1$.
+\bigskip
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.34]{figs/m1_discount.pdf}
+\end{center}
+\caption{The log observered predictive density evaluated across several $\delta\in[0,1]$. The dashed line indicates where the maximum occurs, at $\hat{\delta}_1=0.945$.}
+\end{figure}
+
+\noindent The one-step ahead distribution $y_t|\mathcal{D}_{t-1}$ is summarized in Figure 2. A five-year forecast is shown in Figure 3. The marginal filtering distributions for the trend and the seasonal components (i.e. $\theta_{t,1}$ and $\theta_{t,3}, \theta_{t,5}, \theta_{t,7}, \theta_{t,9}, \theta_{t,11}$ conditioned on $\mathcal{D}_t$) are given in Figure 4. The smoothing distributions (i.e. conditioned on $\mathcal{D}_T$) are in given in Figure 5.
+\bigskip
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.37]{figs/m1_onestep.pdf}
+\end{center}
+\caption{The gray dots mark the data. The thick red line is the mean forecast function and the thin dashed lines are 95\% credible intervals for $\mathcal{M}_1$.}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.37]{figs/m1_forecast.pdf}
+\end{center}
+\caption{The five-year forecast for $\mathcal{M}_1$, for $h=1,\ldots,60$. The vertical line marks where the data end, picking up at the end of the plot in Figure 2.}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.40]{figs/m1_components.pdf}
+\end{center}
+\caption{The trend and seasonal components for $\mathcal{M}_1$. The little numbers in the top right for the harmonic plots indicate the proportion of times the upper bound from the 95\% interval fell below zero. The little numbers in the bottom right are for the lower bound going above zero.}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.40]{figs/m1_smooth_components.pdf}
+\end{center}
+\caption{Same as in Figure 4, but for the smoothing distributions.}
+\end{figure}
+
+\newpage
+\noindent The forecast distribution seems to be much more reasonable than what we saw from $\mathcal{M}_0$ which was constant for all $t>T$. The forecast in $\mathcal{M}_1$ continues the downward trend that we're seeing in the data as well as the cyclical behavior. A deficiency in our forecast function (and our model) is that we do not account for the bounds. If this forecast function were to have its way, we would see the search interest for UCSC fall to oblivion, being not worth more than a bare mention.
+\bigskip
+
+\noindent Consider the distribution of the harmonics given in Figure 5. We see that harmonics 1, 2, and 5, have 95\% intervals that cross zero at least 30\% of the time (marked by the little numbers on the right side of the plots). Harmonic 4 rarely cross zero, suggesting that it is unimportant since it may as well be a straight line. Harmonic 3 crosses zero about 17\% of the time, providing some evidence that this harmonic is unimportant. We discard harmonics 3 and 4 and perform the analysis.
+\bigskip
+
+\noindent The reduced model has a similar $\m{F}$ and $\m{G}$ except in $\m{F}$ the fourth and fifth $\m{E}_2^\top$ are omitted and $\m{G}_3$ and $\m{G}_4$ are omitted from $\m{G}$. We obtain a discount factor of $\hat{\delta}_2=0.952$ which evaluates to a log observed predictive density at $\log p_2(\m{y}|\mathcal{D}_0)=-482.3$, $3.4$ less than that of $\mathcal{M}_1$. The summary of distributions in Figure 6 through 9 are highly comparable to those from $\mathcal{M}_1$.
+\bigskip
+
+\noindent Since the removal of harmonics 3 and 4 result in only a small decrease in the log observed predictive density, we would say that the reduced model $\mathcal{M}_2$ is as useful as $\mathcal{M}_1$.
+
+\newpage
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.37]{figs/m2_onestep.pdf}
+\end{center}
+\caption{The gray dots mark the data. The thick red line is the mean forecast function and the thin dashed lines are 95\% credible intervals for $\mathcal{M}_2$.}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.37]{figs/m2_forecast.pdf}
+\end{center}
+\caption{The five-year forecast for $\mathcal{M}_2$, for $h=1,\ldots,60$. The vertical line marks where the data end, picking up at the end of the plot in Figure 6.}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.40]{figs/m2_components.pdf}
+\end{center}
+\caption{The trend and seasonal components for $\mathcal{M}_2$. The little numbers in the top right for the harmonic plots indicate the proportion of times the upper bound from the 95\% interval fell below zero. The little numbers in the bottom right are for the lower bound going above zero.}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.40]{figs/m2_smooth_components.pdf}
+\end{center}
+\caption{Same as in Figure 8, but for the smoothing distributions.}
+\end{figure}
+
+\newpage
+
+\subsection*{Algorithm for fitting $\mathcal{M}_3}
+
+
+\end{document}

@@ -163,7 +163,7 @@ plot(del, opd, type='l', ylab = "log observed predictive density", bty = 'n',
     xlab = "Discount Factor" ~ delta, cex.lab = 1.4, cex.main = 2)
 abline(v = del[which.max(opd)], lty = 2, col = 'gray', lwd = 3)
 points(d.max, max(opd), pch = 16)
-text(d.max+0.01, max(opd) + 0.5, round(max(opd), 2))
+text(d.max+0.02, max(opd) + 1.0, round(max(opd), 2), cex = 2.0)
 dev.off()
 
 out = get.vals(dat, delta = d.max, m0 = m0, C0 = C0, n0 = n0, d0 = d0)
