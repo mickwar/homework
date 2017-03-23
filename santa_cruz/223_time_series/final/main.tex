@@ -129,7 +129,31 @@ v|\mathcal{D}_0 &\sim& IG(n_0/2,d_0/2)
 
 \newpage
 
-\subsection*{Algorithm for fitting $\mathcal{M}_3}
+\subsection*{Algorithm for fitting $\mathcal{M}_3$}
 
+\noindent Model $\mathcal{M}_3$ is as follows:
+\begin{align*}
+y_t &= \alpha + \beta t + x_t + \epsilon_t,~~~~~\epsilon_t \sim N(0, v), \\
+x_t &= \sum_{j=1}^q\phi_j x_{t-j} + \nu_t,~~~~~\nu_t \sim N(0, 30)
+\end{align*}
+\noindent with $\alpha \sim N(0, vw)$, $\beta\sim N(0, vw)$, and $v$, $w$ unknown and $q$ known.
+\bigskip
+
+\noindent The conjugate prior for $v$ is the inverse gamma, $v\sim IG(a_v, b_v)$, as well as for $w$, $w\sim IG(a_w, b_w)$. We let $x_{1-j}\sim N(m_j, C_j)$, for $j=1,\ldots,q$ be the priors for $x_0,x_{-1},\ldots,x_{1-q}$. Since $\m{\phi}$ are (conditional on $\m{x}$) AR coefficients, a good prior to use is $\m{\phi}\sim N(\m{m}_\phi, \m{C}_\phi)$, subject to being in the stationary region.
+\bigskip
+
+\noindent We obtain posterior samples for $(x_{1:T}, \alpha, \beta, \m{\phi}, v, w)$ with the following algorithm.
+\begin{enumerate}
+\item Initialize $(x_{1:T}^{(0)}, \m{\phi}^{(0)}, v^{(0)}, w^{(0)})$. Set $i=0$.
+\item Increment $i$ by 1.
+\item Sample $(\alpha^{(i)}, \beta^{(i)})^\top=\m{\mu}^{(i)}$ from
+
+$\pi(\m{\mu}|\cdot) \propto N(\m{y}-\m{x}^{(i-1)}|\m{Z}_T\m{\mu}, v^{(i-1)}\m{I}_T)N(\m{0}, v^{(i-1)}w^{(i-1)}\m{I}_2)$, where the rows of $\m{Z}_T$ are $(1, t)$, for $t=1,\ldots,T$.
+\item Sample $v^{(i)}$ from $v|\cdot \sim IG\left(a_v, b_v + \frac{1}{2}(K + (\alpha^{(i)})^2/w^{(i-1)} + (\beta^{(i)})^2/w^{(i-1)})\right)$ where $K=(\m{y}-\m{x}^{(i-1)}-\m{Z}_T\m{\mu}^{(i)})^\top(\m{y}-\m{x}^{(i-1)}-\m{Z}_T\m{\mu}^{(i)})$.
+\item Sample $w^{(i)}$ from $w|\cdot \sim IG\left(a_w, b_w + \frac{1}{2}((\alpha^{(i)})^2/v^{(i)} + (\beta^{(i)})^2/v^{(i)})\right)$.
+\item Since, conditional on $\m{\phi}^{(i-1)}$, we have a DLM, then we sample from $\m{x}^{(i)}$ using FFBS. Use the recursion formulas to get $\pi(x_t|\mathcal{D}_t,\cdot)$, then obtain the smoothing distributions $\pi(x_t|\mathcal{D}_T,\cdot)$, for $t=T:1$. Sample $x_t^{(i)}$ from $\pi(x_t|\mathcal{D}_T,\cdot)$, where $(\cdot)$ denotes the most recent samples from the other parameters.
+\item Sample $\m{\phi}^{(i)}$ using a Metropolis-Hastings step. The function used in the M-H ratio is $\pi(\m{\phi}|\m{x},\cdot)\propto \pi(\m{\phi})\prod_{t=1}^T N(x_t|\sum_{i=1}^j\phi_j x_{t-j}, 30)$
+\item Go to step 2 until $i=B$, for some large $B$.
+\end{itemize}
 
 \end{document}
