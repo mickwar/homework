@@ -3,6 +3,7 @@
 \usepackage{float}
 \usepackage{dsfont}
 \usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{graphicx}
 
 \usepackage[font=footnotesize,labelfont=bf]{caption}
@@ -13,7 +14,7 @@
 
 \begin{document}
 
-\noindent AMS 263
+\noindent AMS 263 --- Stochastic Processes
 
 \noindent Mickey Warner
 \bigskip
@@ -26,146 +27,129 @@ California precipitation extremes during 1950--1999
 
 \section*{Introduction}
 
+\subsection*{Precipitation data}
+
+\noindent In this report we analyze the extreme behavior of daily total precipitation in California from 1950 through 1999. The data are taken from Ed Maurer's website at http://www.engr.scu.edu/$\sim$emaurer/data.shtml. Data are collected from various weather stations across the United States and then interpolated to obtain daily values on a fine grid (about $1/8^\circ$ spacing). Data are shown in Figure 1.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.40]{../figs/data.pdf}
+\end{center}
+\caption{Daily total precipitation in California for the years 1950 through 1955.}
+\end{figure}
+
+\subsection*{Some extreme value theory}
+
+\noindent Our goal is to characterize the extreme behavior in the process determining precipitation. Extreme value theory yields the following theorem relating large values of random variables and the Poisson process.
+\bigskip
+
+\noindent \textbf{Theorem.} Let $X_1,\ldots,X_n$ be a series of independent and identically distributed random variables, and let
+\[ N_n = \{(i/(n+1), X_i):i=1,\ldots,n\}. \]
+\noindent Then, for sufficiently large $u$, on regions of the form $(0,1)\times[u,\infty)$, $N_n$ is approximately a Poisson process with intensity measure on $A=[t_1,t_2]\times(z,\infty)$ given by
+\[ \Lambda(A) = (t_2-t_1)\left[1+\xi\left(\frac{z-\mu}{\sigma}\right)\right]^{-1/\xi}. \]
+\qed
+\bigskip
+
+\noindent For a given $u$, letting $A=(0,1)\times[u,\infty)$ and re-labeling the observations that fall in $A$ as $(t_1,x_1,\ldots,t_{N(A)},x_{N(A)})$, it can be shown that likelihood is given by
+\[ L \propto \exp\left\{-n_y\left[1+\xi\left(\frac{u-\mu}{\sigma}\right)\right]^{-\frac{1}{\xi}}\right\}\prod_{i=1}^{N(A)}\frac{1}{\sigma}\left[1+\xi\left(\frac{x_i-\mu}{\sigma}\right)\right]^{-\frac{1}{\xi}-1} \]
+\noindent where $n_y$ is the number of years of observation (here $n_y=50$), so that the parameters correspond to the annual maximum distribution.
+\bigskip
+
+\noindent The value $u$ is called the threshold and variables exceeding $u$ are called extreme. Care must be taken when selecting $u$: too low and the approximation to the Poisson process may be unreasonable, too high and there may be too few data points to obtain reasonable estimates for the parameters $(\mu, \sigma, \xi)$.
+\bigskip
+
+\noindent The most important parameter in an extreme value setting is $\xi$. $\xi$ describes the tail behavior. When $\xi<0$, there is an upper bound at $z^*=\mu-\sigma/\xi$. When $\xi\geq 0$, then the first $\lfloor{1/\xi-1}\rfloor$ moments exist. This means that when $\xi>1$, we have no moments, or a long right tail.
+
 \section*{Methods}
+
+\noindent The data shown in Figure 1 clearly exhibit a periodic pattern: unsurprisingly, we observe more precipitation in the winter months than we do in the summer months. This present at least two options. First, since the kind of precipitation levels we need to be concerned about (on a practical level) will be occurring during the winter, we could simply perform the analysis on the winter data only. In this case, we may expect independent and identically distributed random variables, a useful assumption.
+\bigskip
+
+\noindent The second option is to perform the analysis with time-varying aspects in the model. This is the approach we take here. As we will see, option one may be preferable, but I believe the second option can highlight some crucial (and perhaps unnecessary) difficulties with the time-varying model.
+
+\subsection*{Threshold selection}
+
+\noindent Our first task is to select a threshold that depends on time $u_t$. To do this, we take a ``moving quantile'' across the data points. We compute the $95\%$ quantile of the observations in a window of size $30$. We then fit a regression with annual and semi-annual periods on the log of the observed quantiles. Exponentiating the mean of the regression gives us our time-varying threshold, shown in blue in Figure 2.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.30]{../figs/threshold.pdf}
+\end{center}
+\caption{California precipitation data with time-varying threshold.}
+\end{figure}
+
+\noindent A valid threshold for independent observations should yield exceedances that occur roughly uniformly across time. Figure 3 shows the frequency of exceedances by month and by year. Clearly, some years contribute the most in exceedances (1982, 1983, and 1998). 
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.30]{../figs/exceedance_loc.pdf}
+\end{center}
+\caption{Rate of exceedance by month (left) and year (right).}
+\end{figure}
+
+\subsection*{Parameter estimation}
+
+\noindent We also assume that $\mu$, $\log \sigma$, and $\xi$ all have an annual cycle. For time $t$, we define $\mu_t = \beta_0 + \beta_1 \cos(2\pi/365*t) + \beta_2\sin(2\pi/365*t)$. Similar forms are assumed for $\log \sigma$ and $\xi$.
+\bigskip
+
+\noindent Normal(0, $100^2$) priors are placed on each of the coefficients for $\mu_t$, $\log \sigma_t$, and $\xi_t$. Posterior samples are easily obtained using standard MCMC algorithms.
+
+\subsection*{Return levels}
+
+\noindent Denoting $z_m$ to be the $m$-year return level, and letting $n$ be the number of observations in a year, $z_m$ satisifes the equation
+\[ 1-\frac{1}{m}=\Pr\{\max(X_1,\ldots,X_n)\leq z_m\} \approx \prod_{i=1}^n p_i, \]
+\noindent where $p_i=1-n^{-1}[1+\xi_i(z_m-\mu_i)/\sigma_i]_+^{-1/\xi_i}$. The value $z_m$ is interpreted as the level we expect to see the maximum exceed on average once every $m$ observations. When the process is stationary (as we might assume if we look at winter only data), then solving for $z_m$ is straightforward.
+\bigskip
+
+\noindent We can obtain posterior samples for $z_m$ in the non-stationary process by plugging in our posterior samples of $(\mu_i,\sigma_i,\xi_i)$ to $p_i$ and repeatedly solving for $z_m$. What we do here, however, is calculate the return level for a specific day in the year, thus solving for $z_m^{(t)}$ in
+\[ 1 - \frac{1}{m} = \Pr(X_t \leq z_m^{(t)}) = 1 - [1 + \xi_t(z_m^{(t)}-\mu_t)/\sigma_t]^{-1/\xi_t},~~~~~t=1,\ldots,365 \]
+\noindent for which posterior samples are easily obtained.
 
 \section*{Results}
 
+\noindent Posterior distributions over a one-year time spawn are shown in Figure 4. There appears to be some evidence that $\xi$ need not be explained with time-varying components, as a horizontal line can pass through between the lower and upper 95\% bounds. The estimates for $\mu$ seem to be counterintuitive. We expected to see that $\mu$ is greater in the winter months, suggesting perhaps that either our formulation for $\mu_t$ is invalid, or we have selected a poor choice of threshold $u_t$.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.22]{../figs/post_mu.pdf}
+\includegraphics[scale=0.22]{../figs/post_sig.pdf}
+\includegraphics[scale=0.22]{../figs/post_ksi.pdf}
+\end{center}
+\caption{Posterior mean and 95\% credible bounds for $(\mu_t,\sigma_t,\xi_t)$, for $t=1,\ldots,365$. The vertical lines divide the region into months.}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.30]{../figs/return10.pdf}
+\includegraphics[scale=0.30]{../figs/return20.pdf}
+\includegraphics[scale=0.30]{../figs/return50.pdf}
+\end{center}
+\caption{Return levels for each day in the year. The black region in each plot denotes the 95\% return level. The colored dots are the 10 largest observations for that given day (across all years), ranging from red (10th largest) to purple (largest). A black line connects the largest observations at each day.}
+\end{figure}
+
+\noindent In Figure 5 we show the $10$-, $20$-, and $50$-year return levels for each day in the year. The black region denotes the return levels in each plot. What we should see is that as $m$ rises, the mean return level becomes greater as well as the uncertainty around that level. We do see an increase in the mean, but the uncertainty is clearly not growing, and in fact may be on the decline.
+\bigskip
+
+\noindent At this point, we find our results highly suspect since we should at least expect the $50$- year return level to be in the same region as the largest observations by day because we span 50 years of data. Our return level is too much below this and our uncertainty bounds are far too narrow. Additionally, segments of our $10$-year and $20$-year go below zero, which should not happen.
+
 \section*{Conclusion}
 
-
-\noindent The midterm considered the model $\mathcal{M}_0=\{1,1,v,vW_t\}$. This model failed to capture any linear trend or seasonal components in the forecast function. We now consider $\mathcal{M}_1=\{\m{F}, \m{G}, v, v\m{W}_t\}$, where
-\begin{eqnarray*}
-\m{F} &=& (\m{E}_2^\top, \m{E}_2^\top, \m{E}_2^\top, \m{E}_2^\top, \m{E}_2^\top, \m{E}_2^\top, 1)^\top \\
-\m{G} &=& \mathrm{blockdiag}\left(\left(\begin{array}{cc} 1 & 1 \\ 0 & 1 \end{array} \right), \m{G}_1, \m{G}_2, \m{G}_3, \m{G}_4, \m{G}_5, -1 \right)
-\end{eqnarray*}
-\noindent with
-\begin{eqnarray*}
-\m{E}_2 &=& (1, 0)^\top \\
-\m{G}_j &=& \left(\begin{array}{cc} cos(2\pi j/p) & sin(2\pi j/p) \\ -sin(2\pi j/p) & cos(2\pi j/p) \end{array}\right)
-\end{eqnarray*}
-\noindent where $p=12$ is the fundamental period. The first two elements of $\m{F}$ correspond to the second-order polynomial trend (which results in the first-order trend in the forecast), and the remaining 11 elements are for the seasonal components. The $\m{G}$ matrix is similar. We also let $\m{W}_t$ be specified using a discount factor $\delta$, $\m{W}_t=(1-\delta)/\delta\m{G}\m{C}_{t-1}\m{G}^\top$. $\m{C}_{t-1}$ is the prior scaling matrix for $\m{\theta}_{t-1}|\mathcal{D}_{t-1}$.
+\noindent In this project, we attempted to model daily extreme total precipitation over California using time-varying threshold and parameters. Part of the reason in this choice over a standard stationary model for a specified season was for the model flexibility. The unifying aspect of looking at all easons together was also desirable.
 \bigskip
 
-\noindent We use the following priors
-\begin{eqnarray*}
-\m{\theta}_0|\mathcal{D}_0 &\sim& T_{n_0}(\m{m}_0, \m{C}_0) \\
-v|\mathcal{D}_0 &\sim& IG(n_0/2,d_0/2)
-\end{eqnarray*}
-\noindent with $\m{m}_0=(60, \m{0}_{12}^\top)^\top$, $\m{C}_0=200\m{I}_{13}$, $n_0=1$, and $d_0=100$.These are comparable to the priors I used for $\mathcal{M}_0$ and should be fairly noninformative. Posteriors are obtainined using FFBS.
-
-\subsection*{Analysis}
-
-\noindent The discount factor $\delta$ is selected by maximizing the observed predictive density
-\[ p_1(\m{y}|\mathcal{D}_0) = \prod_{t=1}^T p_1(y_t|\mathcal{D}_{t-1}) \]
-\noindent The subscript $1$ denotes we are working under $\mathcal{M}_1$. We evaluate $\log p_1(\m{y}|\mathcal{D}_0)$ on the grid $\delta=\{0.800, 0.801,\ldots,1.000\}$. The plot of $\delta$ vs. $\log p_1(\m{y}|\mathcal{D}_0)$ is given in Figure 1. The vertical line marks where the maximum occurs, at $\hat{\delta}_1=0.945$, our selected discount factor. Note, $\log p_1(\m{y}|\mathcal{D}_0)=-478.9$, at $\hat{\delta}_1$.
+\noindent Our approach, however, was basically a colossal failure. The results were counterintuitive and unacceptable. Parameter estimates for $\mu_t$ did not agree with the notion that precipitation is greatest in the winter months in California. Return levels did not agree with the observed data.
 \bigskip
 
-\begin{figure}[H]
-\begin{center}
-\includegraphics[scale=0.34]{../figs/data.pdf}
-\end{center}
-\caption{The log observered predictive density evaluated across several $\delta\in[0,1]$. The dashed line indicates where the maximum occurs, at $\hat{\delta}_1=0.945$.}
-\end{figure}
-
-\noindent The one-step ahead distribution $y_t|\mathcal{D}_{t-1}$ is summarized in Figure 2. A five-year forecast is shown in Figure 3. The marginal filtering distributions for the trend and the seasonal components (i.e. $\theta_{t,1}$ and $\theta_{t,3}, \theta_{t,5}, \theta_{t,7}, \theta_{t,9}, \theta_{t,11}$ conditioned on $\mathcal{D}_t$) are given in Figure 4. The smoothing distributions (i.e. conditioned on $\mathcal{D}_T$) are in given in Figure 5.
+\noindent The cause of our problems, I suspect, are because of our choice in threshold. In the exploratory analysis, the parameter estimates were seen to be very sensitive to threshold choice. More work could be done in selecting appropriate time-varying thresholds.
 \bigskip
 
-\begin{figure}[H]
-\begin{center}
-\includegraphics[scale=0.37]{figs/m1_onestep.pdf}
-\end{center}
-\caption{The gray dots mark the data. The thick red line is the mean forecast function and the thin dashed lines are 95\% credible intervals for $\mathcal{M}_1$.}
-\end{figure}
-
-\begin{figure}[H]
-\begin{center}
-\includegraphics[scale=0.37]{figs/m1_forecast.pdf}
-\end{center}
-\caption{The five-year forecast for $\mathcal{M}_1$, for $h=1,\ldots,60$. The vertical line marks where the data end, picking up at the end of the plot in Figure 2.}
-\end{figure}
-
-\begin{figure}[H]
-\begin{center}
-\includegraphics[scale=0.40]{figs/m1_components.pdf}
-\end{center}
-\caption{The trend and seasonal components for $\mathcal{M}_1$. The little numbers in the top right for the harmonic plots indicate the proportion of times the upper bound from the 95\% interval fell below zero. The little numbers in the bottom right are for the lower bound going above zero.}
-\end{figure}
-
-\begin{figure}[H]
-\begin{center}
-\includegraphics[scale=0.40]{figs/m1_smooth_components.pdf}
-\end{center}
-\caption{Same as in Figure 4, but for the smoothing distributions.}
-\end{figure}
-
-\newpage
-\noindent The forecast distribution seems to be much more reasonable than what we saw from $\mathcal{M}_0$ which was constant for all $t>T$. The forecast in $\mathcal{M}_1$ continues the downward trend that we're seeing in the data as well as the cyclical behavior. A deficiency in our forecast function (and our model) is that we do not account for the bounds. If this forecast function were to have its way, we would see the search interest for UCSC fall to oblivion, being not worth more than a bare mention.
+\noindent We may have wished to supplement the time-varying analysis with the season-specific analysis, to see if our results agreed. Had we performed four separate analyses, we could use those results to compare against our unifying model to help discover where our model was lacking.
 \bigskip
 
-\noindent Consider the distribution of the harmonics given in Figure 5. We see that harmonics 1, 2, and 5, have 95\% intervals that cross zero at least 30\% of the time (marked by the little numbers on the right side of the plots). Harmonic 4 rarely cross zero, suggesting that it is unimportant since it may as well be a straight line. Harmonic 3 crosses zero about 17\% of the time, providing some evidence that this harmonic is unimportant. We discard harmonics 3 and 4 and perform the analysis.
-\bigskip
+\noindent A feature that we did not look at in our analysis was the annual return level, or the return level for entire seasons. In future analyses, a primary result would be the annual return level as this has the most practical interpretation and use.
 
-\noindent The reduced model has a similar $\m{F}$ and $\m{G}$ except in $\m{F}$ the fourth and fifth $\m{E}_2^\top$ are omitted and $\m{G}_3$ and $\m{G}_4$ are omitted from $\m{G}$. We obtain a discount factor of $\hat{\delta}_2=0.952$ which evaluates to a log observed predictive density at $\log p_2(\m{y}|\mathcal{D}_0)=-482.3$, $3.4$ less than that of $\mathcal{M}_1$. The summary of distributions in Figure 6 through 9 are highly comparable to those from $\mathcal{M}_1$.
-\bigskip
 
-\noindent Since the removal of harmonics 3 and 4 result in only a small decrease in the log observed predictive density, we would say that the reduced model $\mathcal{M}_2$ is as useful as $\mathcal{M}_1$.
-
-\newpage
-\begin{figure}[H]
-\begin{center}
-\includegraphics[scale=0.37]{figs/m2_onestep.pdf}
-\end{center}
-\caption{The gray dots mark the data. The thick red line is the mean forecast function and the thin dashed lines are 95\% credible intervals for $\mathcal{M}_2$.}
-\end{figure}
-
-\begin{figure}[H]
-\begin{center}
-\includegraphics[scale=0.37]{figs/m2_forecast.pdf}
-\end{center}
-\caption{The five-year forecast for $\mathcal{M}_2$, for $h=1,\ldots,60$. The vertical line marks where the data end, picking up at the end of the plot in Figure 6.}
-\end{figure}
-
-\begin{figure}[H]
-\begin{center}
-\includegraphics[scale=0.40]{figs/m2_components.pdf}
-\end{center}
-\caption{The trend and seasonal components for $\mathcal{M}_2$. The little numbers in the top right for the harmonic plots indicate the proportion of times the upper bound from the 95\% interval fell below zero. The little numbers in the bottom right are for the lower bound going above zero.}
-\end{figure}
-
-\begin{figure}[H]
-\begin{center}
-\includegraphics[scale=0.40]{figs/m2_smooth_components.pdf}
-\end{center}
-\caption{Same as in Figure 8, but for the smoothing distributions.}
-\end{figure}
-
-\newpage
-
-\subsection*{Algorithm for fitting $\mathcal{M}_3$}
-
-\noindent Model $\mathcal{M}_3$ is as follows:
-\begin{align*}
-y_t &= \alpha + \beta t + x_t + \epsilon_t,~~~~~\epsilon_t \sim N(0, v), \\
-x_t &= \sum_{j=1}^q\phi_j x_{t-j} + \nu_t,~~~~~\nu_t \sim N(0, 30)
-\end{align*}
-\noindent with $\alpha \sim N(0, vw)$, $\beta\sim N(0, vw)$, and $v$, $w$ unknown and $q$ known.
-\bigskip
-
-\noindent The conjugate prior for $v$ is the inverse gamma, $v\sim IG(a_v, b_v)$, as well as for $w$, $w\sim IG(a_w, b_w)$. We let $x_{1-j}\sim N(m_j, C_j)$, for $j=1,\ldots,q$ be the priors for $x_0,x_{-1},\ldots,x_{1-q}$. Since $\m{\phi}$ are (conditional on $\m{x}$) AR coefficients, a good prior to use is $\m{\phi}\sim N(\m{m}_\phi, \m{C}_\phi)$, subject to being in the stationary region.
-\bigskip
-
-\noindent We obtain posterior samples for $(x_{1:T}, \alpha, \beta, \m{\phi}, v, w)$ with the following algorithm.
-\begin{enumerate}
-\item Initialize $(x_{1:T}^{(0)}, \m{\phi}^{(0)}, v^{(0)}, w^{(0)})$. Set $i=0$.
-\item Increment $i$ by 1.
-\item Sample $(\alpha^{(i)}, \beta^{(i)})^\top=\m{\mu}^{(i)}$ from
-
-$\pi(\m{\mu}|\cdot) \propto N(\m{y}-\m{x}^{(i-1)}|\m{Z}_T\m{\mu}, v^{(i-1)}\m{I}_T)N(\m{0}, v^{(i-1)}w^{(i-1)}\m{I}_2)$, where the rows of $\m{Z}_T$ are $(1, t)$, for $t=1,\ldots,T$.
-\item Sample $v^{(i)}$ from $v|\cdot \sim IG\left(a_v, b_v + \frac{1}{2}(K + (\alpha^{(i)})^2/w^{(i-1)} + (\beta^{(i)})^2/w^{(i-1)})\right)$ where $K=(\m{y}-\m{x}^{(i-1)}-\m{Z}_T\m{\mu}^{(i)})^\top(\m{y}-\m{x}^{(i-1)}-\m{Z}_T\m{\mu}^{(i)})$.
-\item Sample $w^{(i)}$ from $w|\cdot \sim IG\left(a_w, b_w + \frac{1}{2}((\alpha^{(i)})^2/v^{(i)} + (\beta^{(i)})^2/v^{(i)})\right)$.
-\item Since, conditional on $\m{\phi}^{(i-1)}$, we have a DLM, then we sample from $\m{x}^{(i)}$ using FFBS. Use the recursion formulas to get $\pi(x_t|\mathcal{D}_t,\cdot)$, then obtain the smoothing distributions $\pi(x_t|\mathcal{D}_T,\cdot)$, for $t=T:1$. Sample $x_t^{(i)}$ from $\pi(x_t|\mathcal{D}_T,\cdot)$, where $(\cdot)$ denotes the most recent samples from the other parameters.
-\item Sample $\m{\phi}^{(i)}$ using a Metropolis-Hastings step. The function used in the M-H ratio is $\pi(\m{\phi}|\m{x},\cdot)\propto \pi(\m{\phi})\prod_{t=1}^T N(x_t|\sum_{i=1}^j\phi_j x_{t-j}, 30)$
-\item Go to step 2 until $i=B$, for some large $B$.
-\end{itemize}
 
 \end{document}
+
+

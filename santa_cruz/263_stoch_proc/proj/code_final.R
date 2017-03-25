@@ -39,11 +39,18 @@ make.X = function(x, p = 1){
         }
     return (out)
     }
-p = 2
+
+daily.10 = aggregate(y, list(substr(tt, 5, 10)), function(x) tail(sort(x), 10))
+
+xx = 1:365
+qq = daily.10$x[,1]
+
+
+p = 3
 X = make.X(xx, p)
-bhat = solve(t(X) %*% X) %*% t(X) %*% log(qq)
+bhat = solve(t(X) %*% X) %*% t(X) %*% (qq)
 pred.x = 1:n
-pred.y = exp(make.X(pred.x, p) %*% bhat)
+pred.y = (make.X(pred.x, p) %*% bhat)
 
 
 pdf("./figs/threshold.pdf", width = 8, height = 8)
@@ -175,9 +182,9 @@ calc.post = function(dat, params){
     out = out + dnorm(sig_a, 0, 100, log = TRUE)
     out = out + dnorm(sig_b, 0, 100, log = TRUE)
 
-    out = out + dnorm(ksi_int, 0, 100, log = TRUE)
-    out = out + dnorm(ksi_a, 0, 100, log = TRUE)
-    out = out + dnorm(ksi_b, 0, 100, log = TRUE)
+    out = out + dnorm(ksi_int, 0, 1, log = TRUE)
+    out = out + dnorm(ksi_a, 0, 1, log = TRUE)
+    out = out + dnorm(ksi_b, 0, 1, log = TRUE)
 
     return (out)
     }
