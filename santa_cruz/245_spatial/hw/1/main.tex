@@ -1,0 +1,33 @@
+\documentclass[12pt]{article}
+
+\usepackage{dsfont}
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\usepackage{bm}
+\newcommand{\m}[1]{\mathbf{\bm{#1}}}
+\newcommand{\R}{I\hspace{-4.4pt}R}
+
+\setlength\parindent{0pt}
+
+\begin{document}
+
+\subsubsection*{1. Prove the conditions for the existence of a Gaussian process}
+
+We need to show that the normal distribution satisfies, for all $k$ and $s_1,\ldots,s_k$,
+\[ F_{s_1,\ldots,s_k}(x_1,\ldots,x_k)=F_{s_{\pi 1},\ldots,s_{\pi k}}(x_{\pi 1},\ldots,x_{\pi k}) \]
+for any permutation $\pi$, and
+\[ F_{s_1,\ldots,s_{k-1}}(x_1,\ldots,x_{k-1})=F_{s_1,\ldots,s_k}(x_1,\ldots,x_{k-1},\infty). \]
+Let $\m{X}=(X(s_1),\ldots,X(s_k))^\top\sim MVN_k(\m{\mu},\m{\Sigma})$. For any permutation $\pi$ we have a $k\times k$ permutation matrix $P$ whose $i,j$th element is 1 if $i$ is to permute to $j$, and zero otherwise. For $P$, we have $P^{-1}=P^\top$. Let $\m{Y}=P\m{X}$, then $\m{Y}$ is a permutation of $\m{X}$.
+\bigskip
+
+
+\subsubsection*{2. Consider an isotropic correlation function. Consider a transformation that produces geometric anisotropy. Prove that the resulting correlation function is positive definite.}
+
+\subsubsection*{3. Plot all the covariograms and variograms in the tables of the second set of slides. Take the variance to be 1, and take the range parameter to be such that the correlation is .05 at a distance of one unit}
+
+\subsubsection*{4. Assume that the correlation functions in the previous point correspond to one dimensional Gaussian processes. Simulate one 100-points realization of the process corresponding to each of the plotted functions.}
+
+\subsubsection*{5. Write explicitly the correlation function of a Matern with $\nu$=1/2, 3/2, and 5/2.}
+
+\end{document}
