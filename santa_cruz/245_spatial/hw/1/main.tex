@@ -3,6 +3,7 @@
 \usepackage{dsfont}
 \usepackage{amsmath}
 \usepackage{graphicx}
+\usepackage[margin=1in]{geometry}
 
 \usepackage{bm}
 \newcommand{\m}[1]{\mathbf{\bm{#1}}}
@@ -14,15 +15,37 @@
 
 \subsubsection*{1. Prove the conditions for the existence of a Gaussian process}
 
-We need to show that the normal distribution satisfies, for all $k$ and $s_1,\ldots,s_k$,
+Suppose we have a system of finite-dimensional distributions which are multivariate normal for all $k$ and $s_1,\ldots,s_k$. We need to show that this system satisfies
 \[ F_{s_1,\ldots,s_k}(x_1,\ldots,x_k)=F_{s_{\pi 1},\ldots,s_{\pi k}}(x_{\pi 1},\ldots,x_{\pi k}) \]
 for any permutation $\pi$, and
 \[ F_{s_1,\ldots,s_{k-1}}(x_1,\ldots,x_{k-1})=F_{s_1,\ldots,s_k}(x_1,\ldots,x_{k-1},\infty). \]
-Let $\m{X}=(X(s_1),\ldots,X(s_k))^\top\sim MVN_k(\m{\mu},\m{\Sigma})$. For any permutation $\pi$ we have a $k\times k$ permutation matrix $P$ whose $i,j$th element is 1 if $i$ is to permute to $j$, and zero otherwise. For $P$, we have $P^{-1}=P^\top$. Let $\m{Y}=P\m{X}$, then $\m{Y}$ is a permutation of $\m{X}$.
+If so, then, by the Kolmogorov existence theorem, a random field exists with the multivariate normal as the finite-dimensional distributions. This random field is called the Gaussian process.
 \bigskip
 
+Let $m(s)=E(X(s))$ and $C(s,s')=\mathrm{cov}(X(s),X(s'))$, for all $s,s'\in S$. For $s_1,\ldots,s_k$, define $\m{\mu}_k=(m(s_1),\ldots,m(s_k))^\top$ and $\{\m{\Sigma}_k\}_{i,j}^k=C(s_i,s_j)$. This is the mean and covariance matrix for our finite-dimensionl distributions.
+\bigskip
+
+Let $\m{X}_k=(X(s_1),\ldots,X(s_k))^\top\sim MVN_k\left(\m{\mu}_k,\m{\Sigma}_k\right)$. For any permutation $\pi$ we have a $k\times k$ permutation matrix $P$ whose $i,j$th element is 1 if $i$ is to permute to $j$, and zero otherwise. For $P$, we have $P^{-1}=P^\top$ and $|P|=1$.
+\bigskip
+
+Consider the transformation $\m{Y}_k=P\m{X}_k$, so $\m{Y}_k=(X(s_{\pi 1}),\ldots,X(s_{\pi k}))^\top$. The Jacobian of this transformation is $J=|\frac{d}{d \m{Y}} P^{-1}\m{Y}|=|P^{-1}|=1$. Thus, $\m{Y}_k$ is a multivariate normal with mean $P\m{\mu}_k$ and covariance matrix $P\m{\Sigma}_kP^\top$ and
+\[ F_{s_1,\ldots,s_k}(\m{x}) = F_{s_{\pi 1},\ldots, s_{\pi k}}(\m{y}), \]
+satisfying the first condition.
+\bigskip
+
+For the second condition, we begin with $\m{X}_k$ and integrate out the $k$th dimension,
+\begin{align*}
+F_{s_1,\ldots,s_{k-1},s_k}(x_1,\ldots,x_{k-1},\infty) &= \lim_{x_k\rightarrow\infty} F_{s_1,\ldots,s_{k-1},s_k}(x_1,\ldots,x_{k-1},x_k) \\
+&= \lim_{x_k\rightarrow\infty} \int_{-\infty}^{x_1}\cdots\int_{-\infty}^{x_{k-1}}\int_{-\infty}^{x_k}f_{s_1,\ldots,s_{k-1},s_k}(x_1,\ldots,x_{k-1},x_k)dx_kdx_{k-1}\cdots dx_1 \\
+&= \int_{-\infty}^{x_1}\cdots\int_{-\infty}^{x_{k-1}}\int_{-\infty}^{\infty}f_{s_1,\ldots,s_{k-1},s_k}(x_1,\ldots,x_{k-1},x_k)dx_kdx_{k-1}\cdots dx_1 \\
+&= \int_{-\infty}^{x_1}\cdots\int_{-\infty}^{x_{k-1}}f_{s_1,\ldots,s_{k-1},s_k}(x_1,\ldots,x_{k-1})dx_{k-1}\cdots dx_1 \\
+&= F_{s_1,\ldots,s_{k-1}}(x_1,\ldots,x_{k-1}).
+\end{align*}
+By properties of the normal distribution, this lower dimensional distribution $\m{X}_{k-1}$ will have the same mean and covariance as $\m{X}_k$, but with the $k$th element omitted from $\m{\mu}_k$ and the $k$th row and column omitted from $\m{\Sigma}_k$, given as $\m{\mu}_{k-1}$ and $\m{\Sigma}_{k-1}$, respectively.  These are the same parameters when we construct $\m{X}_{k-1}$ directly from our system of finite-dimensional distributions, thus satisfying the second condtion. So, the Gaussian process exists.
 
 \subsubsection*{2. Consider an isotropic correlation function. Consider a transformation that produces geometric anisotropy. Prove that the resulting correlation function is positive definite.}
+
+
 
 \subsubsection*{3. Plot all the covariograms and variograms in the tables of the second set of slides. Take the variance to be 1, and take the range parameter to be such that the correlation is .05 at a distance of one unit}
 
