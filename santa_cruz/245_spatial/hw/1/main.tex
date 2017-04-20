@@ -45,11 +45,36 @@ By properties of the normal distribution, this lower dimensional distribution $\
 
 \subsubsection*{2. Consider an isotropic correlation function. Consider a transformation that produces geometric anisotropy. Prove that the resulting correlation function is positive definite.}
 
+An isotropic correlation function is a function only of the distance between two points:
+\[ \rho(\tau) = \frac{1}{\sigma^2}C(\tau) \]
+where $\tau=||s-s'||$ for any $s,s'\in S$ and $C(\tau)$ is the covariance function.
+\bigskip
 
+To produce geometric anisotopry we let $K$ be a symmetric, positive definite matrix with dimension equal to $\dim(S)$. Define $\tau_K=||s-s'||_K=\sqrt{(s-s')^\top K(s-s')}$. The new correlation function is defined as $\rho_K(s,s')=\rho(\tau_K)$. Since $\tau_K$ is zero if and only if $s=s'$ and positive otherwise and $\rho(\cdot)$ is positive definite, then $\rho_K(s,s')$ is also positive definite.
+
+\newpage
 
 \subsubsection*{3. Plot all the covariograms and variograms in the tables of the second set of slides. Take the variance to be 1, and take the range parameter to be such that the correlation is .05 at a distance of one unit}
 
+Covariance functions
+
+\begin{center}
+\includegraphics[scale=0.67]{figs/covariance.pdf}
+\end{center}
+
+\newpage
+
+Semi-variograms
+
+\begin{center}
+\includegraphics[scale=0.67]{figs/semi-variogram.pdf}
+\end{center}
+
 \subsubsection*{4. Assume that the correlation functions in the previous point correspond to one dimensional Gaussian processes. Simulate one 100-points realization of the process corresponding to each of the plotted functions.}
+
+\begin{center}
+\includegraphics[scale=0.67]{figs/simulations.pdf}
+\end{center}
 
 \subsubsection*{5. Write explicitly the correlation function of a Matern with $\nu$=1/2, 3/2, and 5/2.}
 
