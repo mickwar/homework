@@ -1,0 +1,96 @@
+\documentclass[12pt]{article}
+
+\usepackage{dsfont}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[margin=1in]{geometry}
+
+\usepackage{bm}
+\newcommand{\m}[1]{\mathbf{\bm{#1}}}
+\newcommand{\R}{I\hspace{-4.4pt}R}
+
+\setlength\parindent{0pt}
+
+\begin{document}
+
+\subsection*{1. Prove the results about the smoothness of the members of the Mat{\'e}rn family.}
+
+We use the theorem that if 
+
+\[ \frac{d^{2\nu}}{d\tau^{2\nu}}\rho(\tau) \]
+
+exists and is finite at $\tau=0$, then the random field having $\rho(\tau)$ as its correlation function is $\nu$ times differentiable at $0$.
+\bigskip
+
+Without loss of generality, let $\phi=1$. The Mat{\'e}rn correlation function is given by
+
+\[ \rho(\tau) = \frac{\tau^\nu}{2^{\nu-1}\Gamma(\nu)}K_\nu(\tau),~~~~~~~~\tau\geq0,\nu>0. \]
+
+For small $\tau$ and $\nu>0$, $K_\nu(\tau)\approx \Gamma(\nu)2^{\nu-1}\tau^{-\nu}$. Also, $\frac{d}{d\tau}\tau^\nu K_\nu(\tau)=-\tau^\nu K_{\nu-1}(\tau)$ and $K_\nu(\tau)=K_{-\nu}(\tau)$. We will be taking $\tau\rightarrow 0$, so we use the approximation for $K_\nu(\tau)$. This leads to the derivative,
+
+\begin{align*}
+\frac{d}{d\tau}\rho(\tau) &= -\frac{\tau^\nu}{2^{\nu-1}\Gamma(\nu)}K_{\nu-1}(\tau) \\
+ &= \begin{cases} -\frac{\tau^\nu}{2^{\nu-1}\Gamma(\nu)}K_{\nu-1}(\tau),~~~~~&\nu-1\geq0 \\
+ -\frac{\tau^\nu}{2^{\nu-1}\Gamma(\nu)}K_{1-\nu}(\tau),~~~~~&\nu-1<0 \end{cases} \\
+ &\approx \begin{cases} -\frac{\tau^\nu}{2^{\nu-1}\Gamma(\nu)}\Gamma(\nu-1)2^{\nu-2}\tau^{-\nu+1},~~~~~&\nu-1\geq0 \\
+ -\frac{\tau^\nu}{2^{\nu-1}\Gamma(\nu)}\Gamma(1-\nu)2^{-\nu}\tau^{\nu-1},~~~~~&\nu-1<0 \end{cases} \\
+ &\approx \begin{cases} -\tau G_1(\nu),~~~~~&\nu-1\geq0 \\
+ -\tau^{2\nu-1}G_2(\nu),~~~~~&\nu-1<0 \end{cases}. \\
+\end{align*}
+
+Therefore,
+\begin{align*}
+\rho'(0) &\begin{cases} =0,~~~~~&\nu\geq1 \\
+ \in(-\infty,0),~~~~~&1/2\leq\nu<1  \\
+ =-\infty,~~~~~&0<\nu<1/2 \end{cases}. \\
+\end{align*}
+
+\begin{align*}
+\rho''(\tau) &= \begin{cases} \frac{-\tau^{\nu-1} K_{\nu-1}(\tau)+\tau^\nu K_{\nu-2}(\tau)}{2^{\nu-1}\Gamma(\nu)},~~~~~ &\nu\geq2 \\
+  \frac{-\tau^{\nu-1} K_{\nu-1}(\tau)+\tau^\nu K_{2-\nu}(\tau)}{2^{\nu-1}\Gamma(\nu)},~~~~~ &1\leq\nu<2 \\
+  \frac{-\tau^{\nu-1} K_{1-\nu}(\tau)+\tau^\nu K_{2-\nu}(\tau)}{2^{\nu-1}\Gamma(\nu)},~~~~~ &0<\nu<1 
+\end{cases} \\
+\end{align*}
+
+
+\subsection*{2. Use the spectral representation to show that the product of two valid correlation functions is a valid correlation function.}
+
+A valid correlation function is the characteristic function of some random variable,
+
+\[ \rho(\m{\tau}) = E\left[e^{i\m{\tau}^\top\m{X}}\right]. \]
+
+Suppose we have two valid correlation functions $\rho_1(\tau)$ and $\rho_2(\tau)$ associated with independent random variables $\m{X}_1$ and $\m{X}_2$, respectively. Then the product is written
+
+\begin{align*}
+\rho(\m{\tau}) = \rho_1(\m{\tau})\rho_2(\m{\tau}) &= E\left[e^{i\m{\tau}^\top\m{X}_1}\right]E\left[e^{i\m{\tau}^\top\m{X}_2}\right] \\
+ &= E\left[e^{i\m{\tau}^\top\m{X}_1}e^{i\m{\tau}^\top\m{X}_2}\right] \\
+ &= E\left[e^{i\m{\tau}^\top(\m{X}_1+\m{X}_2)}\right], 
+\end{align*}
+
+so $\rho$ is the characteristic function of $\m{X}_1+\m{X}_2$ and thus the product of two valid correlation functions is a valid correlation function. Note, our assumption of independence for $\m{X}_1$ and $\m{X}_2$ presents no issues. $\m{X}_1$ and $\m{X}_2$ may be dependent, but then we could simply define new independent random variables $\m{Y}_1$ and $\m{Y}_2$ with the same marginal distributions as $\m{X}_1$ and $\m{X}_2$, resulting in the same correlation functions in either case.
+
+\subsection*{3. The spectral density of a correlation in the Mat{\'e}rn family has tails whose thickness depends on the smoothness parameter. Conjecture: the smoothness of the corresponding random field depends on the number of moments of the spectral density. What can you say about this conjecture?}
+
+For correlation function
+
+\[ \rho(\tau) \propto (a\tau)^\nu K_\nu(a\tau),~~~~~~~~\tau\geq0,\nu>0,a=1/\phi>0, \]
+we have the corresponding spectral density
+\[ f(x) \propto \frac{1}{\left(1+(x/a)^2\right)^{\nu+n/2}}, \]
+where $n$ is the dimension $\tau$ (and $x$). This density has a form comparable to the $t$-distribution. We calculate the $k$th moment as
+\begin{align*}
+E(X^k) &\propto \int x^k(1+(x/a)^2)^{-(\nu+n/2)} dx \\
+ &= \left.-\frac{a^2}{2\nu+n-2}\frac{x^{k-1}}{(1+(x/a)^2)^{(2\nu+n-2)/2}}\right\vert_{-\infty}^{\infty}+\int\frac{(k-1)a^2}{2\nu+n-2}\frac{x^{k-2}}{(1+(x/a)^2)^{-(2\nu+n-2)/2}} dx.
+\end{align*}
+The first term (and hence the second term as well) will be finite when $2\nu+n-2>k-1$, or $\nu>(k-n+1)/2$. In one dimension, $n=1$, we see that when $\nu > k/2$, the $k$th moment exists. This may be related to the theorem used in the first problem, that we need to have $2d$-differentiable correlation function to have a $d$-differentiable random field. Here, we need the $2d$th moment to exist, so $\nu>d$, to have smoothness.
+
+
+
+
+
+\subsection*{4. Use the K-L representation to approximate the exponential correlation for range parameter equal to 1. Plot the approximation for several orders and compare to the actual correlation.}
+
+\subsection*{5. Repeat for the approximation given on Page 13 of the fifth set of slides.}
+
+\subsection*{6. Generate 100 realizations of a univariate Gaussian process with exponential correlation with range parameter 1. Compare the empirically estimated eigenvalues and eigenfunctions to the ones given by the K-L and the approximation on Page 12.}
+
+\end{document}
