@@ -85,35 +85,41 @@ E(X^k) &\propto \int x^k(1+(x/a)^2)^{-(\nu+n/2)} dx \\
 \end{align*}
 The first term (and hence the second term also) will be finite when $2\nu+n-2\geq k-1$, or $\nu\geq(k-n+1)/2$. In one dimension, $n=1$, we see that when $\nu \geq k/2$ the $k$th moment exists. This may be related to the theorem used in the first problem, that we need to have $2d$-differentiable correlation function to have a $d$-differentiable random field. Here, we need the $2d$th moment to exist, i.e. $\nu\geq d$, to have smoothness.
 
-% \subsection*{4. Use the K-L representation to approximate the exponential correlation for range parameter equal to 1. Plot the approximation for several orders and compare to the actual correlation.}
-% 
-% The Karhunen-Loeve representation for a random process is given by
-% \[ X(s)=\sum_{j=1}^\infty\sqrt{\lambda_j}\psi_j(s)Z_j \]
-% where $Z_j$ are mean zero processes with $E(Z_jZ_k)=\delta_{jk}$ and $\psi_j$ is a basis of orthogonal functions such that
-% \[ \int\psi_j(s)\overline{\psi_j(s)}dx = \delta_{jk} \]
-% and
-% \[ \int C(s,s')\psi_j(s)ds=\lambda_j\psi_j(s'). \]
-% For an exponential correlation function with $\phi=1$ on an interval $[-L,L]$, we have
-% % \begin{align*}
-% % \lambda_{j1}=\frac{2}{w_{j1}^2+1}, & & \psi_{j1}=\frac{\cos(w_{j1}s)}{\sqrt{L+\sin(2w_{j1}L)/(2w_{j1})}} \\
-% % \lambda_{j2}=\frac{2}{w_{j2}^2+1}, & & \psi_{j2}=\frac{\sin(w_{j2}s)}{\sqrt{L-\sin(2w_{j2}L)/(2w_{j2})}} \\
-% % \end{align*}
-% 
+\subsection*{4. Use the K-L representation to approximate the exponential correlation for range parameter equal to 1. Plot the approximation for several orders and compare to the actual correlation.}
+
+The Karhunen-Loeve representation for a random process is given by
+\[ X(s)=\sum_{j=1}^\infty\sqrt{\lambda_j}\psi_j(s)Z_j \]
+where $Z_j$ are mean zero processes with $E(Z_jZ_k)=\delta_{jk}$ and $\psi_j$ is a basis of orthogonal functions such that
+\[ \int\psi_j(s)\overline{\psi_k(s)}ds = \delta_{jk} \]
+and
+\[ \int C(s,s')\psi_j(s)ds=\lambda_j\psi_j(s'). \]
+For an exponential correlation function with $\phi=1$ on an interval $[-L,L]$, we have
 % \begin{align*}
-% \lambda_i = \begin{cases} \frac{2}{(1+v_j)^2},~~~~~i=2j+1 \\
-%  \frac{2}{(1+w_k)^2},~~~~~i=2k \\
-% \end{cases} \\
+% \lambda_{j1}=\frac{2}{w_{j1}^2+1}, & & \psi_{j1}=\frac{\cos(w_{j1}s)}{\sqrt{L+\sin(2w_{j1}L)/(2w_{j1})}} \\
+% \lambda_{j2}=\frac{2}{w_{j2}^2+1}, & & \psi_{j2}=\frac{\sin(w_{j2}s)}{\sqrt{L-\sin(2w_{j2}L)/(2w_{j2})}} \\
 % \end{align*}
-% 
-% \begin{align*}
-% \psi_i(s) = \begin{cases} \frac{\cos(v_js)}{\sqrt{L+\sin(2w_{j1}L)/(2w_{j1})}},~~~~~i=2j+1 \\
-%  \frac{\sin(w_js)}{\sqrt{L-\sin(2w_{j2}L)/(2w_{j2})}},~~~~~i=2k \\
-% \end{cases} \\
-% \end{align*}
-% 
-% 
-% \subsection*{5. Repeat for the approximation given on Page 13 of the fifth set of slides.}
-% 
-% \subsection*{6. Generate 100 realizations of a univariate Gaussian process with exponential correlation with range parameter 1. Compare the empirically estimated eigenvalues and eigenfunctions to the ones given by the K-L and the approximation on Page 12.}
+
+\begin{align*}
+\lambda_i = \begin{cases} \frac{2}{(1+v_j)^2},~~~~~i=2j+1 \\
+ \frac{2}{(1+w_k)^2},~~~~~i=2k \\
+\end{cases} \\
+\end{align*}
+
+\begin{align*}
+\psi_i(s) = \begin{cases} \frac{\cos(v_js)}{\sqrt{L+\sin(2v_jL)/(2v_j)}},~~~~~i=2j+1 \\
+ \frac{\sin(w_ks)}{\sqrt{L-\sin(2w_k}L)/(2w_k)}},~~~~~i=2k \\
+\end{cases} \\
+\end{align*}
+
+$v_j$ and $w_k$ are the solutions to
+\begin{align*}
+1 - v\tan(vL) &= 0 \\
+w + \tan(wL) &= 0 \\
+\end{align*}
+
+
+\subsection*{5. Repeat for the approximation given on Page 13 of the fifth set of slides.}
+
+\subsection*{6. Generate 100 realizations of a univariate Gaussian process with exponential correlation with range parameter 1. Compare the empirically estimated eigenvalues and eigenfunctions to the ones given by the K-L and the approximation on Page 12.}
 
 \end{document}
