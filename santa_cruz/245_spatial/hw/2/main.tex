@@ -13,6 +13,8 @@
 
 \begin{document}
 
+Mickey Warner
+
 \subsection*{1. Prove the results about the smoothness of the members of the Mat{\'e}rn family.}
 
 We use the theorem that if 
@@ -100,26 +102,55 @@ For an exponential correlation function with $\phi=1$ on an interval $[-L,L]$, w
 % \end{align*}
 
 \begin{align*}
-\lambda_i = \begin{cases} \frac{2}{(1+v_j)^2},~~~~~i=2j+1 \\
- \frac{2}{(1+w_k)^2},~~~~~i=2k \\
+\lambda_i = \begin{cases} 2/(1+v_j^2),~~~~~&i=2j+1 \\
+ 2/(1+w_k^2),~~~~~&i=2k \\
 \end{cases} \\
 \end{align*}
 
 \begin{align*}
-\psi_i(s) = \begin{cases} \frac{\cos(v_js)}{\sqrt{L+\sin(2v_jL)/(2v_j)}},~~~~~i=2j+1 \\
- \frac{\sin(w_ks)}{\sqrt{L-\sin(2w_k}L)/(2w_k)}},~~~~~i=2k \\
-\end{cases} \\
+\psi_i(s) = \begin{cases} \frac{\cos(v_js)}{\sqrt{L+\sin(2v_jL)/(2v_j)}},~~~~~&i=2j+1 \\
+ \frac{\sin(w_ks)}{\sqrt{L-\sin(2w_k}L)/(2w_k)},~~~~~&i=2k \\
+\end{cases}, \\
 \end{align*}
-
-$v_j$ and $w_k$ are the solutions to
+where $v_j$ and $w_k$ are the non-negative solutions to
 \begin{align*}
 1 - v\tan(vL) &= 0 \\
 w + \tan(wL) &= 0 \\
 \end{align*}
+sorted in increasing order. We end the approximation at $J=5,10,20,50$ summands. We let $Z_j\sim N(0,1)$, $j=1,\ldots,J$ and $L=2\pi$ and obtain realizations of $X(s)$ on a grid $s\in[-4\pi, 4\pi]$. We also obtain realizations with \texttt{geoR}'s \texttt{grf()} function which produces realizations from a Gaussian process. One draw for each $J$ is shown (top four) and two Gaussian process draws are given (bottom two).
 
+\begin{center}
+\includegraphics[scale=0.5]{figs/no3.pdf}
+\end{center}
 
 \subsection*{5. Repeat for the approximation given on Page 13 of the fifth set of slides.}
 
+The approximation of interest is given by
+\begin{align*}
+\lambda_j\approx f(j\pi/(2L)), & & \psi_j(s)\approx ce^{ij\pi s/(2L)} \\
+\end{align*}
+where $f(k)$ is the spectrum at $k$ (and we set $c=1$). Since the exponential correlation is equivalent to the Mat{\'e}rn with $\nu=1/2$, the spectral density, for $\phi=1$, is given by
+\[ f(k) = \frac{1}{(1+k^2)^{(n+1)/2}} \]
+The next figure is comparable to the previous, except with this second approximation.
+
+\begin{center}
+\includegraphics[scale=0.5]{figs/no4.pdf}
+\end{center}
+
+The same seed for generating the random draws was used in both problems 4 and 5. As we can see, the approximations are effectively identical. Both approaches reveal their inadequacies when $J$ is too low, but at just $J=50$, there is little distinct when obtaining realizations from the definition.
+
 \subsection*{6. Generate 100 realizations of a univariate Gaussian process with exponential correlation with range parameter 1. Compare the empirically estimated eigenvalues and eigenfunctions to the ones given by the K-L and the approximation on Page 12.}
+
+Empirical estimates for the eigenvalues and eigenfunctions of 100 realizations were obtained via SVD. Here, we used a cutoff at $J=50$ for the approximations. We see a substantial difference between all three eigenvalues and eigenfunctions. The eigenvalues are given in the first plot. These are scaled so the first (and largest) eigenvalue is 1 (for plotting purposes).
+
+\begin{center}
+\includegraphics[scale=0.4]{figs/eval.pdf}
+\end{center}
+
+The last plot shows the eigenvectors associated with the first six eigenvalues. The are plotted against $s\in[-4\pi, 4\pi]$. The periodicity is much more evident in the approximations (perhaps due to construction). As in the first plot, black is K-L representation, blue is the approximation using the spectral density, and green is the empirical estimates from SVD.
+
+\begin{center}
+\includegraphics[scale=0.4]{figs/evec.pdf}
+\end{center}
 
 \end{document}
