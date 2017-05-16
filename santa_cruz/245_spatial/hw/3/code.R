@@ -17,16 +17,16 @@ pdf("./figs/data.pdf", width = 9, height = 9)
 map("state", xlim = range(loc[,1])+c(-1,2), ylim = range(loc[,2]+c(-1, 1)),
     lwd = 2)
 points(loc, col = cols, pch = 16, cex = 1.5)
-points(x = rep(max(loc[,1]) + 0.70, 100),
+points(x = rep(max(loc[,1]) + 0.67, 100),
     y = seq(min(loc[,2]), max(loc[,2]), length = 100),
     pch = 15, col = rgb(seq(0, 1, length = 100), 0, seq(1, 0, length = 100)),
     cex = 2.5)
-lines(rep(max(loc[,1]) + 1.00, 2), range(loc[,2]))
+lines(rep(max(loc[,1]) + 0.97, 2), range(loc[,2]))
 for (i in 1:6){
-    lines(max(loc[,1]) + c(1.00, 1.10), rep(min(loc[,2])+(i-1)*diff(range(loc[,2])/5), 2))
+    lines(max(loc[,1]) + c(0.97, 1.07), rep(min(loc[,2])+(i-1)*diff(range(loc[,2])/5), 2))
 #   text(max(loc[,1])+1.15, min(loc[,2])+(i-1)*diff(range(loc[,2])/5),
 #       round(quantile(y, (i-1)/5), 3), pos=4)
-    text(max(loc[,1])+1.15, min(loc[,2])+(i-1)*diff(range(loc[,2])/5),
+    text(max(loc[,1])+1.12, min(loc[,2])+(i-1)*diff(range(loc[,2])/5),
         round(seq(min(y), max(y), length = 6)[i], 3), pos=4)
     }
 title(main = "Northeast Stations and log Ozone Measurements", cex.main = 1.5)
@@ -37,7 +37,7 @@ dev.off()
 # plot(lat, y, bty = 'n', pch = 16, col = cols)
 # plot(ele, y, bty = 'n', pch = 16, col = cols)
 
-mod = step(lm(y ~ 1), scope = list("lower" = lm(y ~ 1),
+mod = step(lm(y ~ . + .^2 + I(loc^2), data = data.frame(loc)), scope = list("lower" = lm(y ~ 1),
     "upper" = lm(y ~ . + .^2 + I(loc^2), data = data.frame(loc))),
     direction = "both")
 summary(mod)
@@ -70,18 +70,18 @@ dev.off()
 res = y - yhat
 
 
-pdf("./figs/variogram.pdf", height = 8, width = 12)
+pdf("./figs/variogram.pdf", height = 6, width = 12)
 par(mfrow = c(1, 2))
 tmp = variog(coords = loc[,-3], data = res, trend = y ~ 1 + loc[,3])
 plot(tmp$u, tmp$v, pch = 16, ylim = c(0, max(tmp$v)), bty = 'n',
-    main = "Binned Semi-Variogram for log Ozone", cex.main = 1.5,
+    main = "Binned Semivariogram for log Ozone", cex.main = 1.5,
     xlab = "Distance", ylab = "Semivariance")
 tmp = variog4(coords = loc[,-3], data = res, trend = y ~ 1 + loc[,3])
 tmp = variog4(coords = loc[,-3], data = res, uvec = 13)
 tmp.xlim = range(sapply(tmp[-5], function(x) range(x$u)))
 tmp.ylim = c(0, max(sapply(tmp[-5], function(x) max(x$v, na.rm = TRUE))))
 plot(0, type='n', bty='n', xlim = tmp.xlim, ylim = tmp.ylim,
-    main = "Directional Semi-Variogram for log Ozone", cex.main = 1.5,
+    main = "Directional Semivariogram for log Ozone", cex.main = 1.5,
     xlab = "Distance", ylab = "Semivariance")
 for (i in 1:4)
     lines(tmp[[2]]$u, tmp[[i]]$v, col = i, lty = i)
@@ -113,9 +113,9 @@ for (nu in c(0.5, 1, 1.5, 2.5)){
     pars = optim(rep(1, 3), make.f(nu), lower = c(0, 0, 0), method = "L-BFGS-B")$par
     plot(obs$u, obs$v, ylim = c(0, max(obs$v)), pch = 16, bty = 'n')
     lines(obs$u, semiv(obs$u, pars[1], nu, pars[2], pars[3]), col = 'red')
-    text(rep(1.25, 4), seq(0.01, 0.0085, length = 4), c(round(pars, 3), nu),
+    text(rep(1.25, 4), seq(0.0080, 0.0065, length = 4), c(round(pars, 3), nu),
         pos = 4, cex = 1.5)
-    text(rep(0.5, 4), seq(0.01, 0.0085, length = 4), expression(sigma^2, phi, kappa, nu),
+    text(rep(0.5, 4), seq(0.0080, 0.0065, length = 4), expression(sigma^2, phi, kappa, nu),
         pos = 4, cex = 1.5)
     }
 par(mfrow = c(1, 1))
