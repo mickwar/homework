@@ -1,5 +1,9 @@
 library(maps)
 library(geoR)
+library(MASS)
+autotune = function(accept, target = 0.25, k = 2.5)
+    (1+(cosh(accept-target)-1)*(k-1)/(cosh(target-
+        ceiling(accept-target))-1))^sign(accept-target)
 dat = read.table("./northeast_data.txt", header = TRUE)
 
 y = log(dat$Ozone)
@@ -37,12 +41,18 @@ dev.off()
 # plot(lat, y, bty = 'n', pch = 16, col = cols)
 # plot(ele, y, bty = 'n', pch = 16, col = cols)
 
-mod = step(lm(y ~ . + .^2 + I(loc^2), data = data.frame(loc)), scope = list("lower" = lm(y ~ 1),
-    "upper" = lm(y ~ . + .^2 + I(loc^2), data = data.frame(loc))),
-    direction = "both")
+# mod = step(lm(y ~ . + .^2 + I(loc^2), data = data.frame(loc)), scope = list("lower" = lm(y ~ 1),
+#     "upper" = lm(y ~ . + .^2 + I(loc^2), data = data.frame(loc))),
+#     direction = "both")
+# summary(mod)
+#mod2 = lm(y ~ lon + lat + ele + I(lon^2) + I(lat^2) + I(ele^2) + lat*ele, data = data.frame(loc))
+
+### Based on previous analysis
+mod = lm(y ~ 1 + lat + ele + I(lat^2) + lat*ele, data = data.frame(loc))
 summary(mod)
 
 yhat = predict(mod)
+
 
 pdf("./figs/regression.pdf", height = 15, width = 9)
 par(mfrow = c(3, 1))
@@ -120,4 +130,135 @@ for (nu in c(0.5, 1, 1.5, 2.5)){
     }
 par(mfrow = c(1, 1))
 dev.off()
+
+
+
+### MCMC
+D = cbind(1, loc[,2], loc[,3], loc[,2]^2, loc[,2] * loc[,3])
+k = NCOL(D)
+
+X = y
+n = length(y)
+
+Q = qr.Q(qr(D))
+R = qr.R(qr(D))
+
+beta.hat = backsolve(R, t(Q) %*% X)
+
+dists = as.matrix(dist(loc[,1:2], upper = TRUE, diag= TRUE))
+make.K = function(psi, gamma2, nu)
+    1/gamma2*matern(dists, psi, nu) + diag(n)
+
+
+t(R) %*% R
+t(D) %*% D
+
+A = matrix(c(4,3,2,1),2,2)
+qr.Q(qr(A)) %*% qr.R(qr(A))
+
+upper.tri(qr(A)$qr, diag = TRUE)
+lower.tri(qr(A)$qr)
+
+# For tau^2
+prior.a = 3
+prior.b = 2
+
+# For psi (range)
+prior.c = 10
+prior.d = 1
+
+nburn = 20000
+nmcmc = 20000
+window = 500
+param.beta = matrix(0, nburn + nmcmc, k)
+param.tau2 = double(nburn + nmcmc)
+param.psi = double(nburn + nmcmc)
+param.gamma2 = double(nburn + nmcmc)
+
+param.tau2[1] = 1
+param.psi[1] = 1
+param.gamma2[1] = 1
+cand.sig = 1e-3 * diag(2)
+accept = double(nburn + nmcmc)
+
+nu = 0.5
+
+K = make.K(param.psi[1], param.gamma2[1], nu)
+K.inv = solve(K)
+beta.hat = solve(t(D) %*% K.inv %*% D) %*% t(D) %*% K.inv %*% X
+S2 = t(X - D %*% beta.hat) %*% K.inv %*% (X - D %*% beta.hat)
+Det1 = -0.5*determinant(K)$modulus[1] 
+Det2 = -0.5*determinant(t(D) %*% K.inv %*% D)$modulus[1]
+post.curr = Det1 + Det2 + (-(n-k)/2-prior.a) + log(S2 + 2*prior.b) +
+    dgamma(param.psi[1], prior.c, prior.d, log = TRUE) - log(param.gamma2[1])
+
+for (i in 2:(nburn + nmcmc)){
+    cat(i, "/", nburn + nmcmc, "\r")
+    param.beta[i,] = param.beta[i-1,]
+    param.tau2[i] = param.tau2[i-1]
+    param.psi[i] = param.psi[i-1]
+    param.gamma2[i] = param.gamma2[i-1]
+
+    cand = mvrnorm(1, c(param.psi[i-1], param.gamma2[i-1]), cand.sig)
+    if (all(cand > 0)){
+        cand.K = make.K(cand[1], cand[2], nu)
+        cand.K.inv = solve(cand.K)
+        
+        cand.beta.hat = solve(t(D) %*% cand.K.inv %*% D) %*% t(D) %*% cand.K.inv %*% X
+        cand.S2 = t(X - D %*% cand.beta.hat) %*% cand.K.inv %*% (X - D %*% cand.beta.hat)
+        cand.Det1 = -0.5*determinant(cand.K)$modulus[1]
+        cand.Det2 = -0.5*determinant(t(D) %*% cand.K.inv %*% D)$modulus[1]
+
+        post.cand = cand.Det1 + cand.Det2 + (-(n-k)/2-prior.a) + log(cand.S2 + 2*prior.b) + 
+            dgamma(cand[1], prior.c, prior.d, log = TRUE) -log(cand[2])
+
+        if (log(runif(1)) <= post.cand - post.curr){
+            param.psi[i] = cand[1]
+            param.gamma2[i] = cand[2]
+            accept[i] = 1
+            K = cand.K
+            K.inv = cand.K.inv
+            beta.hat = cand.beta.hat
+            S2 = cand.S2
+            Det1 = cand.Det1
+            Det2 = cand.Det2
+            post.curr = post.cand
+
+            param.tau2[i] = 1/rgamma(1, prior.a + (n-k)/2, prior.b + S2/2)
+            param.beta[i,] = mvrnorm(1, beta.hat, param.tau2[i] * solve(t(D) %*% K.inv %*% D))
+            }
+        }
+    if ((floor(i/window) == i/window) && (i <= nburn))
+        cand.sig = autotune(mean(accept[(i-window+1):i]), target = 0.234, k = window / 50) *
+            (cand.sig + window * var(cbind(param.psi, param.gamma2)[(i-window+1):i,]) / i)
+
+    }
+
+param.beta = tail(param.beta, nmcmc)
+param.tau2 = tail(param.tau2, nmcmc)
+param.psi = tail(param.psi, nmcmc)
+param.gamma2 = tail(param.gamma2, nmcmc)
+accept = tail(accept, nmcmc)
+sig2 = param.tau2 / param.gamma2
+
+mean(accept)
+par(mfrow = c(1,1))
+
+plot(param.psi, type = 'l')
+plot(param.tau2, type = 'l')
+plot(param.gamma2, type = 'l')
+
+plot(param.beta[,c(1,2)], pch = 16)
+
+colMeans(param.beta)
+coef(mod)
+
+plot(density(param.psi))
+plot(density(param.tau2))
+plot(density(param.gamma2))
+plot(density(sig2))
+
+mean(sig2)
+var(sig2)
+summary(mod)
 
