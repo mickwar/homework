@@ -135,6 +135,8 @@ For $\psi$, we have $p(\psi)=p(\phi,\nu,\gamma^2)\propto p(\phi)p(\gamma^2)$, wh
 
 \section{Results}
 
+Summaries of the posterior parameters are given in Tables 1 and 2. Under the specified model, we have a DIC of $-183.326$. It is at this point we suspect either our model or our sampler. We were expecting a much smaller $\phi$, but our posterior results show otherwise. In fact, the posteriors for $\phi$ and $\gamma^2$ were very comparable to their priors, under a range of priors. This was an area of great concern.
+
 \begin{table}[ht]
 \begin{center}
 \begin{tabular}{lrrr}
@@ -142,18 +144,20 @@ For $\psi$, we have $p(\psi)=p(\phi,\nu,\gamma^2)\propto p(\phi)p(\gamma^2)$, wh
  & \multicolumn{1}{l}{Mean}
  & \multicolumn{1}{l}{2.5\%}
  & \multicolumn{1}{l}{97.5\%} \\ \hline
-$\beta_0$ &  8.212 & -45.068 & 63.040 \\
-$\beta_1$ &  0.132 &  -0.595 &  0.875 \\
-$\beta_2$ & -0.264 &  -1.549 &  0.991 \\
-$\beta_3$ & -0.003 &  -0.020 &  0.014 \\
+$\beta_0$ (intercept) &  8.212 & -45.068 & 63.040 \\
+$\beta_1$ (longitude) &  0.132 &  -0.595 &  0.875 \\
+$\beta_2$ (latitude) & -0.264 &  -1.549 &  0.991 \\
+$\beta_3$ (lon $\times$ lat) & -0.003 &  -0.020 &  0.014 \\
 $\tau^2$   & 0.045 & 0.034 & 0.060 \\
 $\phi$     & 2.937 & 0.956 & 6.277 \\
 $\gamma^2$ & 1.736 & 0.195 & 4.916 \\
 \hline\hline
 \end{tabular}
 \end{center}
-\caption{Posterior parameter means and 95\% interval bounds.}
+\caption{Posterior parameter means and 95\% interval bounds (the full model).}
 \end{table}
+
+Each $\beta_i$ has 95\% credible bounds that contain zero, an indication that we are overparametrizing the model. When we fit the model to the intercept only, we obtain a DIC of $-203.058$ which is substantially better than the first model.
 
 \begin{table}[ht]
 \begin{center}
@@ -167,18 +171,21 @@ Prob  & 0.002 & 0.036 & 0.116 & 0.321 & 0.522 \\
 \caption{Posterior probabilities (bottom) of $\nu$ being a specific value (top).}
 \end{table}
 
-full model DIC =  - 183.3267
+The posteriors for the smoothness $\nu$ are shown in Table 2. The increasing behavior seemed to suggest that we have a very smooth process, but this would seem to contradict the hypothesis that $\phi\approx 0$. The model was fit to include higher $\nu$, but everything above $3.5$ had about the same posterior mass.
+\bigskip
+
+Posterior predictions based on the full model for the hold out sample are given in Figure 5. Again, this brings us to another concern with the model. Our predictive variances are much too large to be realistic. The only consolation to all of this is that our predictive means are similar to the observed values, but this doesn't seem to be a result of a stellar Gaussian process.
 
 \begin{figure}[ht]
 \begin{center}
 \includegraphics[scale=0.40]{figs/prediction.pdf}
 \end{center}
-\caption{Predictive distributions for the hold out sample.}
+\caption{Predictive distributions for the hold out sample. The green lines mark observed data.}
 \end{figure}
 
 \section{Conclusions}
 
-
+Clearly, some more work is needed to properly analyze this data set. I am very much in doubt that we should observe posterior estimates as the ones we obtained. This could be due to a poor model specification (very likely) as well as some bug in my code (also likely).
 
 
 
