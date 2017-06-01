@@ -1,21 +1,22 @@
-dat = read.csv("./annual_all_2015.csv")
+dat = read.csv("./daily_42602_2016_no2.csv")
+dat = read.csv("./daily_44201_2016_ozone.csv")
+dat = read.csv("./daily_88101_2016_pm25.csv")
 
 ### Filter the data
 states = c("Maine", "Vermont", "New Hampshire", "Connecticut",
     "Massachusetts", "New Jersey", "Delaware", "Rhode Island",
     "Maryland", "District Of Columbia")
-events = c("No Events", "Concurred Events Excluded", "Events Excluded")
+#events = c("No Events", "Concurred Events Excluded", "Events Excluded")
 
-#param.ind = (dat$Parameter.Name == "Ozone") &
-#    (dat$Sample.Duration == "8-HR RUN AVG BEGIN HOUR") &
-#    (dat$Pollutant.Standard == "Ozone 8-Hour 2008")
-param.ind = (dat$Parameter.Name == "Nitrogen dioxide (NO2)") &
-    (dat$Sample.Duration == "1 HOUR") &
-    (dat$Pollutant.Standard == "NO2 1-hour")
 state.ind = dat$State.Name %in% states
-event.ind = dat$Event.Type %in% events
+#event.ind = dat$Event.Type %in% events
 
-ind = (param.ind & state.ind & event.ind)
+levels(dat$Parameter.Name)
+levels(dat$Pollutant.Standard)
+levels(dat$Sample.Duration)
+
+#ind = (param.ind & state.ind & event.ind)
+ind = state.ind
 
 lon = dat[ind,]$Longitude
 lat = dat[ind,]$Latitude
@@ -62,3 +63,8 @@ for (i in 1:length(y)){
 write.table(x = data.frame("Ozone"=y, "Longitude"=lon, "Latitude"=lat,
     "Altitude"=ele), file = "./northeast_data.txt", quote = FALSE,
     row.names = FALSE)
+
+library(maps)
+map("state", xlim = range(lon), ylim = range(lat))
+cols = (y - min(y)) / diff(range(y))
+points(lon, lat, col = rgb(cols, 0, 1-cols), pch = 16)
