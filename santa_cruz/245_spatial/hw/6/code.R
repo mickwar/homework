@@ -112,29 +112,29 @@ dat = list("y" = obs$ozone, "X" = mu.X, "knots" = knots)
 
 
 
-ss = seq(0, 1500, length = 1000)
-plot(ss, bezier(ss, 1200, 1), type = 'l')
-
-aa = which(bezier(dd, 1500, 1) != 0, arr.ind = TRUE)
-sum(bezier(dd, 1500, 2) > 0)
-
-sqrt(sum((obs[1,4:5] - knots[1,4:5])^2))
-dd[1,1]
-
-plot(knots[,4:5])
-points(knots[aa[,2],4:5], col = 'blue')
-points(obs[,4:5], col = 'red')
-points(obs[aa[,1],4:5], col = 'green')
-
-
-### Simulated data
-mu.X = cbind(1, sc.X[,1], sc.X[,2], sc.X[,1] * sc.X[,2])
-y = mu.X %*% c(40, -3, -0.7, 0.2)
-set.seed(1)
-w = rnorm(nrow(knots), 0, sqrt(0.5))
-y = y + bezier(dd, 1500, 2) %*% w + rnorm(length(y), 0, 1)
-
-dat = list("y" = y, "X" = mu.X, "knots" = knots)
+# ss = seq(0, 1500, length = 1000)
+# plot(ss, bezier(ss, 1200, 1), type = 'l')
+# 
+# aa = which(bezier(dd, 1500, 1) != 0, arr.ind = TRUE)
+# sum(bezier(dd, 1500, 2) > 0)
+# 
+# sqrt(sum((obs[1,4:5] - knots[1,4:5])^2))
+# dd[1,1]
+# 
+# plot(knots[,4:5])
+# points(knots[aa[,2],4:5], col = 'blue')
+# points(obs[,4:5], col = 'red')
+# points(obs[aa[,1],4:5], col = 'green')
+# 
+# 
+# ### Simulated data
+# mu.X = cbind(1, sc.X[,1], sc.X[,2], sc.X[,1] * sc.X[,2])
+# y = mu.X %*% c(40, -3, -0.7, 0.2)
+# set.seed(1)
+# w = rnorm(nrow(knots), 0, sqrt(0.5))
+# y = y + bezier(dd, 1500, 2) %*% w + rnorm(length(y), 0, 1)
+# 
+# dat = list("y" = y, "X" = mu.X, "knots" = knots)
 
 calc.post = function(dat, param){
     y = dat$y
@@ -151,8 +151,8 @@ calc.post = function(dat, param){
 
     if (nu <= 0 || sig2 <= 0 || tau2 <= 0 || phi <= 0)
         return (-Inf)
-    if (nu > 20)
-        return (-Inf)
+#   if (nu > 20)
+#       return (-Inf)
 
     K.psi = bezier(dd, phi, nu)
 
@@ -171,11 +171,11 @@ calc.post = function(dat, param){
 #   out = out + dgamma(sig2, 0.5*10000, 1*10000, log = TRUE)
 #   out = out + dgamma(tau2, 1*10000, 1*10000, log = TRUE)
 
-#   out = out + dgamma(phi, 1500*10000, 1*10000, log = TRUE)
+#   out = out + dgamma(phi, 1500/50, 1/50, log = TRUE)
     out = out - log(phi)
     out = out + dgamma(nu, 1, 0.1, log = TRUE)
     out = out + dgamma(sig2, 1, 0.1, log = TRUE)
-    out = out + dgamma(tau2, 1, 1, log = TRUE)
+    out = out + dgamma(tau2, 1, 0.25, log = TRUE)
 
     return (out)
     }
@@ -183,21 +183,32 @@ calc.post = function(dat, param){
 p = nrow(knots)
 k = ncol(mu.X)
 
-mcmc = mcmc_sampler(dat, calc.post, nparam = k + p + 4, nburn = 10000, nmcmc = 10000,
-    chain_init = c(runif(k+p), 1500, runif(3)),
-    cand_sig = list(c(rep(0.1, k+p), 100, rep(0.1, 3))*diag(k+p+4)))
+ mcmc = mcmc_sampler(dat, calc.post, nparam = k + p + 4, nburn = 200000, nmcmc = 50000,
+     chain_init = c(c(40, -3, -1, 0), runif(p), 1000, runif(3)), window = 500,
+     cand_sig = list(c(rep(0.1, k+p), 100^2, rep(1, 3))*diag(k+p+4)))
+mcmc = mcmc_sampler(dat, calc.post, nparam = k + p + 4, nburn = 200000, nmcmc = 50000,
+    chain_init = tmp.start, window = 500, cand_sig = tmp.sig)
 
+tmp.start = c(tail(mcmc$params, 1))
+tmp.start[k+p+1] = 1500
+tmp.sig = mcmc$cand_sig
+tmp.sig[[1]][k+p+1,k+p+1]
 
-diag(mcmc$cand_sig[[1]])[k+p+1]
+diag(tmp.sig[[1]])
 
-dim(    c(rep(0.1, k+p), 100, rep(0.1, 3))*diag(k+p+4))
-c(3, 2,5)*diag(3)
+D = diag(k+p+4)
+D[k+p+1,k+p+1] = 0.1
+
+tmp.sig = list(D %*% tmp.sig[[1]] %*% D)
+
+diag(mcmc$cand_sig[[1]])
 
 mean(mcmc$accept)
-plot(mcmc$params[,1], type = 'l')
+plot(mcmc$params[,1], mcmc$params[,8], type = 'l')
 
 colMeans(mcmc$params)[1:k]
 colMeans(mcmc$params)[(k+1):(k+p)]
+colMeans(mcmc$params)[(k+p+1):(k+p+4)]
 sum(dnorm(colMeans(mcmc$params)[(k+1):(k+p)], 0, mean(sqrt(mcmc$params[k+p+2])), log = TRUE))
 
 ss = seq(0, 1, length = nrow(mcmc$params))
@@ -211,12 +222,20 @@ segments(x0 = mcmc$params[-nrow(mcmc$params),k+p+1], y0 = mcmc$params[-nrow(mcmc
     x1 = mcmc$params[-1,k+p+1], y1 = mcmc$params[-1,k+p+2], col = rgb(ss[-1], 0, 0))
 
 
+plot(mcmc$params[,k+p+3], type= 'l')
 plot_hpd(mcmc$params[,k+p+1], col1 = 'dodgerblue')  # phi
 plot_hpd(mcmc$params[,k+p+2], col1 = 'dodgerblue')  # nu
 plot_hpd(mcmc$params[,k+p+3], col1 = 'dodgerblue')  # sig2
 plot_hpd(mcmc$params[,k+p+4], col1 = 'dodgerblue')  # tau2
 
 sum(bezier(dd, mean(mcmc$params[,k+p+1]), mean(mcmc$params[,k+p+2])) > 0)
+
+ind = which(bezier(dd, mean(mcmc$params[,k+p+1]), mean(mcmc$params[,k+p+2])) > 0, arr.ind = TRUE)
+plot(obs[,1:2], col = 'blue', pch = 16)
+points(knots[,1:2], col = 'orange', pch = 15)
+points(knots[unique(ind[,2]),1:2], col = 'red', pch = 15)
+points(obs[unique(ind[,1]),1:2], col = 'green', pch = 16)
+map("state", add = TRUE)
 
 
 # Predictions
@@ -231,10 +250,14 @@ y.pred = XB.pred + Kw.pred
 for (i in 1:nrow(mcmc$params))
     y.pred[,i] = y.pred[,i] + rep(rnorm(1, 0, sqrt(mcmc$params[i,k+p+4])), nrow(obs))
 
+y = obs$ozone
 qq = apply(y.pred, 1, quantile, c(0.025, 0.975))
 plot(y, apply(y.pred, 1, mean), pch = 16, ylim = range(qq))
 abline(0, 1)
 segments(y, qq[1,], y, qq[2,])
+
+# Coverage
+mean((qq[1,] < y) & (qq[2,] > y))
 
 
 xx = sort(unique(knots[,1]))

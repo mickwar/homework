@@ -181,6 +181,39 @@ for (i in 1:length(states)){
     if (!all(is.na(tmp2)))
         knots = rbind(knots, grid[tmp2,])
     }
+
+### TODO: add another boundary around the knots
+knots = expand.grid(seq(0, 1, length = 14), seq(0, 1, length = 19))
+plot(knots)
+rm.ind = sample(nrow(knots), floor(nrow(knots) * 0.65))
+knots = knots[-rm.ind,]
+plot(knots, pch = 16)
+
+ukx = sort(unique(knots[,1]))
+dx = min(diff(ukx))
+
+uky = sort(unique(knots[,2]))
+dy = min(diff(uky))
+
+Ax = t(matrix(c(-1, 0, 1) * dx, 3, 3))
+Ay = matrix(c(1, 0, -1) * dy, 3, 3)
+
+border = NULL
+for (i in 1:nrow(knots)){
+    for (j in 1:9)
+        border = rbind(border, c(knots[i,1] + Ax[j], knots[i,2] + Ay[j]))
+    }
+border = unique(border)
+dd = as.matrix(dist(border, diag = TRUE, upper = TRUE))
+ind = which(dd < 1e-6 & dd > 0, arr.ind = TRUE)
+for (i in 1:nrow(ind))
+    border[ind[i, 1],] = border[ind[i, 2],]
+border = unique(border)
+
+plot(border, pch = 15, col = 'darkblue')
+points(knots, pch = 16, cex = 2)
+
+
 map("state", xlim = c(-79, -67), ylim = c(38, 48))
 points(grid, col = 'red')
 points(knots, col = 'green')
