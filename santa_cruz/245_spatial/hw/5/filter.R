@@ -1,9 +1,10 @@
 library(maps)
 library(googleway)
 library(sp)
+library(spBayes)
 library(dplyr)
 
-dat = read.csv("./annual_all_2015.csv")
+dat = read.csv("../3/annual_all_2015.csv")
 
 fix.poly = function(z){
     z = cbind(z$x, z$y)
@@ -183,11 +184,12 @@ for (i in 1:length(states)){
     }
 
 ### TODO: add another boundary around the knots
-knots = expand.grid(seq(0, 1, length = 14), seq(0, 1, length = 19))
-plot(knots)
-rm.ind = sample(nrow(knots), floor(nrow(knots) * 0.65))
-knots = knots[-rm.ind,]
-plot(knots, pch = 16)
+# knots = expand.grid(seq(0, 1, length = 14), seq(0, 1, length = 19))
+# plot(knots)
+# rm.ind = sample(nrow(knots), floor(nrow(knots) * 0.65))
+# knots = knots[-rm.ind,]
+map("state", xlim = c(-79, -67), ylim = c(38, 48))
+points(knots, pch = 16)
 
 ukx = sort(unique(knots[,1]))
 dx = min(diff(ukx))
@@ -206,12 +208,16 @@ for (i in 1:nrow(knots)){
 border = unique(border)
 dd = as.matrix(dist(border, diag = TRUE, upper = TRUE))
 ind = which(dd < 1e-6 & dd > 0, arr.ind = TRUE)
-for (i in 1:nrow(ind))
-    border[ind[i, 1],] = border[ind[i, 2],]
-border = unique(border)
+if (length(ind) > 0){
+    for (i in 1:nrow(ind))
+        border[ind[i, 1],] = border[ind[i, 2],]
+    border = unique(border)
+    }
 
-plot(border, pch = 15, col = 'darkblue')
+plot(border, pch = 15, col = "darkblue")
 points(knots, pch = 16, cex = 2)
+
+knots = border
 
 
 map("state", xlim = c(-79, -67), ylim = c(38, 48))
