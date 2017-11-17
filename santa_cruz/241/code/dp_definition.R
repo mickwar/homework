@@ -55,7 +55,7 @@ matplot(x, G[,1:5], type = 'l', col = rgb(0.5, 0.0, 0.5), lty = 1, add = TRUE)
 
 #n = 15
 
-dat = read.table("~/files/data/MPG_saturn.txt", header = TRUE)
+dat = read.table("~/files/repos/data/MPG_saturn.txt", header = TRUE)
 y = dat$miles / dat$gallons
 n = length(y)
 #y = rnorm(n, 3, 2)
