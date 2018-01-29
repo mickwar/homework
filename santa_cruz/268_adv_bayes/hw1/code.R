@@ -21,6 +21,7 @@ spikeslab = function(dat, nmcmc, nburn){
     XtX = t(X) %*% X
     Xty = t(X) %*% y
 
+    # what are good values to choose? similarly for gj and tauj?
     # hyperpriors
     a.w = rep(1, p+1)
     b.w = rep(1, p+1)
@@ -41,7 +42,7 @@ spikeslab = function(dat, nmcmc, nburn){
     param.w[1,] = 0.5
     param.sig2[1] = 1
     
-    # sample
+    # sample (all are known closed-form posteriors)
     for (i in 2:(nburn + nmcmc)){
         if (floor(i / 100) == i/100)
             cat(i, "/", nburn + nmcmc, "\r")
@@ -65,11 +66,13 @@ spikeslab = function(dat, nmcmc, nburn){
         }
     cat("\n")
 
+    # removed burn-in
     param.beta = tail(param.beta, nmcmc)
     param.gamma = tail(param.gamma, nmcmc)
     param.w = tail(param.w, nmcmc)
     param.sig2 = tail(param.sig2, nmcmc)
 
+    # output
     out = list("beta" = param.beta, "gamma" = param.gamma,
         "w" = param.w, "sig2" = param.sig2)
     return (out)
@@ -77,9 +80,15 @@ spikeslab = function(dat, nmcmc, nburn){
     }
 
 
+
 vec.n = c(500, 400)
 vec.p = c(100, 300)
 vec.rho = c(0, 0.6)
+
+i1 = 2
+i2 = 1
+i3 = 2
+i4 = 1
 
 for (i1 in 1:2){    # beta
     for (i2 in 1:2){    # rho
@@ -89,6 +98,7 @@ for (i1 in 1:2){    # beta
                 # set factors
                 n = vec.n[i4]
                 p = vec.p[i3]
+
                 sigma = make.sigma(p, vec.rho[i2])
                 if (i1 == 1){
                     beta = c(rep(3, 5), rep(0, p-5))   
@@ -97,12 +107,14 @@ for (i1 in 1:2){    # beta
                         rep(0.5, 5), rep(0, p-15))
                     }
 
+                cat(paste0("beta_type_", i1), vec.rho[i2], vec.p[i3], vec.n[i4], "\n")
+
                 # including the intercept
                 beta.star = c(0, beta)
 
                 # simulate data
                 set.seed(1)
-                X = mvrnorm(n, rep(0, p), sigma)           
+                X = mvrnorm(n, rep(0, p), sigma)
                 y = rnorm(n, mean = X %*% beta, sd = 1)
 
                 # lasso
@@ -153,7 +165,7 @@ for (i1 in 1:2){    # beta
                 mean((coef(mod.ridge) - beta.star)^2)
 
 
-                # spike and slab
+                ### spike and slab
                 dat = list("y" = y, "X" = X, "p" = p,
                     "g.vec" = rep(100, p+1), "tau.vec" = rep(0.01, p+1))
 
@@ -162,6 +174,7 @@ for (i1 in 1:2){    # beta
                 cbind(apply(mcmc$beta, 2, mean), c(0, beta))
                 apply(mcmc$gamma, 2, mean)
                 apply(mcmc$w, 2, mean)
+                keep = which(apply(mcmc$w, 2, mean) > 0.5)
                 mean(mcmc$sig2)
 
                 cols = (apply(mcmc$w, 2, mean) > 0.5)*4+1   # color in the selected variables
@@ -170,6 +183,25 @@ for (i1 in 1:2){    # beta
 
                 # keep these (first element is intercept)
                 which(apply(mcmc$w, 2, mean) > 0.5)
+
+                apply(mcmc$beta, 2, mean)
+                apply(mcmc$beta, 2, sd)
+
+                # prediction
+                X.star = cbind(1, X)
+                keep = 1:101
+
+                mcmc$gamma
+                y.pred = mcmc$beta[,keep] %*% t(X.star[,keep])
+                mean((apply(y.pred, 2, mean) - y)^2)
+                plot(y, apply(y.pred, 2, mean))
+                points(y, apply(y.pred, 2, mean), col = 'red')
+                abline(0, 1)
+
+                mean((y.pred - matrix(rep(y, each = 2000), 2000))^2)
+                # metric?
+               
+
 
                 }
             }
