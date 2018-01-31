@@ -79,6 +79,31 @@ spikeslab = function(dat, nmcmc, nburn){
 
     }
 
+get_ppl = function(dat, params, plot = TRUE){
+    y = dat$y
+    X = cbind(1, dat$X)
+    n = nrow(X)
+    nmcmc = nrow(params$beta)
+
+    # posterior predictive loss
+#   pred.y = apply(param.beta %*% t(X), 2, mean)
+    pred.y = params$beta %*% t(X) + matrix(rnorm(n * nmcmc, 0, sqrt(params$sig2)), nmcmc, n)
+
+    mm = apply(pred.y, 2, mean)
+    hpds = apply(pred.y, 2, hpd_mult, force_uni = TRUE)
+    if (plot){
+        plot(y, mm, type = 'n', ylim = range(hpds))
+        segments(x0 = y, y0 = hpds[1,], y1 = hpds[2,], col = 'dodgerblue')
+        points(y, mm, pch = '-', col = 'firebrick', cex = 1.5)
+        abline(0, 1)
+        }
+
+    # goodness of fit plus penalty
+    ppl = sum((y - mm)^2) + sum(apply(pred.y, 2, var))
+
+    return (list("pred.y" = pred.y, "ppl" = ppl, "hpds" = hpds))
+    }
+
 
 
 vec.n = c(500, 400)
@@ -170,38 +195,24 @@ for (i1 in 1:2){    # beta
                     "g.vec" = rep(100, p+1), "tau.vec" = rep(0.01, p+1))
 
                 mcmc = spikeslab(dat, nmcmc = 2000, nburn = 500)
+                preds = get_ppl(dat, mcmc)
 
-                cbind(apply(mcmc$beta, 2, mean), c(0, beta))
-                apply(mcmc$gamma, 2, mean)
-                apply(mcmc$w, 2, mean)
+                preds$ppl
+                Lj = apply(preds$hpds, 2, diff)
+                ind = 2:ifelse(i1 == 1, 6, 16)
+
+                mean(Lj[ind])   # M non-zero
+                mean(Lj[-ind])  # M zero
+
+                # cbind(apply(mcmc$beta, 2, mean), c(0, beta))
+                # apply(mcmc$gamma, 2, mean)
+                # apply(mcmc$w, 2, mean)
                 keep = which(apply(mcmc$w, 2, mean) > 0.5)
-                mean(mcmc$sig2)
+                # mean(mcmc$sig2)
 
                 cols = (apply(mcmc$w, 2, mean) > 0.5)*4+1   # color in the selected variables
                 boxplot(mcmc$beta, col = cols, xlim = c(1, 40))
                 points(beta.star, pch = 16, col = 'firebrick')
-
-                # keep these (first element is intercept)
-                which(apply(mcmc$w, 2, mean) > 0.5)
-
-                apply(mcmc$beta, 2, mean)
-                apply(mcmc$beta, 2, sd)
-
-                # prediction
-                X.star = cbind(1, X)
-                keep = 1:101
-
-                mcmc$gamma
-                y.pred = mcmc$beta[,keep] %*% t(X.star[,keep])
-                mean((apply(y.pred, 2, mean) - y)^2)
-                plot(y, apply(y.pred, 2, mean))
-                points(y, apply(y.pred, 2, mean), col = 'red')
-                abline(0, 1)
-
-                mean((y.pred - matrix(rep(y, each = 2000), 2000))^2)
-                # metric?
-               
-
 
                 }
             }
