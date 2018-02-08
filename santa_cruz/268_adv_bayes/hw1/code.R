@@ -24,8 +24,8 @@ spikeslab = function(dat, nmcmc, nburn){
 
     # what are good values to choose? similarly for gj and tauj?
     # hyperpriors
-    a.w = rep(1, p+1)
-    b.w = rep(1, p+1)
+    a.w = rep(0.001, p+1)
+    b.w = rep(0.001, p+1)
     a.sig = 1
     b.sig = 1
 #   a.w = dat$a.w
@@ -199,6 +199,14 @@ for (i1 in 1:2){    # beta
                 mean((coef(mod.lasso[[counter]]) - beta.star)^2)
                 mean((coef(mod.ridge[[counter]]) - beta.star)^2)
 
+                mean((coef(mod.ridge[[16]]) - beta.star)^2) / var(y)
+
+                mean((y.pred.lasso - y)^2)
+                mean((y.pred.lasso - y)^2) / var(y)
+
+                mean((y.pred.ridge - y)^2)
+                mean((y.pred.ridge - y)^2) / var(y)
+
 
                 ### spike and slab
                 dat = list("y" = y, "X" = X, "p" = p,
@@ -207,7 +215,7 @@ for (i1 in 1:2){    # beta
                 mcmc[[counter]] = spikeslab(dat, nmcmc = 2000, nburn = 500)
                 preds[[counter]] = get_ppl(dat, mcmc[[counter]])
 
-                Lj = apply(preds[[counter]]$hpds, 2, diff)
+                Lj = apply(preds[[counter]]$hpd.beta, 2, diff)
                 ind = 2:ifelse(i1 == 1, 6, 16)
 
                 mean(Lj[ind])   # M non-zero
@@ -289,6 +297,11 @@ for (counter in 1:16){
 
     keep = (apply(mcmc[[counter]]$w, 2, mean) > 0.5)
 
+    mean(apply(apply(mcmc[[counter]]$beta, 2, quantile, c(0.025, 0.975)), 2, diff)[-ind])
+
+    mean(Lj[ind])   # M non-zero
+    mean(Lj[-ind])  # M zero
+
     sas[1, counter] = mean(Lj[ind])   # M non-zero
     sas[2, counter] = mean(Lj[-ind])  # M zero
     sas[3, counter] = mean(keep == ind)   # Proportion of correctly selected/non-selected variables
@@ -303,3 +316,13 @@ rownames(sas) = c("M_non-zero", "M_zero", "Select", "GOF", "PEN", "PPL")
 sas = sas[-3,]
 
 sas
+
+apply(mcmc[[1]]$gamma, 2, mean)
+apply(mcmc[[1]]$w, 2, mean)
+
+mean((apply(preds[[16]]$pred.y, 2, mean) - y)^2)
+
+dim(preds[[16]]$pred.y)
+
+par(mfrow = c(1,1))
+get_ppl(dat, mcmc[[16]])
