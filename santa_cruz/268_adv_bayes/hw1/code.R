@@ -11,6 +11,7 @@ make.sigma = function(p, rho){
     }
 
 spikeslab = function(dat, nmcmc, nburn){
+    require(MASS)
     y = dat$y
     X = cbind(1, dat$X)
     n = length(y)
