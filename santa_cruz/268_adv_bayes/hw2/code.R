@@ -1,4 +1,4 @@
-#library(glmnet)
+library(xtable)
 library(MASS)
 library(mwBASE)
 
@@ -23,9 +23,11 @@ make.sigma = function(p, rho){
 nburn = 1000
 nmcmc = 5000
 
-
+out = matrix(0, 2, 4)
+counter = 0
 
 for (n in c(50, 200)){
+    counter = counter + 1
     p = 20
     rho = 0.6
     sigma = make.sigma(p, rho)
@@ -62,7 +64,14 @@ for (n in c(50, 200)){
     params.beta = tail(params.beta, nmcmc)
     params.phi = tail(params.phi, nmcmc)
 
+    out[counter, 1:2] = quantile(params.beta[,1], c(0.025, 0.975))
+    out[counter, 3:4] = quantile(params.beta[,10], c(0.025, 0.975))
     }
+
+
+xtable(out)
+
+
 
 plot_hpd(params.phi, col1 = 'dodgerblue', main = "Precision",
     axes = FALSE, xlab = expression(phi), ylab = "Density")
@@ -78,34 +87,83 @@ points(beta, col = 'green', pch = 15)
 
 
 
+
 ### Random Forest and BART
 library(randomForest)
+library(BART)
 
-p = 5
-n = 1000
+p = c(200, 100)
+n = c(200, 500)
+ntree = c(10, 500)
 
-set.seed(1)
-X = matrix(rnorm(n*p), n, p)
-y = 10 * sin(pi * X[,1] * X[,2]) +
-    20 * ifelse(X[,2] > 0.5, X[,2] - 0.5, 0)^2 +
-    10 * X[,4] + rnorm(n, 0, sd = sqrt(0.5))
+#out = matrix(0, 16, 7)
+out = data.frame(matrix(0, 16, 8))
+counter = 0
 
-B = 1000
-pred.rf = matrix(0, B, n)
+for (i0 in 1:2){
+    for (i1 in 1:2){
+        for (i2 in 1:2){
+            for (i3 in 1:2){
 
-for (ntree in c(10, 500)){
-    for (b in 1:B){
-        rf = randomForest(x = X, y = y, ntree = ntree, mtry = sqrt(p))
-        pred.rf[b,] = predict(rf)
+                counter = counter + 1
+
+                out[counter, 2] = n[i1]
+                out[counter, 3] = p[i1]
+                out[counter, 4] = ntree[i2]
+                out[counter, 5] = ""
+
+                set.seed(1)
+                X = matrix(rnorm(n[i1]*p[i1]), n[i1], p[i1])
+                y = 10 * sin(pi * X[,1] * X[,2]) +
+                    20 * ifelse(X[,2] > 0.5, X[,2] - 0.5, 0)^2 +
+                    10 * X[,4] + rnorm(n[i1], 0, sd = sqrt(0.5))
+
+
+                if (i3 == 2){
+                    out[counter, 5] = "Noise"
+                    # With extra noise on 1, 2, and 9
+                    X[,1] = X[,1] + rnorm(n, 0, sqrt(0.1))
+                    X[,2] = X[,2] + rnorm(n, 0, sqrt(0.1))
+                    X[,9] = X[,9] + rnorm(n, 0, sqrt(0.1))
+                    }
+
+                if (i0 == 1){
+                    out[counter, 1] = "RF"
+                    # Random Forest
+                    rf = randomForest(x = X, y = y, ntree = ntree[i2], mtry = sqrt(p[i1]))
+                    pred.rf = predict(rf, X, predict.all = TRUE)
+
+                    ints = apply(pred.rf$individual, 1, quantile, c(0.025, 0.975))
+                    means = rowMeans(pred.rf$individual)
+                    coverage = mean(y > ints[1,] & y < ints[2,])
+                    lengths = mean(apply(ints, 2, diff))
+                    mspe = mean((y - means)^2)
+                } else {
+                    out[counter, 1] = "BART"
+                    # BART
+                    ba = wbart(X, y, ntree = ntree[i2], nskip = 1000, ndpost = 2000)
+                    pred.ba = predict(ba, X)
+
+                    ints = apply(pred.ba, 2, quantile, c(0.025, 0.975))
+                    means = colMeans(pred.ba)
+                    coverage = mean(y > ints[1,] & y < ints[2,])
+                    lengths = mean(apply(ints, 2, diff))
+                    mspe = mean((y - means)^2)
+                    }
+
+                plot(y, means)
+                segments(y, ints[1,], y, ints[2,])
+                abline(0, 1)
+
+                out[counter, 6] = coverage
+                out[counter, 7] = lengths
+                out[counter, 8] = mspe
+                }
+            }
         }
+    }
 
-boxplot(pred.rf)
+colnames(out) = c("Model", "n", "p", "ntree", "Noise", "Coverage", "Length", "MSPE")
+out
 
-points(y, col = 'red')
-
-plot(y, colMeans(pred.rf, na.rm = TRUE))
-abline(0, 1)
-
-plot(importance(rf))
-varImpPlot(rf, n.var = min(p, 10), pch = 15)
-
+xtable(out)
