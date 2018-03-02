@@ -40,6 +40,16 @@ rigauss = function(n, mu, lambda){
         }
     return (out)
     }
+### NIG summation
+nig_sum = function(mu1, lambda1, a1, b1, mu2, lambda2, a2, b2){
+    k = length(mu1)
+    mu = solve(lambda1 + lambda2) %*% (lambda1 %*% mu1 + lambda2 %*% mu2)
+    a = a1 + a2 + k/2
+    b = b1 + b2 + 1/2*t(mu1 - mu) %*% lambda1 %*% (mu1 - mu) +
+        1/2*t(mu2 - mu) %*% lambda2 %*% (mu2 - mu)
+    lambda = lambda1 + lambda2
+    return (list("mu"=mu, "lambda"=lambda, "a"=a, "b"=b))
+    }
 
 
 
@@ -107,12 +117,11 @@ a = a.s[1]
 b = b.s[1]
 
 for (i in 2:m){
-    tmp.mu = mu
-    mu = solve(lambda + lambda.s[[i]]) %*% (lambda %*% mu + lambda.s[[i]] %*% mu.s[,i])
-    a = a + a.s[i] + k/2
-    b = b + b.s[i] + 1/2*t(tmp.mu - mu) %*% lambda %*% (tmp.mu - mu) +
-        1/2*t(mu.s[,i] - mu) %*% lambda.s[[i]] %*% (mu.s[,i] - mu)
-    lambda = lambda + lambda.s[[i]]
+    tmp = nig_sum(mu, lambda, a, b, mu.s[,i], lambda.s[[i]], a.s[i], b.s[i])
+    mu = tmp$mu
+    lambda = tmp$lambda
+    a = tmp$a
+    b = tmp$b
     }
 # Non-informative prior
 
@@ -139,11 +148,16 @@ for (i in 2:B){
     lambda.psi = diag(1/draws.psi[i-1,])
 
     # Get NIG parameters
-    mu.bar = solve(lambda + lambda.psi) %*% (lambda %*% mu + lambda.psi %*% rep(0, k))
-    a.bar = a + 0
-    b.bar = b + 0 + 1/2*t(mu - mu.bar) %*% lambda %*% (mu - mu.bar) +
-        1/2*t(rep(0, k) - mu.bar) %*% lambda.psi %*% (rep(0, k) - mu.bar)
-    lambda.bar = lambda + lambda.psi
+    tmp = nig_sum(mu, lambda, a, b, rep(0, k), lambda.psi, 0, 0)
+    mu.bar = tmp$mu
+    lambda.bar = tmp$lambda
+    a.bar = tmp$a
+    b.bar = tmp$b
+#   mu.bar = solve(lambda + lambda.psi) %*% (lambda %*% mu + lambda.psi %*% rep(0, k))
+#   a.bar = a + 0
+#   b.bar = b + 0 + 1/2*t(mu - mu.bar) %*% lambda %*% (mu - mu.bar) +
+#       1/2*t(rep(0, k) - mu.bar) %*% lambda.psi %*% (rep(0, k) - mu.bar)
+#   lambda.bar = lambda + lambda.psi
 
     # Update sigma^2
     draws.sig2[i] = 1/rgamma(1, a.bar, b.bar)
@@ -217,11 +231,17 @@ for (i in 2:B){
     lambda.gamma = diag(1/ifelse(draws.gamma[i-1,] == 1, D, d))
 
     # Get NIG parameters
-    mu.bar = solve(lambda + lambda.gamma) %*% (lambda %*% mu + lambda.gamma %*% rep(0, k))
-    a.bar = a + 0
-    b.bar = b + 0 + 1/2*t(mu - mu.bar) %*% lambda %*% (mu - mu.bar) +
-        1/2*t(rep(0, k) - mu.bar) %*% lambda.gamma %*% (rep(0, k) - mu.bar)
-    lambda.bar = lambda + lambda.gamma
+    tmp = nig_sum(mu, lambda, a, b, rep(0, k), lambda.gamma, 0, 0)
+    mu.bar = tmp$mu
+    lambda.bar = tmp$lambda
+    a.bar = tmp$a
+    b.bar = tmp$b
+
+#   mu.bar = solve(lambda + lambda.gamma) %*% (lambda %*% mu + lambda.gamma %*% rep(0, k))
+#   a.bar = a + 0
+#   b.bar = b + 0 + 1/2*t(mu - mu.bar) %*% lambda %*% (mu - mu.bar) +
+#       1/2*t(rep(0, k) - mu.bar) %*% lambda.gamma %*% (rep(0, k) - mu.bar)
+#   lambda.bar = lambda + lambda.gamma
 
     # Update sigma^2
     draws.sig2[i] = 1/rgamma(1, a.bar, b.bar)
@@ -257,78 +277,105 @@ plot_hpd(draws.sig2)
 
 ### MC^3
 # (Algorithm 4)
-
-# Variance for the spike (d) and slab (D) components
-d = 0.01^2
+# d = 0.01^2
 D = 100
 
+#prior.mu = rep(0, k)
+#prior.lam = 1/D * diag(k)
+
 # Beta prior for w (mixture weight)
-a.w = rep(1, k)
-b.w = rep(1, k)
+# a.w = rep(1, k)
+# b.w = rep(1, k)
+w.vec = rep(0.5, k)
 
 
 # Gibbs set up
-nburn = 200
-nmcmc = 500
+nburn = 2000
+nmcmc = 5000
 B = nburn + nmcmc
-draws.beta = matrix(0, B, k)
-draws.sig2 = double(B)
+# draws.beta = matrix(0, B, k)
+# draws.sig2 = double(B)
 draws.gamma = matrix(0, B, k)   # Indicators for selected variables
 # draws.w = matrix(0, B, k)       # Probabilities for indicators
+accept = double(B)
 
-draws.sig2[1] = 1
-draws.gamma[1,] = rep(0, k)     # Start with no selected variables
+#draws.sig2[1] = 1
+#draws.gamma[1,] = rep(0, k)     # Start with no selected variables
+draws.gamma[1,] = rbinom(k, 1, prob = 0.5)     # Start with randomly selected variables
 # draws.w[1,] = rep(0.5, k)
 
-for (i in 2:B){
-    # 4.1, propose gamma
-    gamma.prop = draws.gamma[i-1,]
-    tmp.ind = sample(k, 1)
-    gamma.prop[tmp.ind] = 1 - gamma.prop[tmp.ind]
-    vg = (gamma.prop == 1)
-    vo = (gamma.prop == 0)
+calc.post = function(gamma, mu, lambda, a, b){
+    vg = (gamma == 1)
+    vo = (gamma == 0)
     kg = sum(vg)
     ko = sum(vo)
 
     # 4.2, reduce
-    beta.g = draws.beta[i-1, gamma.prop == 1]
-    beta.o = draws.beta[i-1, gamma.prop == 0]
-    sig2 = draws.sig2[i-1]
+    sig2 = 1
 
-    mu.g = mu[gamma.prop == 1]
-    mu.o = mu[gamma.prop == 0]
+    mu.g = mu[gamma == 1]
+    mu.o = mu[gamma == 0]
 
     lam.gg = matrix(lambda[vg, vg], kg, kg)
     lam.go = matrix(lambda[vg, vo], kg, ko)
     lam.og = matrix(lambda[vo, vg], ko, kg)
     lam.oo = matrix(lambda[vo, vg], ko, ko)
 
-    # gamma subscripts
-    mu.bar = mu.g + solve(lam.gg) %*% lam.go %*% mu.o
-    lam.bar = lam.gg
-    a.bar = a + ko / 2
-    b.bar = b + 1/2 * t(mu.o) %*% (lam.oo - lam.og %*% solve(lam.gg) %*% lam.go) %*% mu.o
+#   # gamma subscripts
+#    mu.squig = mu.g + solve(lam.gg) %*% lam.go %*% mu.o
+#   lam.squig = lam.gg
+#     a.squig = a + ko / 2
+#     b.squig = b + 1/2 * t(mu.o) %*% (lam.oo - lam.og %*% solve(lam.gg) %*% lam.go) %*% mu.o
+     mu.squig = mu.g
+    lam.squig = lam.gg
+      a.squig = a
+      b.squig = b
 
-    dnig(beta.g, sig2, , lam.bar, a.bar, b.bar)
-    dnig(beta.g, sig2, mu.bar, lam.bar, a.bar, b.bar)
+    mu.prior = rep(0, kg)
+    lam.prior = 1/D * diag(kg)
+    a.prior = 0
+    b.prior = 0 
+    
 
-    dnig(rep(0, kg), sig2, rep(0, kg), matrix(0, kg, kg), -kg/2, 0) -
-        dnig(rep(0, kg), sig2, mu.bar, lam.bar, a.bar, b.bar)
-
-
-    # Update sigma^2
-    draws.sig2[i] = 1/rgamma(1, a.bar, b.bar)
-
-    # Update beta
-    draws.beta[i,] = mvrnorm(1, mu.bar, draws.sig2[i] * solve(lambda.bar))
-
-    # Update gamma
-#   h1 = draws.w[i-1,] * dnorm(draws.beta[i,], 0, sqrt(draws.sig2[i] * D))
-#   h2 = (1 - draws.w[i-1,]) * dnorm(draws.beta[i,], 0, sqrt(draws.sig2[i] * d))
-    h1 = draws.w[i-1,] * dnorm(draws.beta[i,], 0, sqrt(D))
-    h2 = (1 - draws.w[i-1,]) * dnorm(draws.beta[i,], 0, sqrt(d))
-    draws.gamma[i,] = rbinom(k, 1, h1 / (h1 + h2))
-
-    # Update w
-    draws.w[i,] = rbeta(k, a.w + draws.gamma[i,], b.w + 1 - draws.gamma[i,]) 
+    tmp = nig_sum(mu.squig, lam.squig, a.squig, b.squig,
+        mu.prior, lam.prior, a.prior, b.prior)
+    mu.bar = tmp$mu
+    lam.bar = tmp$lambda
+    a.bar = tmp$a
+    b.bar = tmp$b
+    
+    return (dnig(rep(0, kg), sig2, mu.prior, lam.prior, a.prior, b.prior) -
+        dnig(rep(0, kg), sig2, mu.bar, lam.bar, a.bar, b.bar) +
+        sum(dbinom(gamma, 1, prob = w.vec, log = TRUE)))
+        dbeta(gamma,)
     }
+
+curr.post = calc.post(draws.gamma[1,], mu, lambda, a, b)
+
+
+for (i in 2:B){
+    draws.gamma[i,] = draws.gamma[i-1,]
+
+    # 4.1, propose gamma
+    gamma.prop = draws.gamma[i-1,]
+    tmp.ind = sample(k, 1)
+    gamma.prop[tmp.ind] = 1 - gamma.prop[tmp.ind]
+
+    cand.post = calc.post(gamma.prop, mu, lambda, a, b)
+
+    if (log(runif(1)) <= cand.post - curr.post){
+        draws.gamma[i,] = gamma.prop
+        curr.post = cand.post
+        accept[i] = 1
+        }
+
+    }
+
+mean(accept)
+sum(accept)
+draws.gamma[1,]
+draws.gamma[7000,]
+
+plot(draws.gamma[,16])
+colMeans(draws.gamma)
+# try with no correlated data
