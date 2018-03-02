@@ -9,6 +9,15 @@ make.sigma = function(k, rho){
     diag(out) = 1
     return (out)
     }
+### Normal Inverse Gamma density
+dnig = function(beta, sig2, mu, lambda, a, b, log = TRUE){
+    k = length(mu)
+    out = -(a + k/2 + 1)*log(sig2) - (1/sig2) *
+        (b + 1/2*t(beta - mu) %*% lambda %*% (beta - mu))
+    if (log)
+        return (out)
+    return (exp(out))
+    }
 ### Random Inverse Gaussian
 rigauss = function(n, mu, lambda){
     nu = rnorm(n)
@@ -248,3 +257,78 @@ plot_hpd(draws.sig2)
 
 ### MC^3
 # (Algorithm 4)
+
+# Variance for the spike (d) and slab (D) components
+d = 0.01^2
+D = 100
+
+# Beta prior for w (mixture weight)
+a.w = rep(1, k)
+b.w = rep(1, k)
+
+
+# Gibbs set up
+nburn = 200
+nmcmc = 500
+B = nburn + nmcmc
+draws.beta = matrix(0, B, k)
+draws.sig2 = double(B)
+draws.gamma = matrix(0, B, k)   # Indicators for selected variables
+# draws.w = matrix(0, B, k)       # Probabilities for indicators
+
+draws.sig2[1] = 1
+draws.gamma[1,] = rep(0, k)     # Start with no selected variables
+# draws.w[1,] = rep(0.5, k)
+
+for (i in 2:B){
+    # 4.1, propose gamma
+    gamma.prop = draws.gamma[i-1,]
+    tmp.ind = sample(k, 1)
+    gamma.prop[tmp.ind] = 1 - gamma.prop[tmp.ind]
+    vg = (gamma.prop == 1)
+    vo = (gamma.prop == 0)
+    kg = sum(vg)
+    ko = sum(vo)
+
+    # 4.2, reduce
+    beta.g = draws.beta[i-1, gamma.prop == 1]
+    beta.o = draws.beta[i-1, gamma.prop == 0]
+    sig2 = draws.sig2[i-1]
+
+    mu.g = mu[gamma.prop == 1]
+    mu.o = mu[gamma.prop == 0]
+
+    lam.gg = matrix(lambda[vg, vg], kg, kg)
+    lam.go = matrix(lambda[vg, vo], kg, ko)
+    lam.og = matrix(lambda[vo, vg], ko, kg)
+    lam.oo = matrix(lambda[vo, vg], ko, ko)
+
+    # gamma subscripts
+    mu.bar = mu.g + solve(lam.gg) %*% lam.go %*% mu.o
+    lam.bar = lam.gg
+    a.bar = a + ko / 2
+    b.bar = b + 1/2 * t(mu.o) %*% (lam.oo - lam.og %*% solve(lam.gg) %*% lam.go) %*% mu.o
+
+    dnig(beta.g, sig2, , lam.bar, a.bar, b.bar)
+    dnig(beta.g, sig2, mu.bar, lam.bar, a.bar, b.bar)
+
+    dnig(rep(0, kg), sig2, rep(0, kg), matrix(0, kg, kg), -kg/2, 0) -
+        dnig(rep(0, kg), sig2, mu.bar, lam.bar, a.bar, b.bar)
+
+
+    # Update sigma^2
+    draws.sig2[i] = 1/rgamma(1, a.bar, b.bar)
+
+    # Update beta
+    draws.beta[i,] = mvrnorm(1, mu.bar, draws.sig2[i] * solve(lambda.bar))
+
+    # Update gamma
+#   h1 = draws.w[i-1,] * dnorm(draws.beta[i,], 0, sqrt(draws.sig2[i] * D))
+#   h2 = (1 - draws.w[i-1,]) * dnorm(draws.beta[i,], 0, sqrt(draws.sig2[i] * d))
+    h1 = draws.w[i-1,] * dnorm(draws.beta[i,], 0, sqrt(D))
+    h2 = (1 - draws.w[i-1,]) * dnorm(draws.beta[i,], 0, sqrt(d))
+    draws.gamma[i,] = rbinom(k, 1, h1 / (h1 + h2))
+
+    # Update w
+    draws.w[i,] = rbeta(k, a.w + draws.gamma[i,], b.w + 1 - draws.gamma[i,]) 
+    }
