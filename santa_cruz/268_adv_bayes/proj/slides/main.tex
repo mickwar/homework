@@ -1,0 +1,116 @@
+\documentclass[mathserif, 11pt, t]{beamer}
+\section*{Results}
+
+\input{beamer_setup.tex}
+
+\newcommand{\bc}[1]{\textcolor{blue}{\mathbf{#1}}}
+
+\begin{document}
+
+
+\titlepage{Big Data Bayesian Linear Regression and Variable Selection by Normal-Inverse-Gamma Summation}{Mickey Warner}{12 March 2018}{Review of the paper by Hang Qian (2017)}
+
+
+
+
+% \begin{enumerate}
+% \item 
+% \end{enumerate}
+
+% \begin{frame}{Locations}
+% 
+% \begin{figure}
+% \begin{center}
+% \includegraphics[scale=0.18]{figs/cal_mod_box1.pdf}
+% \includegraphics[scale=0.18]{figs/cal_mod_box2.pdf}
+% \includegraphics[scale=0.18]{figs/cal_mod_box3.pdf}
+% \end{center}
+% \caption{Left: CanCM4 simulation grid cells. Center: Observation locations. Right: method for computing weighted sum or average for CanCM4 to make values comparable with observations.}
+% \end{figure}
+% 
+% \end{frame}
+
+\begin{frame}{Linear Regression with Big Data}
+
+With $n$ independent observations and $k$ covariates, fitting the typical linear regressional model
+\begin{align}
+y|X,\beta,\sigma^2 \sim N_n\left(X\beta,\sigma^2 I\right)
+\end{align}
+can be problematic when $n$ is so large that we cannot load all the data into memory to perform standard computations.
+\bigskip
+
+Need a way to break up the data and perform computations on separate processors.
+
+\end{frame}
+
+
+\begin{frame}{Normal-Inverse-Gamma (NIG) prior}
+
+If $\beta$ and $\sigma^2$ are defined in the following way
+\begin{align}
+\begin{split}
+\beta | \sigma^2 & \sim N_k(\mu, \sigma^2 \Lambda^{-1}) \\
+\sigma^2 & \sim IG(a, b)
+\end{split}
+\end{align}
+then the joint density function is given by
+\begin{align}
+p(\beta, \sigma^2) \propto (\sigma^2)^{-(a+k/2+1)}e^{-\frac{1}{\sigma^2}\left[b+\frac{1}{2}(\beta-\mu)^\top \Lambda^{-1}(\beta-\mu)\right]}
+\end{align}
+and we write $(\beta,\sigma^2)\sim NIG(\mu, \Lambda, a, b)$. The NIG distribution is a conjugate prior to the linear model.
+
+\end{frame}
+
+\begin{frame}{NIG posterior}
+
+The posterior is given by
+\begin{align}
+\beta,\sigma^2 |X, y &\sim NIG(\overline{\mu}, \overline{\Lambda}, \overline{a}, \overline{b})
+\end{align}
+where
+\begin{align}
+\begin{split}
+\overline{\mu} &= (\Lambda + X^\top X)^{-1}(\Lambda \mu + X^\topy) \\
+\overline{\Lambda} &= \Lambda + X^\top X \\
+\overline{a} &= a + \frac{n}{2} \\
+\overline{b} &= b + \frac{1}{2}y^\top y + \frac{1}{2}\mu^\top \Lambda\mu -\frac{1}{2}\overline{\mu}^\top\overline{\Lambda}\overline{\mu} 
+\end{split}
+\end{align}
+
+\end{frame}
+
+
+\begin{frame}{NIG summation}
+
+Consider the $k$-dimensional distributions $NIG(\mu_1, \Lambda_1, a_1, b_1)$ and $NIG(\mu_2, \Lambda_2, a_2, b_2)$. If a distribution $NIG(\mu, \Lambda, a, b)$ satisfies
+\begin{align*}
+\mu &=(\Lambda_1+\Lambda_2)^{-1}(\Lambda_1\mu_1 + \Lambda_2\mu_2) \\
+\Lambda &=\Lambda_1+\Lambda_2 \\
+a &=a_1+a_2+\frac{k}{2} \\
+b &=b_1+b_2+\frac{1}{2}(\mu_1-\mu_2)^\top(\Lambda_1^{-1}+\Lambda_2^{-1})^{-1}(\mu_1-\mu_2)
+\end{align*}
+then it is said to be the sum of two NIG distributions
+\[ NIG(\mu, \Lambda, a, b) = NIG(\mu_1, \Lambda_1, a_1, b_1) + NIG(\mu_2, \Lambda_2, a_2, b_2) \]
+
+\end{frame}
+
+% \begin{enumerate}
+% \item $\mu=(\Lambda_1+\Lambda_2)^{-1}(\Lambda_1\mu_1 + \Lambda_2\mu_2)$ \\
+% \item $\Lambda=\Lambda_1+\Lambda_2$ \\
+% \item $a=a_1+a_2+\frac{k}{2}$ \\
+% \item $b=b_1+b_2+\frac{1}{2}(\mu_1-\mu_2)^\top(\Lambda_1^{-1}+\Lambda_2^{-1})^{-1}(\mu_1-\mu_2)$
+% \end{enumerate}
+
+\begin{frame}{NIG summation, continued}
+
+Commutative, associative, identity element $\mu=0_k$, $\Lambda=0_{k\times k}$, $a=-k/2$, $b=0$.
+
+\[ NIG(\mu,\Lambda,a,b)+NIG(0_k, 0_{k\times k}, -k/2, 0) = NIG(\mu,\Lambda,a,b) \]
+
+
+\end{frame}
+
+
+
+
+\end{document}
