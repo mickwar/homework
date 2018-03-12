@@ -58,6 +58,9 @@ then the joint density function is given by
 p(\beta, \sigma^2) \propto (\sigma^2)^{-(a+k/2+1)}e^{-\frac{1}{\sigma^2}\left[b+\frac{1}{2}(\beta-\mu)^\top \Lambda^{-1}(\beta-\mu)\right]}
 \end{align}
 and we write $(\beta,\sigma^2)\sim NIG(\mu, \Lambda, a, b)$. The NIG distribution is a conjugate prior to the linear model.
+\bigskip
+
+A non-informative prior is $NIG(0_k, 0_{k\times k}, -k/2, 0)$.
 
 \end{frame}
 
@@ -83,29 +86,117 @@ where
 \begin{frame}{NIG summation}
 
 Consider the $k$-dimensional distributions $NIG(\mu_1, \Lambda_1, a_1, b_1)$ and $NIG(\mu_2, \Lambda_2, a_2, b_2)$. If a distribution $NIG(\mu, \Lambda, a, b)$ satisfies
-\begin{align*}
+\begin{align}
+\begin{split}
 \mu &=(\Lambda_1+\Lambda_2)^{-1}(\Lambda_1\mu_1 + \Lambda_2\mu_2) \\
 \Lambda &=\Lambda_1+\Lambda_2 \\
 a &=a_1+a_2+\frac{k}{2} \\
 b &=b_1+b_2+\frac{1}{2}(\mu_1-\mu_2)^\top(\Lambda_1^{-1}+\Lambda_2^{-1})^{-1}(\mu_1-\mu_2)
-\end{align*}
+\end{split}
+\end{align}
 then it is said to be the sum of two NIG distributions
-\[ NIG(\mu, \Lambda, a, b) = NIG(\mu_1, \Lambda_1, a_1, b_1) + NIG(\mu_2, \Lambda_2, a_2, b_2) \]
+\begin{align}
+NIG(\mu, \Lambda, a, b) = NIG(\mu_1, \Lambda_1, a_1, b_1) + NIG(\mu_2, \Lambda_2, a_2, b_2)
+\end{align}
 
 \end{frame}
 
-% \begin{enumerate}
-% \item $\mu=(\Lambda_1+\Lambda_2)^{-1}(\Lambda_1\mu_1 + \Lambda_2\mu_2)$ \\
-% \item $\Lambda=\Lambda_1+\Lambda_2$ \\
-% \item $a=a_1+a_2+\frac{k}{2}$ \\
-% \item $b=b_1+b_2+\frac{1}{2}(\mu_1-\mu_2)^\top(\Lambda_1^{-1}+\Lambda_2^{-1})^{-1}(\mu_1-\mu_2)$
-% \end{enumerate}
 
-\begin{frame}{NIG summation, continued}
+\begin{frame}{Algorithm}
 
-Commutative, associative, identity element $\mu=0_k$, $\Lambda=0_{k\times k}$, $a=-k/2$, $b=0$.
+Partition the data into $m$ subsets
+\[ (X_1, y_1), \ldots, (X_m, y_m), \]
+where $X_i$ is $n_i \times k$, and $y_i$ is $n_i\times 1$, and $n_1+\cdots+n_m=n$.
+\bigskip
 
-\[ NIG(\mu,\Lambda,a,b)+NIG(0_k, 0_{k\times k}, -k/2, 0) = NIG(\mu,\Lambda,a,b) \]
+These should be constructed so that $X_i^\top X_i$, $X_i^\top y_i$, and $y_i^\top y_i$ can be computed in memory.        
+\bigskip
+
+Compute the NIG posterior (4) for each subset using (5), under a non-informative prior. Combine the results with (6) and (7), then add any prior information. The result is the posterior as if we used all of the data.
+
+\end{frame}
+
+
+\begin{frame}{Simulation study}
+
+We simulate from the model
+\[ y_i \sim N(x_i^\top\beta, \sigma^2) \]
+where $\beta=(1, 0.9, \ldots, 0.1, 0, \ldots, 0)^\top$, $\sigma=10$ and the $x_i$'s are from a zero-mean multivariate normal with correlation $0.99$ for all variables.
+\bigskip
+
+Data are simulated with $n=100,000$ and $k=40$, but the method can easily handle much larger $n$.
+
+\end{frame}
+
+
+
+
+\begin{frame}{Simulation study, continued}
+
+Comparisons are made between four models:
+\begin{enumerate}
+\item Standard linear model (OLS)
+\item LASSO with penalty $\lambda=10$
+\item SSVS
+\item MCMC model composition (MC$^3$)
+\end{enumerate}
+
+\end{frame}
+
+
+
+
+\begin{frame}
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.35]{figs/estimates.pdf}
+\end{center}
+\end{figure}
+
+\end{frame}
+
+
+
+
+
+\begin{frame}
+
+\begin{table}
+\centering
+\begin{tabular}{lrrrr}
+\hline\hline
+    & OLS    & LASSO  & SSVS   & MC$^3$ \\
+MSE & 0.0206 & 0.0230 & 0.0203 & 0.0111 \\
+\hline\hline
+\end{tabular}
+\caption{MSE for $\beta$.}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrr}
+  \hline\hline
+$i$ & 1 & 2 & 3 & 4 & 5  \\ 
+  \hline
+SSVS   & 1.00 & 1.00 & 1.00 & 1.00 & 1.00  \\ 
+MC$^3$ & 1.00 & 1.00 & 1.00 & 1.00 & 1.00  \\ 
+   \hline\hline
+\end{tabular}
+\end{table}
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrr}
+  \hline\hline
+$i$ & 6 & 7 & 8 & 9 & 10 \\ 
+  \hline
+SSVS   &  0.75 & 0.07 & 0.05 & 0.00 & 0.02 \\ 
+MC$^3$ &  1.00 & 0.25 & 0.14 & 0.00 & 0.04 \\ 
+   \hline\hline
+\end{tabular}
+\caption{Posterior $E(\gamma_i|y)$.}
+\end{table}
+
 
 
 \end{frame}

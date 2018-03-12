@@ -239,12 +239,22 @@ alg2 = list("beta"=draws.beta, "sigma2"=draws.sig2, "psi"=draws.psi)
 # correlated predictors.
 
 # Variance for the spike (d) and slab (D) components
-d = 0.01^2
+#d = 0.01^2
+#D = 100
 D = 100
+d = 1
+
+g = 100
+tau = sqrt(0.01)
 
 # Beta prior for w (mixture weight)
-a.w = rep(1, k)
-b.w = rep(1, k)
+#a.w = rep(1, k)
+#b.w = rep(1, k)
+
+# Fixed w
+w = 1 / (1 + 1/sqrt(1+D) * exp(log(n)*D/(2*(1+D))))     # BIC
+w = 1 / (1 + 1/sqrt(1+D) * exp(log(n)*g/(2*(1+g))))     # BIC
+w.vec = rep(w, k)
 
 
 # Gibbs set up
@@ -254,11 +264,11 @@ B = nburn + nmcmc
 draws.beta = matrix(0, B, k)
 draws.sig2 = double(B)
 draws.gamma = matrix(0, B, k)   # Indicators for selected variables
-draws.w = matrix(0, B, k)       # Probabilities for indicators
+#draws.w = matrix(0, B, k)       # Probabilities for indicators
 
 draws.sig2[1] = 1
 draws.gamma[1,] = rep(0, k)     # Start with no selected variables
-draws.w[1,] = rep(0.5, k)
+#draws.w[1,] = rep(0.5, k)
 
 for (i in 2:B){
     lambda.gamma = diag(1/ifelse(draws.gamma[i-1,] == 1, D, d))
@@ -277,20 +287,29 @@ for (i in 2:B){
     draws.beta[i,] = mvrnorm(1, mu.bar, draws.sig2[i] * solve(lambda.bar))
 
     # Update gamma
-    h1 = draws.w[i-1,] * dnorm(draws.beta[i,], 0, sqrt(D))
-    h2 = (1 - draws.w[i-1,]) * dnorm(draws.beta[i,], 0, sqrt(d))
+#   h1 = draws.w[i-1,] * dnorm(draws.beta[i,], 0, sqrt(D))
+#   h2 = (1 - draws.w[i-1,]) * dnorm(draws.beta[i,], 0, sqrt(d))
+#   h1 = w.vec * dnorm(draws.beta[i,], 0, sqrt(D))
+#   h2 = (1 - w.vec) * dnorm(draws.beta[i,], 0, sqrt(d))
+#   h1 = w.vec * dnorm(draws.beta[i,], 0, sqrt(draws.sig2[i]*D))
+#   h2 = (1 - w.vec) * dnorm(draws.beta[i,], 0, sqrt(draws.sig2[i]*d))
+    h1 = w.vec * dnorm(draws.beta[i,], 0, g*tau)
+    h2 = (1 - w.vec) * dnorm(draws.beta[i,], 0, tau)
     draws.gamma[i,] = rbinom(k, 1, h1 / (h1 + h2))
 
     # Update w
-    draws.w[i,] = rbeta(k, a.w + draws.gamma[i,], b.w + 1 - draws.gamma[i,]) 
+#   draws.w[i,] = rbeta(k, a.w + draws.gamma[i,], b.w + 1 - draws.gamma[i,]) 
     }
 
 draws.beta = tail(draws.beta, nmcmc)
 draws.sig2 = tail(draws.sig2, nmcmc)
 draws.gamma = tail(draws.gamma, nmcmc)
-draws.w = tail(draws.w, nmcmc)
+#draws.w = tail(draws.w, nmcmc)
 
-alg3 = list("beta"=draws.beta, "sigma2"=draws.sig2, "gamma"=draws.gamma, "w"=draws.w)
+colMeans(draws.gamma)
+
+#alg3 = list("beta"=draws.beta, "sigma2"=draws.sig2, "gamma"=draws.gamma, "w"=draws.w)
+alg3 = list("beta"=draws.beta, "sigma2"=draws.sig2, "gamma"=draws.gamma)
 
 
 
@@ -328,7 +347,7 @@ calc.post = function(gamma, mu, lambda, a, b){
 
     mu.prior = rep(0, kg)
 #   lam.prior = 1/D * diag(kg)
-    lam.prior = 1/c * lambda[vg, vg]
+    lam.prior = 1/D * lambda[vg, vg]
     a.prior = 1
     b.prior = 1 
     
@@ -380,7 +399,7 @@ alg4.draws = function(gammas, mu, lambda, a, b){
 
         mu.prior = rep(0, kg)
     #   lam.prior = 1/D * diag(kg)
-        lam.prior = 1/c * lambda[vg, vg]
+        lam.prior = 1/D * lambda[vg, vg]
         a.prior = 0
         b.prior = 0 
 
@@ -401,7 +420,6 @@ alg4.draws = function(gammas, mu, lambda, a, b){
 
 # d = 0.01^2
 D = 100
-c = D
 
 
 
@@ -416,7 +434,7 @@ draws.gamma[1,] = rbinom(k, 1, prob = 0.5)     # Start with randomly selected va
 
 #w = 0.5
 #w = 1 / (1 + 1/sqrt(1+c) * exp(2*c/(2*(1+c))))         # AIC
-w = 1 / (1 + 1/sqrt(1+c) * exp(log(n)*c/(2*(1+c))))     # BIC
+w = 1 / (1 + 1/sqrt(1+D) * exp(log(n)*D/(2*(1+D))))     # BIC
 w.vec = rep(w, k)
 
 curr.post = calc.post(draws.gamma[1,], mu, lambda, a, b)
@@ -465,15 +483,23 @@ QQ[3,,] = apply(alg3$beta, 2, hpd_mult, force_uni = TRUE)
 MM[4,] = colMeans(alg4$beta)
 QQ[4,,] = apply(alg4$beta, 2, hpd_mult, force_uni = TRUE)
 
+pdf("slides/figs/estimates.pdf", width = 8, height = 8)
 matplot(t(MM), type = 'l', xlab = "Beta Index", ylab = "Coefficient",
     axes = FALSE, main = "Regression coefficient estimates", lwd = 2)
 axis(1); axis(2)
 legend("topright", bty = 'n', legend = c("OLS", "LASSO", "SSVS", "MC3", "Truth"),
     col = c(1:4, 1), lty = c(1:4, NA), cex = 1.5, lwd = 3, pch = c(rep(NA, 4), 4))
 points(beta, pch = 4, lwd = 3)
+dev.off()
 
-str(alg2)
 
-colMeans(alg3$w)
-colMeans(alg3$gamma)
-str(alg3)
+### Gammas
+library(xtable)
+xtable(head(cbind(colMeans(alg3$gamma), colMeans(alg4$gamma)), 10))
+xtable(t(head(cbind(colMeans(alg3$gamma), colMeans(alg4$gamma)), 10)))
+
+### MSE
+c(mean((alg1$beta - t(matrix(beta, k, nrow(alg1$beta))))^2), 
+    mean((alg2$beta - t(matrix(beta, k, nrow(alg2$beta))))^2), 
+    mean((alg3$beta - t(matrix(beta, k, nrow(alg3$beta))))^2), 
+    mean((alg4$beta - t(matrix(beta, k, nrow(alg4$beta))))^2))
