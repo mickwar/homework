@@ -11,7 +11,8 @@ digamma = function(x, a, b, log = TRUE){
     return (exp(out))
     }
 dmvnorm = function(x, mu, sigma, log = TRUE){
-    out = -length(x)/2*log(2*pi) - 0.5*determinant(sigma)$modulus[1] - 0.5*t(x-mu)%*%solve(sigma)%*%(x-mu)
+    out = -length(x)/2*log(2*pi) - 0.5*determinant(sigma)$modulus[1] -
+        0.5*t(x-mu)%*%solve(sigma)%*%(x-mu)
     if (log)
         return (out)
     return (exp(out))
@@ -91,25 +92,6 @@ nig_sum = function(mu1, lambda1, a1, b1, mu2, lambda2, a2, b2){
     return (list("mu"=mu, "lambda"=lambda, "a"=a, "b"=as.numeric(b)))
     }
 
-dnig(5, 3, 4, 1/0.2, 6, 7)
-dnig(5, 3, 4, 0.2, 6, 7)
-
-dnorm(5, 4, sqrt(3 * 0.2), log = TRUE) + digamma(3, 6, 7)
-
-A = matrix(c(5, 4, 4, 7), 2, 2)
-
-dnig(c(4.8, 4.1), 3, c(4, 3), A, 6, 7)
-dnig(c(4.8, 4.1), 3, c(4, 3), solve(A), 6, 7)
-
-dmvnorm(c(4.8, 4.1), c(4, 3), 3*solve(A), log = TRUE) + digamma(3, 6, 7)
-dmvnorm(c(4.8, 4.1), c(4, 3), 1/3*A, log = TRUE) + digamma(3, 6, 7)
-
-
-
-xx = seq(0.001, 100, length = 200)
-plot(xx, digamma(xx, 5, 100, log = FALSE), type = 'l')
-lines(density(1/rgamma(10000, 5, 100)), col = 'red')
-
 
 
 ### Generate and write the data to m files
@@ -151,18 +133,12 @@ lambda.s = array(0, c(m, k, k))
 a.s = double(m)
 b.s = double(m)
 
-# mu.2 = matrix(0, kg, m)
-# lambda.2 = array(0, c(m, kg, kg))
-# a.2 = double(m)
-# b.2 = double(m)
-
 for (i in 1:m){
     fname = paste0(c(DATA_DIR, "dat_", rho, "_", rep("0", nchar(m) - nchar(i)), i, ".txt"), collapse = "")
     z = read.table(fname, header = TRUE)
     y = as.vector(z[,1])
     X = as.matrix(z[,-1])
 
-#   X = X[,vg]
     xty = t(X) %*% y
     yty = sum(y^2)
 
@@ -171,12 +147,6 @@ for (i in 1:m){
     mu.s[,i] = lam.inv %*% xty
     a.s[i] = (n/m - k) / 2
     b.s[i] = 1/2 * (yty - t(xty) %*% lam.inv %*% xty)
-
-#   lambda.2[i,,] = t(X) %*% X
-#   lam.inv = solve(t(X) %*% X)
-#   mu.2[,i] = lam.inv %*% xty
-#   a.2[i] = (n/m - k) / 2
-#   b.2[i] = 1/2 * (yty - t(xty) %*% lam.inv %*% xty)
 
     rm(X, y, z, xty, yty, lam.inv)
     gc()
@@ -190,22 +160,12 @@ lambda = lambda.s[1,,]
 a = a.s[1]
 b = b.s[1]
 
-# mu.3 = mu.2[,1]
-# lambda.3 = lambda.2[1,,]
-# a.3 = a.2[1]
-# b.3 = b.2[1]
-
 for (i in 2:m){
     tmp = nig_sum(mu, lambda, a, b, mu.s[,i], lambda.s[i,,], a.s[i], b.s[i])
     mu = tmp$mu
     lambda = tmp$lambda
     a = tmp$a
     b = tmp$b
-#   tmp = nig_sum(mu.3, lambda.3, a.3, b.3, mu.2[,i], lambda.2[i,,], a.2[i], b.2[i])
-#   mu.3 = tmp$mu
-#   lambda.3 = tmp$lambda
-#   a.3 = tmp$a
-#   b.3 = tmp$b
     rm(tmp)
     }
 # Non-informative prior
@@ -239,11 +199,6 @@ for (i in 2:B){
     lambda.bar = tmp$lambda
     a.bar = tmp$a
     b.bar = tmp$b
-#   mu.bar = solve(lambda + lambda.psi) %*% (lambda %*% mu + lambda.psi %*% rep(0, k))
-#   a.bar = a + 0
-#   b.bar = b + 0 + 1/2*t(mu - mu.bar) %*% lambda %*% (mu - mu.bar) +
-#       1/2*t(rep(0, k) - mu.bar) %*% lambda.psi %*% (rep(0, k) - mu.bar)
-#   lambda.bar = lambda + lambda.psi
 
     # Update sigma^2
     draws.sig2[i] = 1/rgamma(1, a.bar, b.bar)
@@ -259,17 +214,6 @@ for (i in 2:B){
 draws.beta = tail(draws.beta, nmcmc)
 draws.sig2 = tail(draws.sig2, nmcmc)
 draws.psi = tail(draws.psi, nmcmc)
-
-
-# mean.beta = colMeans(draws.beta)
-# med.beta = apply(draws.beta, 2, median)
-# qq.beta = apply(draws.beta, 2, quantile, c(0.025, 0.975))
-# 
-# plot(mean.beta, pch = 16, col = 'darkgreen', ylim = range(qq.beta))
-# points(1:k, med.beta, pch = 16, col = 'dodgerblue')
-# segments(1:k, qq.beta[1,], 1:k, qq.beta[2,], col = 'forestgreen')
-# 
-# points(1:k, beta, pch = 15)
 
 alg2 = list("beta"=draws.beta, "sigma2"=draws.sig2, "psi"=draws.psi)
 
@@ -290,7 +234,7 @@ alg2 = list("beta"=draws.beta, "sigma2"=draws.sig2, "psi"=draws.psi)
 # The above comment was written after running the model on data with no 
 # correlation between covariates. When there was strong correlation (0.99),
 # then every variable was selected by SSVS, the spread of the each beta
-# was much larger, those betas closer to 0 had credible intervals crossing 0.
+# was much larger, those (non-zero) betas closer to 0 had credible intervals crossing 0.
 # Basically, this method, as it is, is not sufficient when dealing with
 # correlated predictors.
 
@@ -326,12 +270,6 @@ for (i in 2:B){
     a.bar = tmp$a
     b.bar = tmp$b
 
-#   mu.bar = solve(lambda + lambda.gamma) %*% (lambda %*% mu + lambda.gamma %*% rep(0, k))
-#   a.bar = a + 0
-#   b.bar = b + 0 + 1/2*t(mu - mu.bar) %*% lambda %*% (mu - mu.bar) +
-#       1/2*t(rep(0, k) - mu.bar) %*% lambda.gamma %*% (rep(0, k) - mu.bar)
-#   lambda.bar = lambda + lambda.gamma
-
     # Update sigma^2
     draws.sig2[i] = 1/rgamma(1, a.bar, b.bar)
 
@@ -339,8 +277,6 @@ for (i in 2:B){
     draws.beta[i,] = mvrnorm(1, mu.bar, draws.sig2[i] * solve(lambda.bar))
 
     # Update gamma
-#   h1 = draws.w[i-1,] * dnorm(draws.beta[i,], 0, sqrt(draws.sig2[i] * D))
-#   h2 = (1 - draws.w[i-1,]) * dnorm(draws.beta[i,], 0, sqrt(draws.sig2[i] * d))
     h1 = draws.w[i-1,] * dnorm(draws.beta[i,], 0, sqrt(D))
     h2 = (1 - draws.w[i-1,]) * dnorm(draws.beta[i,], 0, sqrt(d))
     draws.gamma[i,] = rbinom(k, 1, h1 / (h1 + h2))
@@ -353,16 +289,6 @@ draws.beta = tail(draws.beta, nmcmc)
 draws.sig2 = tail(draws.sig2, nmcmc)
 draws.gamma = tail(draws.gamma, nmcmc)
 draws.w = tail(draws.w, nmcmc)
-
-# colMeans(draws.w)
-# 
-# 
-# cols = rep("white", k)
-# cols[which(colMeans(draws.w) > 0.5)] = "dodgerblue"
-# boxplot(draws.beta, col = cols)
-# points(1:k, beta, col = 'firebrick', pch = 15)
-# 
-# plot_hpd(draws.sig2)
 
 alg3 = list("beta"=draws.beta, "sigma2"=draws.sig2, "gamma"=draws.gamma, "w"=draws.w)
 
@@ -390,23 +316,21 @@ calc.post = function(gamma, mu, lambda, a, b){
     lam.og = matrix(lambda[vo, vg], ko, kg)
     lam.oo = matrix(lambda[vo, vo], ko, ko)
 
-#   # gamma subscripts
+    # gamma subscripts
      mu.squig = mu.g + solve(lam.gg) %*% lam.go %*% mu.o
     lam.squig = lam.gg
 #     a.squig = a + ko / 2
       a.squig = a + (1-m) * ko / 2
       b.squig = b + 1/2 * t(mu.o) %*% (lam.oo - lam.og %*% solve(lam.gg) %*% lam.go) %*% mu.o
-#    mu.squig = mu.g
-#   lam.squig = lam.gg
-#     a.squig = a
-#     b.squig = b
-
+    ### Not sure which a.squig is correct. The paper gives a + ko / 2, but when
+    ### doing the exact calculation (using only the selected variables), then
+    ### it's a + (1-m) * ko / 2
 
     mu.prior = rep(0, kg)
 #   lam.prior = 1/D * diag(kg)
     lam.prior = 1/c * lambda[vg, vg]
-    a.prior = 0
-    b.prior = 0 
+    a.prior = 1
+    b.prior = 1 
     
 
     tmp = nig_sum(mu.squig, lam.squig, a.squig, b.squig,
@@ -416,14 +340,11 @@ calc.post = function(gamma, mu, lambda, a, b){
     a.bar = tmp$a
     b.bar = tmp$b
     
-#   return (dnig(rep(0, kg), sig2, mu.prior, lam.prior, a.prior, b.prior) -
-#       dnig(rep(0, kg), sig2, mu.bar, lam.bar, a.bar, b.bar) +
-#       sum(dbinom(gamma, 1, prob = w.vec, log = TRUE)))
-#   return (dnig(rep(0, kg), sig2, mu.squig, lam.squig, a.squig, b.squig) -
-#       dnig(rep(0, kg), sig2, mu.bar, lam.bar, a.bar, b.bar) +
-#       sum(dbinom(gamma, 1, prob = w.vec, log = TRUE)))
-    return (-log(sig2) - dnig(rep(0, kg), sig2, mu.bar, lam.bar, a.bar, b.bar) +
+    return (dnig(rep(0, kg), sig2, mu.prior, lam.prior, a.prior, b.prior) -
+        dnig(rep(0, kg), sig2, mu.bar, lam.bar, a.bar, b.bar) +
         sum(dbinom(gamma, 1, prob = w.vec, log = TRUE)))
+#   return (-log(sig2) - dnig(rep(0, kg), sig2, mu.bar, lam.bar, a.bar, b.bar) +
+#       sum(dbinom(gamma, 1, prob = w.vec, log = TRUE)))
     }
 
 alg4.draws = function(gammas, mu, lambda, a, b){
@@ -456,18 +377,12 @@ alg4.draws = function(gammas, mu, lambda, a, b){
     #     a.squig = a + ko / 2
           a.squig = a + (1-m) * ko / 2
           b.squig = b + 1/2 * t(mu.o) %*% (lam.oo - lam.og %*% solve(lam.gg) %*% lam.go) %*% mu.o
-    #    mu.squig = mu.g
-    #   lam.squig = lam.gg
-    #     a.squig = a
-    #     b.squig = b
-
 
         mu.prior = rep(0, kg)
     #   lam.prior = 1/D * diag(kg)
         lam.prior = 1/c * lambda[vg, vg]
         a.prior = 0
         b.prior = 0 
-        
 
         tmp = nig_sum(mu.squig, lam.squig, a.squig, b.squig,
             mu.prior, lam.prior, a.prior, b.prior)
@@ -499,19 +414,10 @@ accept = double(B)
 
 draws.gamma[1,] = rbinom(k, 1, prob = 0.5)     # Start with randomly selected variables
 
-#XtX = apply(lambda.s, c(2,3), sum)
-
-# for lazy
 #w = 0.5
-
-# for AIC
-#w = 1 / (1 + 1/sqrt(1+c) * exp(2*c/(2*(1+c))))
-
-# for BIC
-w = 1 / (1 + 1/sqrt(1+c) * exp(log(n)*c/(2*(1+c))))
-
+#w = 1 / (1 + 1/sqrt(1+c) * exp(2*c/(2*(1+c))))         # AIC
+w = 1 / (1 + 1/sqrt(1+c) * exp(log(n)*c/(2*(1+c))))     # BIC
 w.vec = rep(w, k)
-
 
 curr.post = calc.post(draws.gamma[1,], mu, lambda, a, b)
 
@@ -559,23 +465,15 @@ QQ[3,,] = apply(alg3$beta, 2, hpd_mult, force_uni = TRUE)
 MM[4,] = colMeans(alg4$beta)
 QQ[4,,] = apply(alg4$beta, 2, hpd_mult, force_uni = TRUE)
 
-plot(mm1, ylim = range(qq1, qq2), col = 'blue', pch = 16)
-points(mm2, col = 'green', pch = 16)
-points(mm3, col = 'red', pch = 16)
-points(mm4, col = 'red', pch = 16)
+matplot(t(MM), type = 'l', xlab = "Beta Index", ylab = "Coefficient",
+    axes = FALSE, main = "Regression coefficient estimates", lwd = 2)
+axis(1); axis(2)
+legend("topright", bty = 'n', legend = c("OLS", "LASSO", "SSVS", "MC3", "Truth"),
+    col = c(1:4, 1), lty = c(1:4, NA), cex = 1.5, lwd = 3, pch = c(rep(NA, 4), 4))
+points(beta, pch = 4, lwd = 3)
 
-lines(qq1[1,], lty = 2, col = 'blue')
-lines(qq1[2,], lty = 2, col = 'blue')
-lines(qq2[1,], lty = 2, col = 'green')
-lines(qq2[2,], lty = 2, col = 'green')
-lines(qq3[1,], lty = 2, col = 'red')
-lines(qq3[2,], lty = 2, col = 'red')
-lines(qq4[1,], lty = 2, col = 'red')
-lines(qq4[2,], lty = 2, col = 'red')
+str(alg2)
 
-
-plot(mm1, ylim = range(qq1,qq2,qq3,qq4), lty = 2, type = 'l', col =)
-
-matplot(t(MM), type = 'l')
-
-
+colMeans(alg3$w)
+colMeans(alg3$gamma)
+str(alg3)
