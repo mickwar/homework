@@ -17,12 +17,6 @@ dmvnorm = function(x, mu, sigma, log = TRUE){
         return (out)
     return (exp(out))
     }
-### For generating X
-make.sigma = function(k, rho){
-    out = matrix(rho, k, k)
-    diag(out) = 1
-    return (out)
-    }
 ### Normal Inverse Gamma density
 dnig = function(beta, sig2, mu, lambda, a, b, log = TRUE){
     # lambda is precision
@@ -92,65 +86,114 @@ nig_sum = function(mu1, lambda1, a1, b1, mu2, lambda2, a2, b2){
     return (list("mu"=mu, "lambda"=lambda, "a"=a, "b"=as.numeric(b)))
     }
 
-
-
 ### Generate and write the data to m files
-n = 10^6    # no. data points   (10^8)
-m = 100     # no. of subsamples, subsets    (1000)
-            # Make sure n/m is an integer and n/m > k
+gen_data = function(n, m = 1, k, rho, sigma, beta,
+    write.out = FALSE, data_dir){
+    # Generate m files containing n rows and k+1 columns
+    # First column, response y
+    # Remaing k columns, covariates
 
-k = 40      # no. of predictors  (100)
-rho = 0.99  # corr. between predictors (0.99)
-sigma = 10  # measurement error
+    # x's are generated from mean-zero multivariate normal where all
+    # variables have rho correlation, variance is 1.
 
-beta = c(seq(1, 0.1, by = -0.1), rep(0, k-10))
-sig.mat = make.sigma(k, rho)
+    require(MASS)
 
-# set.seed(1)
-# for (i in 1:m){
-#     X = mvrnorm(n/m, rep(0, k), sig.mat)
-#     y = rnorm(n/m, mean = X %*% beta, sd = sigma)
-#     fname = paste0(c(DATA_DIR, "dat_", rho, "_", rep("0", nchar(m) - nchar(i)), i, ".txt"), collapse = "")
-#     write.table(round(data.frame(y, X), 3), quote = FALSE, row.names = FALSE, file = fname)
-#     rm(X, y)
-#     gc()
-#     }
+    ### For generating X
+    make.sigma = function(k, rho){
+        out = matrix(rho, k, k)
+        diag(out) = 1
+        return (out)
+        }
 
+    if (missing(beta))
+        beta = c(seq(1, 0.1, by = -0.1), rep(0, k-10))
+
+    sig.mat = make.sigma(k, rho)
+
+    if (!write.out){
+        if (m > 1)
+            message("Note: setting m = 1 to return one X, y pair")
+        m = 1
+        }
+
+    for (i in 1:m){
+        X = mvrnorm(n, rep(0, k), sig.mat)
+        y = rnorm(n, mean = X %*% beta, sd = sigma)
+        if (write.out){
+            fname = paste0(c(data_dir, "dat_", rho, "_", sigma, "_",
+                rep("0", nchar(m) - nchar(i)), i, ".txt"), collapse = "")
+            write.table(round(data.frame(y, X), 3), quote = FALSE, row.names = FALSE, file = fname)
+            rm(X, y)
+            gc()
+            }
+        }
+    if (!write.out)
+        return (list("X" = X, "y" = y))
+    }
 
 ### Read in data and calculate posterior distributions
 ### for each data subset
-#m = length(list.files(DATA_DIR))
-m = 100
-fname = paste0(c(DATA_DIR, "dat_", rho, "_", rep("0", nchar(m) - nchar(1)), 1, ".txt"), collapse = "")
-z = read.table(fname, header = TRUE)
-n = NROW(z)*m
-k = NCOL(z) - 1
-rm(z)
+read_dat_and_get_params = function(rho, sigma, data_dir){
+    files = list.files(data_dir, paste0("dat_", rho, "_", sigma, "_"), full.names = TRUE)
+    m = length(files)
 
+    z = read.table(files[1], header = TRUE)
+    n = NROW(z)
+    k = NCOL(z) - 1
+    rm(z)
 
-mu.s = matrix(0, k, m)
-lambda.s = array(0, c(m, k, k))
-a.s = double(m)
-b.s = double(m)
+    mu.s = matrix(0, k, m)
+    lambda.s = array(0, c(m, k, k))
+    a.s = double(m)
+    b.s = double(m)
 
-for (i in 1:m){
-    fname = paste0(c(DATA_DIR, "dat_", rho, "_", rep("0", nchar(m) - nchar(i)), i, ".txt"), collapse = "")
-    z = read.table(fname, header = TRUE)
-    y = as.vector(z[,1])
-    X = as.matrix(z[,-1])
+    for (i in 1:m){
+        z = read.table(files[i], header = TRUE)
+        y = as.vector(z[,1])
+        X = as.matrix(z[,-1])
 
-    xty = t(X) %*% y
-    yty = sum(y^2)
+        xty = t(X) %*% y
+        yty = sum(y^2)
 
-    lambda.s[i,,] = t(X) %*% X
-    lam.inv = solve(t(X) %*% X)
-    mu.s[,i] = lam.inv %*% xty
-    a.s[i] = (n/m - k) / 2
-    b.s[i] = 1/2 * (yty - t(xty) %*% lam.inv %*% xty)
+        lambda.s[i,,] = t(X) %*% X
+        lam.inv = solve(t(X) %*% X)
+        mu.s[,i] = lam.inv %*% xty
+        a.s[i] = (n - k) / 2
+        b.s[i] = 1/2 * (yty - t(xty) %*% lam.inv %*% xty)
 
-    rm(X, y, z, xty, yty, lam.inv)
-    gc()
+        rm(X, y, z, xty, yty, lam.inv)
+        gc()
+        }
+
+    return (list("mu.s" = mu.s, "lambda.s" = lambda.s, "a.s" = a.s, "b.s" = a.s))
     }
+
+
+neach = 1000
+m = 100
+k = 40
+rho = 0.0
+beta = c(seq(1, 0.1, by = -0.1), rep(0, k - 10))
+n = neach * m
+sigma = 1
+
+
+set.seed(1)
+gen_data(neach, m, k, rho, sigma, beta,
+    write.out = TRUE, data_dir = DATA_DIR)
+
+# For predictions
+set.seed(1)
+tmp = gen_data(1000, 1, k, rho, sigma)
+new.X = tmp$X
+new.y = tmp$y
+
+tmp = read_dat_and_get_params(rho, sigma, DATA_DIR)
+mu.s = tmp$mu.s
+lambda.s = tmp$lambda.s
+a.s = tmp$a.s
+b.s = tmp$b.s
+
 
 
 ### Calculate full posterior (sum of the subsets)
@@ -169,7 +212,10 @@ for (i in 2:m){
     rm(tmp)
     }
 # Non-informative prior
-alg1 = rnig(1000, mu, lambda, a, b)
+alg1 = rnig(5000, mu, lambda, a, b)
+
+dim(alg1$beta)
+dim(new.X)
 
 
 
@@ -499,7 +545,55 @@ xtable(head(cbind(colMeans(alg3$gamma), colMeans(alg4$gamma)), 10))
 xtable(t(head(cbind(colMeans(alg3$gamma), colMeans(alg4$gamma)), 10)))
 
 ### MSE
-c(mean((alg1$beta - t(matrix(beta, k, nrow(alg1$beta))))^2), 
-    mean((alg2$beta - t(matrix(beta, k, nrow(alg2$beta))))^2), 
-    mean((alg3$beta - t(matrix(beta, k, nrow(alg3$beta))))^2), 
-    mean((alg4$beta - t(matrix(beta, k, nrow(alg4$beta))))^2))
+mse = matrix(0, 4, 2)
+# MSE for beta
+mse[1,1] = mean((alg1$beta - t(matrix(beta, k, nrow(alg1$beta))))^2)
+mse[2,1] = mean((alg2$beta - t(matrix(beta, k, nrow(alg2$beta))))^2)
+mse[3,1] = mean((alg3$beta - t(matrix(beta, k, nrow(alg3$beta))))^2)
+mse[4,1] = mean((alg4$beta - t(matrix(beta, k, nrow(alg4$beta))))^2)
+
+# Prediction MSE
+mse[1,2] = mean((new.y - rowMeans(new.X %*% t(alg1$beta)))^2)
+mse[2,2] = mean((new.y - rowMeans(new.X %*% t(alg2$beta)))^2)
+mse[3,2] = mean((new.y - rowMeans(new.X %*% t(alg3$beta)))^2)
+mse[4,2] = mean((new.y - rowMeans(new.X %*% t(alg4$beta)))^2)
+
+
+pred.y = alg1$beta %*% t(new.X)
+pred.y = alg1$beta %*% t(new.X) + matrix(rnorm(500 * 5000, 0, sqrt(alg1$sigma2)), 5000, 500)
+mm = apply(pred.y, 2, mean)
+qq = apply(pred.y, 2, quantile, c(0.025, 0.975))
+
+sum((new.y - mm)^2)
+sum(apply(pred.y, 2, var))
+
+plot(new.y, mm, ylim = range(pred.y))
+segments(new.y, qq[1,], new.y, qq[2,])
+abline(0, 1, lwd = 2)
+
+new.X[3,] %*% beta
+new.y[3]
+
+plot(Xstar %*% beta, ystar)
+plot(new.y, new.X %*% beta)
+plot(new.y, new.X %*% beta)
+
+
+### Mean posterior interval lengths
+ind1 = 1:10
+ind2 = 11:k
+
+mlen = matrix(0, 4, 2)
+
+mlen[1,1] = mean(apply(apply(alg1$beta, 2, quantile, c(0.025, 0.975)), 2, diff)[ind1])
+mlen[1,2] = mean(apply(apply(alg1$beta, 2, quantile, c(0.025, 0.975)), 2, diff)[ind2])
+
+mlen[2,1] = mean(apply(apply(alg2$beta, 2, quantile, c(0.025, 0.975)), 2, diff)[ind1])
+mlen[2,2] = mean(apply(apply(alg2$beta, 2, quantile, c(0.025, 0.975)), 2, diff)[ind2])
+
+mlen[3,1] = mean(apply(apply(alg3$beta, 2, quantile, c(0.025, 0.975)), 2, diff)[ind1])
+mlen[3,2] = mean(apply(apply(alg3$beta, 2, quantile, c(0.025, 0.975)), 2, diff)[ind2])
+
+mlen[4,1] = mean(apply(apply(alg4$beta, 2, quantile, c(0.025, 0.975)), 2, diff)[ind1])
+mlen[4,2] = mean(apply(apply(alg4$beta, 2, quantile, c(0.025, 0.975)), 2, diff)[ind2])
+
